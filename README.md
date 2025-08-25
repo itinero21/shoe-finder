@@ -1,51 +1,108 @@
-# Welcome to your Expo app 👋
+# 👟 Shoe Finder
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A modern React Native app built with Expo that helps users find the perfect running or walking shoes based on their individual needs and preferences.
 
-## Get started
+## ✨ Features
 
-1. Install dependencies
+- **🎯 Smart Quiz System** - Multi-step questionnaire with progress tracking
+- **🔍 Advanced Search & Filter** - Find shoes by brand, category, stability, and more
+- **❤️ Favorites Management** - Save and organize your preferred shoes
+- **📱 Modern UI/UX** - Beautiful animations, gradients, and card-based design
+- **📊 Personalized Recommendations** - AI-powered scoring algorithm
+- **📜 Quiz History** - Track past quiz results and recommendations
+- **💡 Daily Tips** - Rotating tips for injury prevention and shoe care
+- **👥 Community Polls** - See what other runners prefer
+- **⚙️ Settings & Preferences** - Customize your app experience
 
+## 🚀 Quick Start
+
+1. **Install dependencies**
    ```bash
    npm install
    ```
 
-2. Start the app
-
+2. **Start the development server**
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+3. **Open the app**
+   - **Web**: Visit `http://localhost:8081` in your browser
+   - **Mobile**: Scan the QR code with Expo Go app
+   - **iOS Simulator**: Press `i` in the terminal
+   - **Android Emulator**: Press `a` in the terminal
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 📱 App Structure
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Tabs Navigation
+- **Quiz** - Take the smart shoe recommendation quiz
+- **Search** - Browse and filter the complete shoe database
+- **Favorites** - View saved shoes with persistent storage
+- **History** - Review past quiz results and recommendations
+- **Settings** - Customize app preferences and view information
 
-## Get a fresh project
+### Core Components
+- **Quiz Component** - Multi-step form with smooth animations
+- **ShoeCard Component** - Detailed shoe cards with specs and actions
+- **Search & Filter** - Advanced filtering with modal interface
 
-When you're ready, run:
+### Data & Logic
+- **Shoe Database** - 12+ shoes from major brands (Nike, Brooks, Hoka, etc.)
+- **Scoring Algorithm** - Intelligent matching based on user preferences
+- **AsyncStorage Integration** - Persistent favorites and settings
 
-```bash
-npm run reset-project
+## 🛠 Technologies
+
+- **React Native** & **Expo Router** for navigation
+- **TypeScript** for type safety
+- **React Native Reanimated** for smooth animations
+- **AsyncStorage** for data persistence
+- **Expo Haptics** for tactile feedback
+- **Linear Gradients** for modern UI design
+
+## 📂 Project Structure
+
+```
+shoe-finder/
+├── app/
+│   ├── (tabs)/              # Tab-based screens
+│   │   ├── index.tsx        # Quiz screen
+│   │   ├── search.tsx       # Search & filter
+│   │   ├── favorites.tsx    # Saved shoes
+│   │   ├── history.tsx      # Quiz history
+│   │   └── explore.tsx      # Settings
+│   ├── data/
+│   │   └── shoes.ts         # Shoe database & tips
+│   └── utils/
+│       ├── scoring.ts       # Recommendation algorithm
+│       └── storage.ts       # AsyncStorage utilities
+├── components/
+│   ├── Quiz.tsx             # Multi-step quiz component
+│   ├── ShoeCard.tsx         # Shoe display cards
+│   └── ui/                  # UI components
+└── assets/                  # Images and fonts
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 🎨 Design Features
 
-## Learn more
+- **Modern gradient backgrounds** with glassmorphism effects
+- **Smooth page transitions** using React Native Reanimated
+- **Card-based UI** with shadows and rounded corners
+- **Haptic feedback** for enhanced user experience
+- **Progressive loading** with staggered animations
+- **Responsive design** that works on all screen sizes
 
-To learn more about developing your project with Expo, look at the following resources:
+## 🔧 Development
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Linting & Type Checking
+```bash
+npm run lint          # ESLint check
+npx tsc --noEmit      # TypeScript check
+```
 
-## Join the community
+### Clear Cache
+```bash
+npx expo start --clear    # Clear Metro cache
+```
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-# ShoeFinder
+Built with ❤️ using React Native & Expo

@@ -4,6 +4,9 @@
     "slug": "shoe-finder",
     "scheme": "shoefinder",
     "version": "1.0.0",
-    "orientation": "portrait"
+    "orientation": "portrait",
+    "plugins": [
+      "expo-router"
+    ]
   }
 }
