@@ -114,8 +114,8 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
   shoe1,
   shoe2,
 }) => {
-  const betterStack = shoe1.stackMm > shoe2.stackMm ? 'left' : shoe1.stackMm < shoe2.stackMm ? 'right' : 'equal';
-  const betterWeight = shoe1.weightOz < shoe2.weightOz ? 'left' : shoe1.weightOz > shoe2.weightOz ? 'right' : 'equal';
+  const betterStack = shoe1.specs.stack_heel_mm > shoe2.specs.stack_heel_mm ? 'left' : shoe1.specs.stack_heel_mm < shoe2.specs.stack_heel_mm ? 'right' : 'equal';
+  const betterWeight = shoe1.specs.weight_oz < shoe2.specs.weight_oz ? 'left' : shoe1.specs.weight_oz > shoe2.specs.weight_oz ? 'right' : 'equal';
 
   const ShoeHeader: React.FC<{ shoe: Shoe; side: 'left' | 'right' }> = ({ shoe, side }) => {
     const dark = side === 'right';
@@ -155,10 +155,10 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
           <Animated.View entering={FadeIn.delay(300)} style={styles.section}>
             <Text style={styles.sectionTitle}>// SPECS</Text>
             <Row label="CATEGORY" value1={getCategoryLabel(shoe1.category)} value2={getCategoryLabel(shoe2.category)} />
-            <Row label="HEEL DROP" value1={`${shoe1.dropMm}mm`} value2={`${shoe2.dropMm}mm`} />
-            <Row label="STACK HEIGHT" value1={`${shoe1.stackMm}mm`} value2={`${shoe2.stackMm}mm`} betterSide={betterStack} />
-            <Row label="WEIGHT" value1={`${shoe1.weightOz}oz`} value2={`${shoe2.weightOz}oz`} betterSide={betterWeight} />
-            <Row label="TERRAIN" value1={shoe1.terrain} value2={shoe2.terrain} />
+            <Row label="HEEL DROP" value1={`${shoe1.specs.drop_mm}mm`} value2={`${shoe2.specs.drop_mm}mm`} />
+            <Row label="STACK HEIGHT" value1={`${shoe1.specs.stack_heel_mm}mm`} value2={`${shoe2.specs.stack_heel_mm}mm`} betterSide={betterStack} />
+            <Row label="WEIGHT" value1={`${shoe1.specs.weight_oz}oz`} value2={`${shoe2.specs.weight_oz}oz`} betterSide={betterWeight} />
+            <Row label="STABILITY" value1={shoe1.biomech.stability_level} value2={shoe2.biomech.stability_level} />
           </Animated.View>
 
           {/* Pro/Con side by side */}
@@ -167,14 +167,14 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
             <View style={styles.prosRow}>
               <View style={styles.prosCol}>
                 <Text style={styles.prosShoeLabel}>{shoe1.model}</Text>
-                {shoe1.pros.slice(0, 3).map((p, i) => (
+                {shoe1.tech.slice(0, 3).map((p, i) => (
                   <Text key={i} style={styles.proItem}>+ {p}</Text>
                 ))}
               </View>
               <View style={styles.prosDivider} />
               <View style={styles.prosCol}>
                 <Text style={styles.prosShoeLabel}>{shoe2.model}</Text>
-                {shoe2.pros.slice(0, 3).map((p, i) => (
+                {shoe2.tech.slice(0, 3).map((p, i) => (
                   <Text key={i} style={styles.proItem}>+ {p}</Text>
                 ))}
               </View>
@@ -187,11 +187,11 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
             <View style={styles.notesRow}>
               <View style={styles.noteCard}>
                 <Text style={styles.noteShoe}>{shoe1.brand} {shoe1.model}</Text>
-                <Text style={styles.noteText}>{shoe1.notes}</Text>
+                <Text style={styles.noteText}>{shoe1.summary}</Text>
               </View>
               <View style={styles.noteCard}>
                 <Text style={styles.noteShoe}>{shoe2.brand} {shoe2.model}</Text>
-                <Text style={styles.noteText}>{shoe2.notes}</Text>
+                <Text style={styles.noteText}>{shoe2.summary}</Text>
               </View>
             </View>
           </Animated.View>

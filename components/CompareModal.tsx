@@ -110,7 +110,7 @@ export const CompareModal: React.FC<CompareModalProps> = ({
                   <Text style={[styles.shoeBrand, isSelected(shoe.id) && styles.textLight]}>{shoe.brand.toUpperCase()}</Text>
                   <Text style={[styles.shoeModel, isSelected(shoe.id) && styles.textLightBold]}>{shoe.model}</Text>
                   <Text style={[styles.shoeSpecs, isSelected(shoe.id) && styles.textLight]}>
-                    {shoe.dropMm}mm drop · {shoe.terrain}
+                    {shoe.specs.drop_mm}mm drop · {shoe.specs.weight_oz}oz
                   </Text>
                 </View>
 

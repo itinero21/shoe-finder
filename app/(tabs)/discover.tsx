@@ -23,19 +23,19 @@ import { getFavorites, addToFavorites, removeFromFavorites } from '../utils/stor
 interface Filters {
   brands: string[];
   categories: string[];
-  terrain: string[];
+  use_cases: string[];
 }
 
 const BRAND_OPTIONS = [...new Set(SHOES.map(shoe => shoe.brand))].sort();
 const CATEGORY_OPTIONS = [...new Set(SHOES.map(shoe => shoe.category))].sort();
-const TERRAIN_OPTIONS = [...new Set(SHOES.map(shoe => shoe.terrain))].sort();
+const USE_CASE_OPTIONS = [...new Set(SHOES.flatMap(shoe => shoe.use_cases))].sort();
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<Filters>({
     brands: [],
     categories: [],
-    terrain: [],
+    use_cases: [],
   });
   const [showFilters, setShowFilters] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -101,7 +101,7 @@ export default function SearchScreen() {
       results = results.filter(shoe => 
         shoe.brand.toLowerCase().includes(query) ||
         shoe.model.toLowerCase().includes(query) ||
-        shoe.notes.toLowerCase().includes(query)
+        shoe.summary.toLowerCase().includes(query)
       );
     }
 
@@ -114,8 +114,8 @@ export default function SearchScreen() {
       results = results.filter(shoe => filters.categories.includes(shoe.category));
     }
     
-    if (filters.terrain.length > 0) {
-      results = results.filter(shoe => filters.terrain.includes(shoe.terrain));
+    if (filters.use_cases.length > 0) {
+      results = results.filter(shoe => shoe.use_cases.some(u => filters.use_cases.includes(u)));
     };
 
     return results;
@@ -137,13 +137,13 @@ export default function SearchScreen() {
     setFilters({
       brands: [],
       categories: [],
-      terrain: [],
+      use_cases: [],
     });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
   const getActiveFilterCount = () => {
-    return filters.brands.length + filters.categories.length + filters.terrain.length;
+    return filters.brands.length + filters.categories.length + filters.use_cases.length;
   };
 
   const FilterSection: React.FC<{
@@ -283,10 +283,10 @@ export default function SearchScreen() {
             />
 
             <FilterSection
-              title="Terrain"
-              options={TERRAIN_OPTIONS}
-              selectedOptions={filters.terrain}
-              onToggle={(value) => toggleFilter('terrain', value)}
+              title="Use Case"
+              options={USE_CASE_OPTIONS}
+              selectedOptions={filters.use_cases}
+              onToggle={(value) => toggleFilter('use_cases', value)}
             />
           </ScrollView>
 

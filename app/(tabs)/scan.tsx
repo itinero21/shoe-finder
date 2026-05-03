@@ -128,6 +128,7 @@ export default function ScanScreen() {
   const [recs, setRecs] = useState<ScoredShoe[]>([]);
   const [answers, setAnswers] = useState<QuizAnswers | null>(null);
   const [selectedShoe, setSelectedShoe] = useState<ScoredShoe | null>(null);
+  const [visibleCount, setVisibleCount] = useState(3);
   const insets = useSafeAreaInsets();
 
   const handleQuizComplete = (quizAnswers: QuizAnswers) => {
@@ -136,6 +137,7 @@ export default function ScanScreen() {
     setAnswers(quizAnswers);
     setShowQuiz(false);
     setMode('results');
+    setVisibleCount(3);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
@@ -144,6 +146,7 @@ export default function ScanScreen() {
     setRecs([]);
     setAnswers(null);
     setSelectedShoe(null);
+    setVisibleCount(3);
   };
 
   const handleAddToRotation = async (shoeId: string) => {
@@ -191,7 +194,7 @@ export default function ScanScreen() {
               <Text style={[s.detailCatTag]}>{shoe.category.replace(/_/g, ' ').toUpperCase()}</Text>
             </View>
             <Text style={s.detailModel}>{shoe.model}</Text>
-            <Text style={s.detailTagline}>{shoe.notes}</Text>
+            <Text style={s.detailTagline}>{shoe.summary}</Text>
           </View>
 
           {/* Spec grid */}
@@ -199,9 +202,9 @@ export default function ScanScreen() {
             <Text style={s.sectionLabel}>▎ SPECIFICATIONS</Text>
             <View style={s.specGrid}>
               {[
-                { val: `${shoe.weightOz}`, unit: 'OZ', label: 'WEIGHT' },
-                { val: `${shoe.stackMm}`, unit: 'MM', label: 'STACK' },
-                { val: `${shoe.dropMm}`, unit: 'MM', label: 'DROP' },
+                { val: `${shoe.specs.weight_oz}`, unit: 'OZ', label: 'WEIGHT' },
+                { val: `${shoe.specs.stack_heel_mm}`, unit: 'MM', label: 'STACK' },
+                { val: `${shoe.specs.drop_mm}`, unit: 'MM', label: 'DROP' },
                 { val: shoe.category.replace(/_/g, ' ').split(' ')[0].toUpperCase(), unit: '', label: 'TYPE' },
               ].map((item, i) => (
                 <View key={i} style={[s.specCell, i < 3 && s.specCellBorder]}>
@@ -223,7 +226,7 @@ export default function ScanScreen() {
                 <Text style={[s.pcSymbol, { color: ACCENT }]}>+</Text>
                 <Text style={s.pcTitle}>EDGE</Text>
               </View>
-              {shoe.pros.map((pro, i) => (
+              {shoe.tech.map((pro, i) => (
                 <View key={i} style={s.pcItem}>
                   <Text style={[s.pcIndex, { color: ACCENT }]}>/{String(i + 1).padStart(2, '0')}/</Text>
                   <Text style={s.pcText}>{pro}</Text>
@@ -240,20 +243,20 @@ export default function ScanScreen() {
                 <Text style={[s.pcSymbol, { color: INK }]}>−</Text>
                 <Text style={s.pcTitle}>FRICTION</Text>
               </View>
-              {shoe.cons.map((con, i) => (
+              {shoe.good_for_conditions.slice(0, 4).map((con, i) => (
                 <View key={i} style={s.pcItem}>
                   <Text style={s.pcIndex}>/{String(i + 1).padStart(2, '0')}/</Text>
-                  <Text style={[s.pcText, { opacity: 0.6 }]}>{con}</Text>
+                  <Text style={[s.pcText, { opacity: 0.6 }]}>{con.replace(/_/g, ' ')}</Text>
                 </View>
               ))}
             </View>
           </View>
 
           {/* Key features */}
-          {shoe.features.length > 0 && (
+          {shoe.tech.length > 0 && (
             <View style={s.featSection}>
-              <Text style={s.sectionLabel}>▎ KEY FEATURES</Text>
-              {shoe.features.map((f, i) => (
+              <Text style={s.sectionLabel}>▎ KEY TECHNOLOGIES</Text>
+              {shoe.tech.map((f, i) => (
                 <View key={i} style={s.featItem}>
                   <View style={s.featDot} />
                   <Text style={s.featText}>{f}</Text>
@@ -291,8 +294,10 @@ export default function ScanScreen() {
 
   // ── Results ─────────────────────────────────────────────
   if (mode === 'results' && recs.length > 0) {
-    const primary = recs[0];
-    const secondary = recs.slice(1, 4);
+    const visibleRecs = recs.slice(0, visibleCount);
+    const primary = visibleRecs[0];
+    const secondary = visibleRecs.slice(1);
+    const hasMore = visibleCount < recs.length;
     const compat = Math.min(98, 72 + Math.round(primary.score * 1.2));
 
     const getCategoryLabel = (cat: string) => {
@@ -328,19 +333,29 @@ export default function ScanScreen() {
 
             {/* Answer tags */}
             <View style={s.tagRow}>
-              {answers?.archType && (
+              {answers?.comfort_pref && (
                 <View style={s.tagInk}>
-                  <Text style={s.tagTextLight}>/{answers.archType.toUpperCase()}-ARCH/</Text>
-                </View>
-              )}
-              {answers?.pronation && (
-                <View style={s.tagInk}>
-                  <Text style={s.tagTextLight}>/{answers.pronation.toUpperCase()}-PRON/</Text>
+                  <Text style={s.tagTextLight}>/{answers.comfort_pref.toUpperCase()}/</Text>
                 </View>
               )}
               {answers?.goal && (
                 <View style={s.tagAccent}>
-                  <Text style={s.tagTextLight}>/{answers.goal.toUpperCase()}/</Text>
+                  <Text style={s.tagTextLight}>/{answers.goal.replace('_', ' ').toUpperCase()}/</Text>
+                </View>
+              )}
+              {answers?.arch_type && (
+                <View style={s.tagInk}>
+                  <Text style={s.tagTextLight}>/{answers.arch_type.toUpperCase()}-ARCH/</Text>
+                </View>
+              )}
+              {answers?.injury_current && answers.injury_current.length > 0 && !answers.injury_current.includes('none') && (
+                <View style={[s.tagInk, { backgroundColor: '#FF3D00', borderColor: '#FF3D00' }]}>
+                  <Text style={s.tagTextLight}>/{answers.injury_current.length} INJUR{answers.injury_current.length > 1 ? 'IES' : 'Y'}/</Text>
+                </View>
+              )}
+              {answers?.brand_pref && answers.brand_pref.length > 0 && (
+                <View style={s.tagInk}>
+                  <Text style={s.tagTextLight}>/{answers.brand_pref.join(' · ')}/</Text>
                 </View>
               )}
             </View>
@@ -368,15 +383,15 @@ export default function ScanScreen() {
                 <Text style={s.primaryBrand}>{primary.brand}</Text>
                 <Text style={[s.primaryModel, { color: ACCENT }]}>{primary.model}</Text>
 
-                <Text style={s.primaryTagline}>{primary.notes}</Text>
+                <Text style={s.primaryTagline}>{primary.summary}</Text>
 
                 {/* Stats */}
                 <View style={s.statsGrid}>
                   {[
-                    { val: `${primary.weightOz}OZ`, label: 'WEIGHT' },
-                    { val: `${primary.dropMm}MM`, label: 'DROP' },
-                    { val: `${primary.stackMm}MM`, label: 'STACK' },
-                    { val: primary.terrain.toUpperCase(), label: 'SURFACE' },
+                    { val: `${primary.specs.weight_oz}OZ`, label: 'WEIGHT' },
+                    { val: `${primary.specs.drop_mm}MM`, label: 'DROP' },
+                    { val: `${primary.specs.stack_heel_mm}MM`, label: 'STACK' },
+                    { val: primary.biomech.stability_level.toUpperCase(), label: 'STABILITY' },
                   ].map((stat, i) => (
                     <View key={i} style={[s.statCell, i < 3 && s.statCellBorder]}>
                       <Text style={s.statVal}>{stat.val}</Text>
@@ -399,37 +414,69 @@ export default function ScanScreen() {
           </View>
 
           {/* Secondary matches */}
-          <View style={s.secondarySection}>
-            <View style={s.secondaryHeader}>
-              <Text style={s.secondaryTitle}>BACKUP OPTIONS</Text>
-              <Text style={s.secondaryMeta}>02 — 04 / RANKED</Text>
-            </View>
+          {secondary.length > 0 && (
+            <View style={s.secondarySection}>
+              <View style={s.secondaryHeader}>
+                <Text style={s.secondaryTitle}>MORE MATCHES</Text>
+                <Text style={s.secondaryMeta}>{String(2).padStart(2, '0')} — {String(visibleCount).padStart(2, '0')} / RANKED</Text>
+              </View>
 
-            {secondary.map((shoe, i) => (
+              {secondary.map((shoe, i) => (
+                <Pressable
+                  key={shoe.id}
+                  onPress={() => { setSelectedShoe(shoe); setMode('detail'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                  style={({ pressed }) => [s.secCardWrap, pressed && { opacity: 0.9 }]}
+                >
+                  <View style={s.secCardShadow} />
+                  <View style={s.secCard}>
+                    <View style={s.secCardTop}>
+                      <View style={s.secRankBadge}>
+                        <Text style={s.secRankText}>/{String(i + 2).padStart(2, '0')}/</Text>
+                      </View>
+                      <Text style={s.secCode}>{shoe.id.toUpperCase().slice(0, 12)}</Text>
+                    </View>
+                    <Text style={s.secBrand}>{shoe.brand}</Text>
+                    <Text style={s.secModel}>{shoe.model}</Text>
+                    <View style={s.secCardBottom}>
+                      <View style={s.secCatBadge}>
+                        <Text style={s.secCatText}>{getCategoryLabel(shoe.category)}</Text>
+                      </View>
+                      <Text style={s.secInspect}>INSPECT →</Text>
+                    </View>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          )}
+
+          {/* Show more / exhausted */}
+          <View style={s.showMoreSection}>
+            {hasMore ? (
               <Pressable
-                key={shoe.id}
-                onPress={() => { setSelectedShoe(shoe); setMode('detail'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
-                style={({ pressed }) => [s.secCardWrap, pressed && { opacity: 0.9 }]}
+                onPress={() => {
+                  setVisibleCount(v => v + 3);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                }}
+                style={({ pressed }) => [s.showMoreWrap, pressed && { opacity: 0.85 }]}
               >
-                <View style={s.secCardShadow} />
-                <View style={s.secCard}>
-                  <View style={s.secCardTop}>
-                    <View style={s.secRankBadge}>
-                      <Text style={s.secRankText}>/{String(i + 2).padStart(2, '0')}/</Text>
-                    </View>
-                    <Text style={s.secCode}>{shoe.id.toUpperCase().slice(0, 12)}</Text>
-                  </View>
-                  <Text style={s.secBrand}>{shoe.brand}</Text>
-                  <Text style={s.secModel}>{shoe.model}</Text>
-                  <View style={s.secCardBottom}>
-                    <View style={s.secCatBadge}>
-                      <Text style={s.secCatText}>{getCategoryLabel(shoe.category)}</Text>
-                    </View>
-                    <Text style={s.secInspect}>INSPECT →</Text>
-                  </View>
+                <View style={s.showMoreShadow} />
+                <View style={s.showMoreBtn}>
+                  <Text style={s.showMoreText}>NOT HAPPY? SHOW 3 MORE →</Text>
                 </View>
               </Pressable>
-            ))}
+            ) : (
+              <View style={s.exhaustedCard}>
+                <Text style={s.exhaustedTitle}>ALL MATCHES SHOWN</Text>
+                <Text style={s.exhaustedSub}>
+                  {answers?.brand_pref && answers.brand_pref.length > 0
+                    ? 'Try opening to more brands for wider results.'
+                    : 'Showing all compatible shoes from the database.'}
+                </Text>
+                <Pressable onPress={handleReset} style={s.restartSmall}>
+                  <Text style={s.restartSmallText}>RESTART PROTOCOL ↺</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
 
           <Marquee
@@ -868,6 +915,69 @@ const s = StyleSheet.create({
   secCatBadge: { backgroundColor: INK, paddingHorizontal: 8, paddingVertical: 4 },
   secCatText: { fontFamily: 'SpaceMono', fontSize: 8, color: PAPER, letterSpacing: 1 },
   secInspect: { fontFamily: 'SpaceMono', fontSize: 10, color: ACCENT, letterSpacing: 1 },
+
+  // Show more / exhausted
+  showMoreSection: { paddingHorizontal: 20, paddingVertical: 20 },
+  showMoreWrap: { position: 'relative' },
+  showMoreShadow: {
+    position: 'absolute',
+    top: 5, left: 5, right: -5, bottom: -5,
+    backgroundColor: INK,
+    borderRadius: 2,
+  },
+  showMoreBtn: {
+    backgroundColor: PAPER,
+    borderWidth: 2,
+    borderColor: INK,
+    borderRadius: 2,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  showMoreText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 12,
+    fontWeight: '700',
+    color: INK,
+    letterSpacing: 1.5,
+  },
+  exhaustedCard: {
+    borderWidth: 2,
+    borderColor: INK,
+    borderRadius: 2,
+    padding: 24,
+    alignItems: 'center',
+    backgroundColor: PAPER,
+  },
+  exhaustedTitle: {
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    fontWeight: '700',
+    color: INK,
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  exhaustedSub: {
+    fontFamily: 'SpaceMono',
+    fontSize: 10,
+    color: INK + '80',
+    textAlign: 'center',
+    lineHeight: 17,
+    marginBottom: 16,
+  },
+  restartSmall: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 2,
+    borderColor: ACCENT,
+    borderRadius: 2,
+  },
+  restartSmallText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 10,
+    color: ACCENT,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+  },
 
   // Footer
   resultsFooter: { alignItems: 'center', padding: 32 },
