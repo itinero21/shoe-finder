@@ -116,7 +116,6 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
 }) => {
   const betterStack = shoe1.stackMm > shoe2.stackMm ? 'left' : shoe1.stackMm < shoe2.stackMm ? 'right' : 'equal';
   const betterWeight = shoe1.weightOz < shoe2.weightOz ? 'left' : shoe1.weightOz > shoe2.weightOz ? 'right' : 'equal';
-  const betterPrice = shoe1.price < shoe2.price ? 'left' : shoe1.price > shoe2.price ? 'right' : 'equal';
 
   const ShoeHeader: React.FC<{ shoe: Shoe; side: 'left' | 'right' }> = ({ shoe, side }) => {
     const dark = side === 'right';
@@ -125,7 +124,6 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
         <Text style={[styles.shoeHeaderBrand, dark && { color: 'rgba(244,241,234,0.4)' }]}>{shoe.brand.toUpperCase()}</Text>
         <Text style={[styles.shoeHeaderModel, dark && { color: '#F4F1EA' }]} numberOfLines={2}>{shoe.model}</Text>
         <Text style={styles.shoeHeaderCat}>{getCategoryLabel(shoe.category)}</Text>
-        <Text style={[styles.shoeHeaderPrice, dark && { color: '#F4F1EA' }]}>${shoe.price}</Text>
       </View>
     );
   };
@@ -161,7 +159,6 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
             <Row label="STACK HEIGHT" value1={`${shoe1.stackMm}mm`} value2={`${shoe2.stackMm}mm`} betterSide={betterStack} />
             <Row label="WEIGHT" value1={`${shoe1.weightOz}oz`} value2={`${shoe2.weightOz}oz`} betterSide={betterWeight} />
             <Row label="TERRAIN" value1={shoe1.terrain} value2={shoe2.terrain} />
-            <Row label="PRICE" value1={`$${shoe1.price}`} value2={`$${shoe2.price}`} betterSide={betterPrice} />
           </Animated.View>
 
           {/* Pro/Con side by side */}
@@ -276,12 +273,6 @@ const styles = StyleSheet.create({
     color: '#FF3D00',
     letterSpacing: 1,
     marginBottom: 6,
-  },
-  shoeHeaderPrice: {
-    fontFamily: 'SpaceMono',
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0A0A0A',
   },
   headerDivider: {
     width: 2,

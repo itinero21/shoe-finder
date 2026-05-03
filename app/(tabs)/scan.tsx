@@ -192,11 +192,6 @@ export default function ScanScreen() {
             </View>
             <Text style={s.detailModel}>{shoe.model}</Text>
             <Text style={s.detailTagline}>{shoe.notes}</Text>
-
-            <View style={s.detailPriceRow}>
-              <Text style={[s.detailPrice, { color: ACCENT }]}>${shoe.price}</Text>
-              <Text style={s.detailPriceUnit}>USD</Text>
-            </View>
           </View>
 
           {/* Spec grid */}
@@ -378,10 +373,10 @@ export default function ScanScreen() {
                 {/* Stats */}
                 <View style={s.statsGrid}>
                   {[
-                    { val: `$${primary.price}`, label: 'PRICE' },
                     { val: `${primary.weightOz}OZ`, label: 'WEIGHT' },
                     { val: `${primary.dropMm}MM`, label: 'DROP' },
                     { val: `${primary.stackMm}MM`, label: 'STACK' },
+                    { val: primary.terrain.toUpperCase(), label: 'SURFACE' },
                   ].map((stat, i) => (
                     <View key={i} style={[s.statCell, i < 3 && s.statCellBorder]}>
                       <Text style={s.statVal}>{stat.val}</Text>
@@ -427,10 +422,6 @@ export default function ScanScreen() {
                   <Text style={s.secBrand}>{shoe.brand}</Text>
                   <Text style={s.secModel}>{shoe.model}</Text>
                   <View style={s.secCardBottom}>
-                    <View>
-                      <Text style={s.secPriceLabel}>PRICE</Text>
-                      <Text style={s.secPrice}>${shoe.price}</Text>
-                    </View>
                     <View style={s.secCatBadge}>
                       <Text style={s.secCatText}>{getCategoryLabel(shoe.category)}</Text>
                     </View>

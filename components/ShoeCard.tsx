@@ -150,11 +150,6 @@ export const ShoeCard: React.FC<ShoeCardProps> = ({
             <Text style={styles.specValue}>{shoe.weightOz}oz</Text>
             <Text style={styles.specKey}>WEIGHT</Text>
           </View>
-          <View style={styles.specDivider} />
-          <View style={styles.specItem}>
-            <Text style={styles.specValue}>${shoe.price}</Text>
-            <Text style={styles.specKey}>PRICE</Text>
-          </View>
         </View>
 
         {/* Mileage tracker */}

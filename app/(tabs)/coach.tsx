@@ -1,51 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
-import RunningCoachChat from '../../components/RunningCoachChat';
-import { RunningCoachContext } from '../services/openai';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import RunningCoach from '../../components/RunningCoach';
 
 export default function CoachScreen() {
-  const [context, setContext] = useState<RunningCoachContext>({});
-
-  useEffect(() => {
-    loadUserContext();
-  }, []);
-
-  const loadUserContext = async () => {
-    try {
-      const rotationData = await AsyncStorage.getItem('userRotation');
-      const rotation = rotationData ? JSON.parse(rotationData) : [];
-
-      const scanResultsData = await AsyncStorage.getItem('scanResults');
-      const scanResults = scanResultsData ? JSON.parse(scanResultsData) : null;
-
-      setContext({
-        userRotation: rotation.map((shoe: any) => ({
-          name: shoe.name,
-          mileage: shoe.mileage || 0,
-          category: shoe.category,
-        })),
-        userProfile: scanResults
-          ? {
-              archType: scanResults.archType,
-              pronation: scanResults.pronation,
-              width: scanResults.width,
-            }
-          : undefined,
-      });
-    } catch (error) {
-      console.error('Error loading user context:', error);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>// STRIDE PROTOCOL</Text>
         <Text style={styles.title}>COACH.</Text>
-        <Text style={styles.subtitle}>AI-powered running intelligence</Text>
+        <Text style={styles.subtitle}>Running intelligence, no fluff</Text>
       </View>
-      <RunningCoachChat context={context} />
+      <RunningCoach />
     </SafeAreaView>
   );
 }
