@@ -479,15 +479,6 @@ const SplashView: React.FC<{ onBegin: () => void }> = ({ onBegin }) => {
   const subAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Stagger letter drops
-    const letterAnimations = letterAnims.map((anim, i) =>
-      Animated.delay(i * 80 + Animated.parallel([
-        Animated.spring(anim.y, { toValue: 0, useNativeDriver: true, tension: 100, friction: 8 }),
-        Animated.timing(anim.op, { toValue: 1, duration: 200, useNativeDriver: true }),
-      ]) as any)
-    );
-
-    // Simple stagger without the complex delay type issue
     letters.forEach((_, i) => {
       setTimeout(() => {
         Animated.parallel([
