@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,9 @@ import {
   StyleSheet,
   ScrollView,
   SafeAreaView,
-  Image,
   Alert,
 } from 'react-native';
 import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Shoe } from '../app/data/shoes';
 
@@ -36,7 +34,6 @@ export const CompareModal: React.FC<CompareModalProps> = ({
     if (selectedShoes.length === 2) {
       const shoe1 = shoes.find(s => s.id === selectedShoes[0]);
       const shoe2 = shoes.find(s => s.id === selectedShoes[1]);
-      
       if (shoe1 && shoe2) {
         onCompare(shoe1, shoe2);
       }
@@ -46,7 +43,6 @@ export const CompareModal: React.FC<CompareModalProps> = ({
   };
 
   const isSelected = (shoeId: string) => selectedShoes.includes(shoeId);
-  
   const canSelectMore = selectedShoes.length < 2;
 
   return (
@@ -57,40 +53,41 @@ export const CompareModal: React.FC<CompareModalProps> = ({
     >
       <SafeAreaView style={styles.container}>
         <Animated.View entering={SlideInUp.delay(100)} style={styles.header}>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={styles.cancelText}>Cancel</Text>
+          <TouchableOpacity onPress={onClose} style={styles.navBtn}>
+            <Text style={styles.navBtnText}>← CANCEL</Text>
           </TouchableOpacity>
-          
-          <Text style={styles.title}>Select Shoes to Compare</Text>
-          
+
+          <Text style={styles.title}>COMPARE</Text>
+
           <TouchableOpacity
             onPress={handleCompare}
             disabled={selectedShoes.length !== 2}
-            style={[
-              styles.compareHeaderButton,
-              selectedShoes.length === 2 && styles.compareHeaderButtonActive
-            ]}
+            style={styles.navBtn}
           >
             <Text style={[
-              styles.compareHeaderText,
-              selectedShoes.length === 2 && styles.compareHeaderTextActive
+              styles.navBtnText,
+              selectedShoes.length === 2 && styles.navBtnTextActive
             ]}>
-              Compare
+              GO →
             </Text>
           </TouchableOpacity>
         </Animated.View>
 
-        <View style={styles.selectionIndicator}>
-          <Text style={styles.selectionText}>
-            {selectedShoes.length}/2 shoes selected
+        <View style={styles.indicator}>
+          <Text style={styles.indicatorText}>
+            {selectedShoes.length}/2 SELECTED
           </Text>
+          <View style={styles.indicatorDots}>
+            <View style={[styles.dot, selectedShoes.length >= 1 && styles.dotActive]} />
+            <View style={[styles.dot, selectedShoes.length >= 2 && styles.dotActive]} />
+          </View>
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
           {shoes.map((shoe, index) => (
             <Animated.View
               key={shoe.id}
-              entering={FadeIn.delay(index * 50)}
+              entering={FadeIn.delay(index * 40)}
             >
               <TouchableOpacity
                 onPress={() => {
@@ -99,55 +96,36 @@ export const CompareModal: React.FC<CompareModalProps> = ({
                   } else {
                     Alert.alert(
                       'Maximum Selection',
-                      'You can only compare 2 shoes at a time. Deselect one first.'
+                      'Deselect one shoe first.'
                     );
                   }
                 }}
                 style={[
-                  styles.shoeItem,
-                  isSelected(shoe.id) && styles.shoeItemSelected,
-                  !canSelectMore && !isSelected(shoe.id) && styles.shoeItemDisabled
+                  styles.shoeRow,
+                  isSelected(shoe.id) && styles.shoeRowSelected,
+                  !canSelectMore && !isSelected(shoe.id) && styles.shoeRowDisabled,
                 ]}
               >
-                <View style={styles.shoeContent}>
-                  <Image
-                    source={{ uri: shoe.image }}
-                    style={styles.shoeImage}
-                    resizeMode="contain"
-                  />
-                  
-                  <View style={styles.shoeInfo}>
-                    <Text style={styles.shoeBrand}>{shoe.brand}</Text>
-                    <Text style={styles.shoeModel}>{shoe.model}</Text>
-                    
-                    <View style={styles.shoeSpecs}>
-                      <Text style={styles.specText}>{shoe.category}</Text>
-                      <Text style={styles.specDot}>•</Text>
-                      <Text style={styles.specText}>{shoe.cushion}</Text>
-                      <Text style={styles.specDot}>•</Text>
-                      <Text style={styles.specText}>{shoe.terrain}</Text>
-                    </View>
-                  </View>
-                  
-                  <View style={styles.selectionCheckbox}>
-                    {isSelected(shoe.id) ? (
-                      <LinearGradient
-                        colors={['#667eea', '#764ba2']}
-                        style={styles.selectedCheckbox}
-                      >
-                        <Ionicons name="checkmark" size={16} color="white" />
-                      </LinearGradient>
-                    ) : (
-                      <View style={[
-                        styles.unselectedCheckbox,
-                        !canSelectMore && styles.disabledCheckbox
-                      ]} />
-                    )}
-                  </View>
+                <View style={styles.shoeInfo}>
+                  <Text style={[styles.shoeBrand, isSelected(shoe.id) && styles.textLight]}>{shoe.brand.toUpperCase()}</Text>
+                  <Text style={[styles.shoeModel, isSelected(shoe.id) && styles.textLightBold]}>{shoe.model}</Text>
+                  <Text style={[styles.shoeSpecs, isSelected(shoe.id) && styles.textLight]}>
+                    {shoe.dropMm}mm drop · {shoe.terrain} · ${shoe.price}
+                  </Text>
+                </View>
+
+                <View style={[
+                  styles.checkbox,
+                  isSelected(shoe.id) && styles.checkboxSelected,
+                ]}>
+                  {isSelected(shoe.id) && (
+                    <Ionicons name="checkmark" size={14} color="#F4F1EA" />
+                  )}
                 </View>
               </TouchableOpacity>
             </Animated.View>
           ))}
+          <View style={{ height: 40 }} />
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -157,7 +135,7 @@ export const CompareModal: React.FC<CompareModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F4F1EA',
   },
   header: {
     flexDirection: 'row',
@@ -165,132 +143,121 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomWidth: 2,
+    borderBottomColor: '#0A0A0A',
   },
-  cancelText: {
-    fontSize: 16,
-    color: '#667eea',
+  navBtn: {
+    paddingVertical: 6,
+  },
+  navBtnText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: 'rgba(10,10,10,0.35)',
+    letterSpacing: 1,
+  },
+  navBtnTextActive: {
+    color: '#FF3D00',
   },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#212529',
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0A0A0A',
+    letterSpacing: 1,
   },
-  compareHeaderButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f8f9fa',
-  },
-  compareHeaderButtonActive: {
-    backgroundColor: '#667eea',
-  },
-  compareHeaderText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#adb5bd',
-  },
-  compareHeaderTextActive: {
-    color: 'white',
-  },
-  selectionIndicator: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f3f4',
-  },
-  selectionText: {
-    fontSize: 14,
-    color: '#6c757d',
-    textAlign: 'center',
-  },
-  content: {
-    flex: 1,
-    paddingVertical: 16,
-  },
-  shoeItem: {
-    backgroundColor: 'white',
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  shoeItemSelected: {
-    borderColor: '#667eea',
-    backgroundColor: '#f8f9ff',
-  },
-  shoeItemDisabled: {
-    opacity: 0.5,
-  },
-  shoeContent: {
+  indicator: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: '#0A0A0A',
   },
-  shoeImage: {
-    width: 80,
-    height: 60,
-    marginRight: 16,
+  indicatorText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 10,
+    color: 'rgba(10,10,10,0.5)',
+    letterSpacing: 2,
+  },
+  indicatorDots: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
+    backgroundColor: 'transparent',
+  },
+  dotActive: {
+    backgroundColor: '#FF3D00',
+    borderColor: '#FF3D00',
+  },
+  list: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  shoeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F4F1EA',
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
+    borderRadius: 2,
+    padding: 16,
+    marginBottom: 10,
+  },
+  shoeRowSelected: {
+    backgroundColor: '#0A0A0A',
+  },
+  shoeRowDisabled: {
+    opacity: 0.35,
   },
   shoeInfo: {
     flex: 1,
   },
   shoeBrand: {
-    fontSize: 12,
-    color: '#6c757d',
-    marginBottom: 2,
+    fontFamily: 'SpaceMono',
+    fontSize: 9,
+    letterSpacing: 2,
+    color: 'rgba(10,10,10,0.5)',
+    marginBottom: 3,
   },
   shoeModel: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#212529',
+    fontWeight: '800',
+    color: '#0A0A0A',
+    letterSpacing: -0.3,
     marginBottom: 4,
   },
   shoeSpecs: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    fontFamily: 'SpaceMono',
+    fontSize: 10,
+    color: 'rgba(10,10,10,0.45)',
+    letterSpacing: 0.3,
   },
-  specText: {
-    fontSize: 12,
-    color: '#6c757d',
-    textTransform: 'capitalize',
+  textLight: {
+    color: 'rgba(244,241,234,0.6)',
   },
-  specDot: {
-    fontSize: 12,
-    color: '#adb5bd',
-    marginHorizontal: 6,
+  textLightBold: {
+    color: '#F4F1EA',
   },
-  selectionCheckbox: {
+  checkbox: {
     width: 24,
     height: 24,
-    marginLeft: 12,
-  },
-  selectedCheckbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    borderRadius: 2,
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 12,
   },
-  unselectedCheckbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#e9ecef',
-    backgroundColor: 'white',
-  },
-  disabledCheckbox: {
-    borderColor: '#f1f3f4',
-    backgroundColor: '#f8f9fa',
+  checkboxSelected: {
+    backgroundColor: '#FF3D00',
+    borderColor: '#FF3D00',
   },
 });

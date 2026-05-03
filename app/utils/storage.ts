@@ -5,11 +5,11 @@ export interface QuizResult {
   id: string;
   timestamp: number;
   answers: {
-    activity: 'running' | 'walking';
-    distance: 'short' | 'medium' | 'long';
-    injuries: 'knee' | 'plantar' | 'shin' | 'none';
-    flatFeet: boolean;
-    terrain: 'road' | 'trail' | 'both';
+    terrain: 'road' | 'trail';
+    archType: 'flat' | 'normal' | 'high';
+    pronation: 'over' | 'neutral' | 'under';
+    injury: 'knee' | 'plantar' | 'shin' | 'none';
+    goal: 'daily' | 'speed' | 'race';
   };
   recommendations: Shoe[];
 }

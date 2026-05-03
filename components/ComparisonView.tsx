@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,9 @@ import {
   StyleSheet,
   ScrollView,
   SafeAreaView,
-  Image,
   Dimensions,
 } from 'react-native';
 import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { Shoe } from '../app/data/shoes';
 
 interface ComparisonViewProps {
@@ -23,80 +20,93 @@ interface ComparisonViewProps {
 }
 
 const { width: screenWidth } = Dimensions.get('window');
-const cardWidth = (screenWidth - 48) / 2; // 48 = padding + gap
+const cardWidth = (screenWidth - 52) / 2;
 
-interface ComparisonRowProps {
+const getCategoryLabel = (category: string): string => {
+  switch (category) {
+    case 'carbon_plate_racing': return 'CARBON';
+    case 'motion_control': return 'MOTION CTRL';
+    case 'max_cushion': return 'MAX CUSH';
+    case 'lightweight_speed': return 'SPEED';
+    default: return category.replace(/_/g, ' ').toUpperCase();
+  }
+};
+
+interface RowProps {
   label: string;
-  value1: string | number;
-  value2: string | number;
-  icon?: string;
+  value1: string;
+  value2: string;
+  betterSide?: 'left' | 'right' | 'equal';
 }
 
-const ComparisonRow: React.FC<ComparisonRowProps> = ({
-  label,
-  value1,
-  value2,
-  icon,
-}) => {
-  const formatValue = (value: string | number) => {
-    return String(value);
-  };
-
-  const getValue1 = formatValue(value1);
-  const getValue2 = formatValue(value2);
-  
-  // Determine which is "better" for highlighting
-  const getBetterValue = () => {
-    if (label === 'Cushion') {
-      const cushionOrder = ['moderate', 'high', 'max'];
-      const idx1 = cushionOrder.indexOf(String(value1).toLowerCase());
-      const idx2 = cushionOrder.indexOf(String(value2).toLowerCase());
-      return idx1 > idx2 ? 'left' : idx1 < idx2 ? 'right' : 'equal';
-    }
-    return 'equal';
-  };
-
-  const betterValue = getBetterValue();
-
-  return (
-    <View style={styles.comparisonRow}>
-      <View style={styles.rowLabel}>
-        {icon && <Ionicons name={icon as any} size={16} color="#6c757d" />}
-        <Text style={styles.rowLabelText}>{label}</Text>
+const Row: React.FC<RowProps> = ({ label, value1, value2, betterSide = 'equal' }) => (
+  <View style={rowStyles.row}>
+    <Text style={rowStyles.label}>{label}</Text>
+    <View style={rowStyles.values}>
+      <View style={[rowStyles.val, betterSide === 'left' && rowStyles.valBetter]}>
+        <Text style={[rowStyles.valText, betterSide === 'left' && rowStyles.valTextBetter]}>
+          {value1}
+        </Text>
       </View>
-      
-      <View style={styles.rowValues}>
-        <View style={[
-          styles.valueContainer,
-          betterValue === 'left' && styles.betterValue
-        ]}>
-          <Text style={[
-            styles.valueText,
-            betterValue === 'left' && styles.betterValueText
-          ]}>
-            {getValue1}
-          </Text>
-        </View>
-        
-        <View style={styles.vsContainer}>
-          <Text style={styles.vsText}>vs</Text>
-        </View>
-        
-        <View style={[
-          styles.valueContainer,
-          betterValue === 'right' && styles.betterValue
-        ]}>
-          <Text style={[
-            styles.valueText,
-            betterValue === 'right' && styles.betterValueText
-          ]}>
-            {getValue2}
-          </Text>
-        </View>
+      <Text style={rowStyles.vs}>VS</Text>
+      <View style={[rowStyles.val, betterSide === 'right' && rowStyles.valBetter]}>
+        <Text style={[rowStyles.valText, betterSide === 'right' && rowStyles.valTextBetter]}>
+          {value2}
+        </Text>
       </View>
     </View>
-  );
-};
+  </View>
+);
+
+const rowStyles = StyleSheet.create({
+  row: {
+    paddingVertical: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: '#0A0A0A',
+  },
+  label: {
+    fontFamily: 'SpaceMono',
+    fontSize: 9,
+    color: 'rgba(10,10,10,0.4)',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  values: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  val: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderWidth: 2,
+    borderColor: 'rgba(10,10,10,0.15)',
+    borderRadius: 2,
+    alignItems: 'center',
+  },
+  valBetter: {
+    borderColor: '#FF3D00',
+    backgroundColor: 'rgba(255,61,0,0.06)',
+  },
+  valText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 12,
+    color: 'rgba(10,10,10,0.6)',
+    textAlign: 'center',
+    textTransform: 'capitalize',
+  },
+  valTextBetter: {
+    color: '#FF3D00',
+    fontWeight: '700',
+  },
+  vs: {
+    fontFamily: 'SpaceMono',
+    fontSize: 9,
+    color: 'rgba(10,10,10,0.3)',
+    letterSpacing: 1,
+  },
+});
 
 export const ComparisonView: React.FC<ComparisonViewProps> = ({
   visible,
@@ -104,60 +114,21 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
   shoe1,
   shoe2,
 }) => {
-  const [imageError1, setImageError1] = useState(false);
-  const [imageError2, setImageError2] = useState(false);
+  const betterStack = shoe1.stackMm > shoe2.stackMm ? 'left' : shoe1.stackMm < shoe2.stackMm ? 'right' : 'equal';
+  const betterWeight = shoe1.weightOz < shoe2.weightOz ? 'left' : shoe1.weightOz > shoe2.weightOz ? 'right' : 'equal';
+  const betterPrice = shoe1.price < shoe2.price ? 'left' : shoe1.price > shoe2.price ? 'right' : 'equal';
 
-  const getCategoryColor = (category: string): [string, string] => {
-    switch (category) {
-      case 'racing':
-      case 'super-shoe':
-        return ['#ff6b6b', '#ee5a52'];
-      case 'trail':
-        return ['#51cf66', '#40c057'];
-      case 'walking':
-        return ['#74c0fc', '#339af0'];
-      default:
-        return ['#845ec2', '#b39cd0'];
-    }
+  const ShoeHeader: React.FC<{ shoe: Shoe; side: 'left' | 'right' }> = ({ shoe, side }) => {
+    const dark = side === 'right';
+    return (
+      <View style={[styles.shoeHeader, dark && styles.shoeHeaderRight]}>
+        <Text style={[styles.shoeHeaderBrand, dark && { color: 'rgba(244,241,234,0.4)' }]}>{shoe.brand.toUpperCase()}</Text>
+        <Text style={[styles.shoeHeaderModel, dark && { color: '#F4F1EA' }]} numberOfLines={2}>{shoe.model}</Text>
+        <Text style={styles.shoeHeaderCat}>{getCategoryLabel(shoe.category)}</Text>
+        <Text style={[styles.shoeHeaderPrice, dark && { color: '#F4F1EA' }]}>${shoe.price}</Text>
+      </View>
+    );
   };
-
-  const ShoeCard: React.FC<{ shoe: Shoe; onImageError: () => void; imageError: boolean }> = ({
-    shoe,
-    onImageError,
-    imageError,
-  }) => (
-    <View style={styles.shoeCard}>
-      <LinearGradient
-        colors={['#ffffff', '#f8f9ff']}
-        style={styles.shoeCardGradient}
-      >
-        <View style={styles.shoeImageContainer}>
-          {!imageError ? (
-            <Image
-              source={{ uri: shoe.image }}
-              style={styles.shoeImage}
-              onError={onImageError}
-              resizeMode="contain"
-            />
-          ) : (
-            <View style={styles.placeholderImage}>
-              <Ionicons name="image-outline" size={32} color="#adb5bd" />
-            </View>
-          )}
-        </View>
-        
-        <Text style={styles.shoeBrand}>{shoe.brand}</Text>
-        <Text style={styles.shoeModel}>{shoe.model}</Text>
-        
-        <LinearGradient
-          colors={getCategoryColor(shoe.category)}
-          style={styles.categoryBadge}
-        >
-          <Text style={styles.categoryText}>{shoe.category.replace('-', ' ')}</Text>
-        </LinearGradient>
-      </LinearGradient>
-    </View>
-  );
 
   return (
     <Modal
@@ -167,99 +138,68 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
     >
       <SafeAreaView style={styles.container}>
         <Animated.View entering={SlideInUp.delay(100)} style={styles.header}>
-          <TouchableOpacity onPress={onClose}>
-            <Ionicons name="arrow-back" size={24} color="#212529" />
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <Text style={styles.closeBtnText}>← BACK</Text>
           </TouchableOpacity>
-          
-          <Text style={styles.title}>Shoe Comparison</Text>
-          
-          <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={24} color="#212529" />
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>HEAD TO HEAD</Text>
+          <View style={{ width: 60 }} />
         </Animated.View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Shoe Cards */}
-          <Animated.View entering={FadeIn.delay(200)} style={styles.shoesContainer}>
-            <ShoeCard
-              shoe={shoe1}
-              onImageError={() => setImageError1(true)}
-              imageError={imageError1}
-            />
-            <ShoeCard
-              shoe={shoe2}
-              onImageError={() => setImageError2(true)}
-              imageError={imageError2}
-            />
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+          {/* Shoe headers */}
+          <Animated.View entering={FadeIn.delay(150)} style={styles.shoesRow}>
+            <ShoeHeader shoe={shoe1} side="left" />
+            <View style={styles.headerDivider} />
+            <ShoeHeader shoe={shoe2} side="right" />
           </Animated.View>
 
-          {/* Comparison Table */}
-          <Animated.View entering={FadeIn.delay(400)} style={styles.comparisonContainer}>
-            <Text style={styles.sectionTitle}>Detailed Comparison</Text>
-            
-            <View style={styles.comparisonTable}>
-              <ComparisonRow
-                label="Category"
-                value1={shoe1.category}
-                value2={shoe2.category}
-                icon="library-outline"
-              />
-              
-              <ComparisonRow
-                label="Cushion"
-                value1={shoe1.cushion}
-                value2={shoe2.cushion}
-                icon="layers-outline"
-              />
-              
-              <ComparisonRow
-                label="Terrain"
-                value1={shoe1.terrain}
-                value2={shoe2.terrain}
-                icon="trail-sign-outline"
-              />
-            </View>
+          {/* Stats table */}
+          <Animated.View entering={FadeIn.delay(300)} style={styles.section}>
+            <Text style={styles.sectionTitle}>// SPECS</Text>
+            <Row label="CATEGORY" value1={getCategoryLabel(shoe1.category)} value2={getCategoryLabel(shoe2.category)} />
+            <Row label="HEEL DROP" value1={`${shoe1.dropMm}mm`} value2={`${shoe2.dropMm}mm`} />
+            <Row label="STACK HEIGHT" value1={`${shoe1.stackMm}mm`} value2={`${shoe2.stackMm}mm`} betterSide={betterStack} />
+            <Row label="WEIGHT" value1={`${shoe1.weightOz}oz`} value2={`${shoe2.weightOz}oz`} betterSide={betterWeight} />
+            <Row label="TERRAIN" value1={shoe1.terrain} value2={shoe2.terrain} />
+            <Row label="PRICE" value1={`$${shoe1.price}`} value2={`$${shoe2.price}`} betterSide={betterPrice} />
           </Animated.View>
 
-          {/* Descriptions */}
-          <Animated.View entering={FadeIn.delay(600)} style={styles.descriptionsContainer}>
-            <Text style={styles.sectionTitle}>Why These Shoes?</Text>
-            
-            <View style={styles.descriptionsGrid}>
-              <View style={styles.descriptionCard}>
-                <Text style={styles.descriptionBrand}>{shoe1.brand}</Text>
-                <Text style={styles.descriptionModel}>{shoe1.model}</Text>
-                <Text style={styles.descriptionText}>{shoe1.notes}</Text>
+          {/* Pro/Con side by side */}
+          <Animated.View entering={FadeIn.delay(450)} style={styles.section}>
+            <Text style={styles.sectionTitle}>// PROS</Text>
+            <View style={styles.prosRow}>
+              <View style={styles.prosCol}>
+                <Text style={styles.prosShoeLabel}>{shoe1.model}</Text>
+                {shoe1.pros.slice(0, 3).map((p, i) => (
+                  <Text key={i} style={styles.proItem}>+ {p}</Text>
+                ))}
               </View>
-              
-              <View style={styles.descriptionCard}>
-                <Text style={styles.descriptionBrand}>{shoe2.brand}</Text>
-                <Text style={styles.descriptionModel}>{shoe2.model}</Text>
-                <Text style={styles.descriptionText}>{shoe2.notes}</Text>
+              <View style={styles.prosDivider} />
+              <View style={styles.prosCol}>
+                <Text style={styles.prosShoeLabel}>{shoe2.model}</Text>
+                {shoe2.pros.slice(0, 3).map((p, i) => (
+                  <Text key={i} style={styles.proItem}>+ {p}</Text>
+                ))}
               </View>
             </View>
           </Animated.View>
 
-          {/* Action Buttons */}
-          <Animated.View entering={FadeIn.delay(800)} style={styles.actionsContainer}>
-            <TouchableOpacity style={styles.actionButton}>
-              <LinearGradient
-                colors={['#667eea', '#764ba2']}
-                style={styles.actionGradient}
-              >
-                <Text style={styles.actionText}>Choose {shoe1.model}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.actionButton}>
-              <LinearGradient
-                colors={['#667eea', '#764ba2']}
-                style={styles.actionGradient}
-              >
-                <Text style={styles.actionText}>Choose {shoe2.model}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+          {/* Notes */}
+          <Animated.View entering={FadeIn.delay(600)} style={styles.section}>
+            <Text style={styles.sectionTitle}>// NOTES</Text>
+            <View style={styles.notesRow}>
+              <View style={styles.noteCard}>
+                <Text style={styles.noteShoe}>{shoe1.brand} {shoe1.model}</Text>
+                <Text style={styles.noteText}>{shoe1.notes}</Text>
+              </View>
+              <View style={styles.noteCard}>
+                <Text style={styles.noteShoe}>{shoe2.brand} {shoe2.model}</Text>
+                <Text style={styles.noteText}>{shoe2.notes}</Text>
+              </View>
+            </View>
           </Animated.View>
+
+          <View style={{ height: 40 }} />
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -269,7 +209,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F4F1EA',
   },
   header: {
     flexDirection: 'row',
@@ -277,203 +217,138 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomWidth: 2,
+    borderBottomColor: '#0A0A0A',
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#212529',
+  closeBtn: {
+    width: 60,
   },
-  content: {
-    flex: 1,
+  closeBtnText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: '#0A0A0A',
+    letterSpacing: 1,
   },
-  shoesContainer: {
-    flexDirection: 'row',
+  headerTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0A0A0A',
+    letterSpacing: 2,
+  },
+  scroll: {
     paddingHorizontal: 16,
-    paddingVertical: 20,
-    gap: 16,
+    paddingTop: 20,
   },
-  shoeCard: {
-    width: cardWidth,
-    borderRadius: 20,
+  shoesRow: {
+    flexDirection: 'row',
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
+    borderRadius: 2,
+    marginBottom: 24,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 8,
   },
-  shoeCardGradient: {
+  shoeHeader: {
+    flex: 1,
     padding: 16,
-    alignItems: 'center',
+    backgroundColor: '#F4F1EA',
   },
-  shoeImageContainer: {
-    height: 100,
-    width: '100%',
-    marginBottom: 16,
+  shoeHeaderRight: {
+    backgroundColor: '#0A0A0A',
   },
-  shoeImage: {
-    width: '100%',
-    height: '100%',
-  },
-  placeholderImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shoeBrand: {
-    fontSize: 12,
-    color: '#6c757d',
+  shoeHeaderBrand: {
+    fontFamily: 'SpaceMono',
+    fontSize: 8,
+    letterSpacing: 2,
+    color: 'rgba(10,10,10,0.4)',
     marginBottom: 4,
   },
-  shoeModel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#212529',
-    textAlign: 'center',
+  shoeHeaderModel: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0A0A0A',
+    letterSpacing: -0.3,
     marginBottom: 8,
+    lineHeight: 19,
   },
-  categoryBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+  shoeHeaderCat: {
+    fontFamily: 'SpaceMono',
+    fontSize: 8,
+    color: '#FF3D00',
+    letterSpacing: 1,
+    marginBottom: 6,
   },
-  categoryText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'white',
-    textTransform: 'capitalize',
+  shoeHeaderPrice: {
+    fontFamily: 'SpaceMono',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0A0A0A',
   },
-  comparisonContainer: {
-    marginHorizontal: 16,
-    marginBottom: 24,
+  headerDivider: {
+    width: 2,
+    backgroundColor: '#0A0A0A',
+  },
+  section: {
+    marginBottom: 28,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#212529',
-    marginBottom: 16,
+    fontFamily: 'SpaceMono',
+    fontSize: 10,
+    color: 'rgba(10,10,10,0.4)',
+    letterSpacing: 2,
+    marginBottom: 4,
   },
-  comparisonTable: {
-    backgroundColor: 'white',
-    borderRadius: 16,
+  prosRow: {
+    flexDirection: 'row',
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
+    borderRadius: 2,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    marginTop: 12,
   },
-  comparisonRow: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f3f4',
-  },
-  rowLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
-  },
-  rowLabelText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#495057',
-  },
-  rowValues: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  valueContainer: {
+  prosCol: {
     flex: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#f8f9fa',
+    padding: 14,
   },
-  betterValue: {
-    backgroundColor: '#e3f2fd',
-    borderWidth: 1,
-    borderColor: '#667eea',
+  prosDivider: {
+    width: 2,
+    backgroundColor: '#0A0A0A',
   },
-  valueText: {
-    fontSize: 14,
-    color: '#6c757d',
-    textAlign: 'center',
-    textTransform: 'capitalize',
+  prosShoeLabel: {
+    fontFamily: 'SpaceMono',
+    fontSize: 9,
+    color: 'rgba(10,10,10,0.4)',
+    letterSpacing: 1,
+    marginBottom: 10,
   },
-  betterValueText: {
-    color: '#667eea',
-    fontWeight: '600',
+  proItem: {
+    fontFamily: 'SpaceMono',
+    fontSize: 10,
+    color: '#0A0A0A',
+    lineHeight: 16,
+    marginBottom: 4,
+    letterSpacing: 0.2,
   },
-  vsContainer: {
-    paddingHorizontal: 12,
+  notesRow: {
+    gap: 10,
+    marginTop: 12,
   },
-  vsText: {
-    fontSize: 12,
-    color: '#adb5bd',
-    fontWeight: '600',
+  noteCard: {
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
+    borderRadius: 2,
+    padding: 14,
   },
-  descriptionsContainer: {
-    marginHorizontal: 16,
-    marginBottom: 24,
+  noteShoe: {
+    fontFamily: 'SpaceMono',
+    fontSize: 9,
+    color: 'rgba(10,10,10,0.4)',
+    letterSpacing: 1,
+    marginBottom: 6,
   },
-  descriptionsGrid: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  descriptionCard: {
-    flex: 1,
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  descriptionBrand: {
-    fontSize: 12,
-    color: '#6c757d',
-    marginBottom: 2,
-  },
-  descriptionModel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#212529',
-    marginBottom: 8,
-  },
-  descriptionText: {
-    fontSize: 14,
-    color: '#495057',
-    lineHeight: 20,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-    gap: 16,
-  },
-  actionButton: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  actionGradient: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'white',
+  noteText: {
+    fontSize: 13,
+    color: '#0A0A0A',
+    lineHeight: 19,
+    fontStyle: 'italic',
   },
 });

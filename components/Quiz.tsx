@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Dimensions,
   SafeAreaView,
+  ScrollView,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -15,7 +16,6 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { QuizAnswers } from '../app/utils/scoring';
 
 const { width } = Dimensions.get('window');
@@ -23,57 +23,63 @@ const { width } = Dimensions.get('window');
 interface QuizStep {
   id: keyof QuizAnswers;
   question: string;
+  subtext?: string;
   options: {
     value: any;
     label: string;
-    description?: string;
-    emoji?: string;
+    sublabel?: string;
   }[];
 }
 
 const QUIZ_STEPS: QuizStep[] = [
   {
-    id: 'activity',
-    question: 'What will you mainly use these shoes for?',
-    options: [
-      { value: 'running', label: 'Running', emoji: '🏃‍♂️', description: 'Training, races, fitness' },
-      { value: 'walking', label: 'Walking', emoji: '🚶‍♀️', description: 'Daily walks, casual wear' },
-    ],
-  },
-  {
-    id: 'distance',
-    question: 'What distance do you typically cover?',
-    options: [
-      { value: 'short', label: 'Short', emoji: '🏃‍♀️', description: 'Under 5km / 3 miles' },
-      { value: 'medium', label: 'Medium', emoji: '🏃', description: '5-15km / 3-9 miles' },
-      { value: 'long', label: 'Long', emoji: '🏃‍♂️', description: 'Over 15km / 9+ miles' },
-    ],
-  },
-  {
-    id: 'injuries',
-    question: 'Do you have any current or recent injuries?',
-    options: [
-      { value: 'none', label: 'No injuries', emoji: '💪', description: 'Feeling great!' },
-      { value: 'knee', label: 'Knee pain', emoji: '🦵', description: 'Current or past knee issues' },
-      { value: 'plantar', label: 'Plantar fasciitis', emoji: '🦶', description: 'Heel or arch pain' },
-      { value: 'shin', label: 'Shin splints', emoji: '🦿', description: 'Lower leg pain' },
-    ],
-  },
-  {
-    id: 'flatFeet',
-    question: 'Do you have flat feet or overpronate?',
-    options: [
-      { value: false, label: 'No', emoji: '👣', description: 'Normal or high arches' },
-      { value: true, label: 'Yes', emoji: '🦶', description: 'Flat feet or roll inward' },
-    ],
-  },
-  {
     id: 'terrain',
-    question: 'Where will you primarily run/walk?',
+    question: 'Where will you mainly run?',
+    subtext: 'Your primary training surface determines the sole construction and traction pattern.',
     options: [
-      { value: 'road', label: 'Road/Pavement', emoji: '🛣️', description: 'Sidewalks, streets, tracks' },
-      { value: 'trail', label: 'Trails', emoji: '🌲', description: 'Dirt paths, hiking trails' },
-      { value: 'both', label: 'Mixed', emoji: '🌍', description: 'Both road and trail' },
+      { value: 'road', label: 'Road / Pavement', sublabel: 'Sidewalks, streets, treadmill, track' },
+      { value: 'trail', label: 'Trails', sublabel: 'Dirt paths, hills, uneven terrain' },
+    ],
+  },
+  {
+    id: 'archType',
+    question: 'What is your arch type?',
+    subtext: 'Arch height determines how much motion control and support you need.',
+    options: [
+      { value: 'flat', label: 'Flat / Low Arch', sublabel: 'Entire sole touches the ground' },
+      { value: 'normal', label: 'Normal Arch', sublabel: 'Natural curve, moderate contact' },
+      { value: 'high', label: 'High Arch', sublabel: 'Pronounced curve, minimal midfoot contact' },
+    ],
+  },
+  {
+    id: 'pronation',
+    question: 'How does your foot roll when you run?',
+    subtext: 'Pronation pattern affects which support systems will benefit you most.',
+    options: [
+      { value: 'over', label: 'Rolls Inward', sublabel: 'Overpronation — ankle caves in' },
+      { value: 'neutral', label: 'Neutral', sublabel: 'Natural, balanced roll' },
+      { value: 'under', label: 'Rolls Outward', sublabel: 'Supination — outer edge takes load' },
+    ],
+  },
+  {
+    id: 'injury',
+    question: 'Any current pain or injury concerns?',
+    subtext: 'Targeted cushioning and support can help manage and prevent common issues.',
+    options: [
+      { value: 'none', label: 'No Issues', sublabel: 'Feeling strong and healthy' },
+      { value: 'plantar', label: 'Heel / Arch Pain', sublabel: 'Plantar fasciitis symptoms' },
+      { value: 'knee', label: 'Knee Pain', sublabel: "Runner's knee or joint pain" },
+      { value: 'shin', label: 'Shin Pain', sublabel: 'Shin splints or lower leg pain' },
+    ],
+  },
+  {
+    id: 'goal',
+    question: 'What is your primary running goal?',
+    subtext: 'Your goal determines the optimal balance of cushion, weight, and responsiveness.',
+    options: [
+      { value: 'daily', label: 'Daily Training', sublabel: 'Comfortable everyday mileage' },
+      { value: 'speed', label: 'Speed / Tempo', sublabel: 'Intervals, tempo runs, workouts' },
+      { value: 'race', label: 'Racing', sublabel: '5K, half marathon, marathon PR' },
     ],
   },
 ];
@@ -83,19 +89,40 @@ interface QuizProps {
   onBack?: () => void;
 }
 
+const HardShadowOption: React.FC<{ children: React.ReactNode; onPress: () => void }> = ({ children, onPress }) => (
+  <View style={optionWrapStyle}>
+    <View style={optionShadowStyle} />
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={optionCardStyle}>
+      {children}
+    </TouchableOpacity>
+  </View>
+);
+
+const optionWrapStyle = { marginBottom: 14, position: 'relative' as const };
+const optionShadowStyle = {
+  position: 'absolute' as const,
+  top: 5, left: 5, right: -5, bottom: -5,
+  backgroundColor: '#0A0A0A',
+  borderRadius: 2,
+};
+const optionCardStyle = {
+  backgroundColor: '#F4F1EA',
+  borderWidth: 2,
+  borderColor: '#0A0A0A',
+  borderRadius: 2,
+  padding: 18,
+};
+
 export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Partial<QuizAnswers>>({});
-  
+
   const slideX = useSharedValue(0);
-  const progressValue = useSharedValue(0);
+  const opacity = useSharedValue(1);
 
-  const animatedSlideStyle = useAnimatedStyle(() => ({
+  const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: slideX.value }],
-  }));
-
-  const animatedProgressStyle = useAnimatedStyle(() => ({
-    width: `${progressValue.value}%`,
+    opacity: opacity.value,
   }));
 
   const handleAnswer = (value: any) => {
@@ -103,98 +130,102 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack }) => {
     const newAnswers = { ...answers, [currentQuestionId]: value };
     setAnswers(newAnswers);
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     if (currentStep < QUIZ_STEPS.length - 1) {
-      // Move to next step
-      slideX.value = withTiming(-width, { duration: 300 }, () => {
+      slideX.value = withTiming(-width * 0.3, { duration: 220 }, () => {
         runOnJS(setCurrentStep)(currentStep + 1);
-        slideX.value = width;
-        slideX.value = withSpring(0, { damping: 20, stiffness: 90 });
+        slideX.value = width * 0.3;
+        opacity.value = 0;
+        slideX.value = withSpring(0, { damping: 22, stiffness: 100 });
+        opacity.value = withTiming(1, { duration: 180 });
       });
-      
-      progressValue.value = withTiming(((currentStep + 2) / QUIZ_STEPS.length) * 100);
     } else {
-      // Quiz complete
-      slideX.value = withTiming(-width, { duration: 300 }, () => {
+      slideX.value = withTiming(-width * 0.3, { duration: 220 }, () => {
         runOnJS(onComplete)(newAnswers as QuizAnswers);
       });
-      progressValue.value = withTiming(100);
     }
   };
 
   const handleBack = () => {
     if (currentStep > 0) {
-      slideX.value = withTiming(width, { duration: 300 }, () => {
+      slideX.value = withTiming(width * 0.3, { duration: 220 }, () => {
         runOnJS(setCurrentStep)(currentStep - 1);
-        slideX.value = -width;
-        slideX.value = withSpring(0, { damping: 20, stiffness: 90 });
+        slideX.value = -width * 0.3;
+        opacity.value = 0;
+        slideX.value = withSpring(0, { damping: 22, stiffness: 100 });
+        opacity.value = withTiming(1, { duration: 180 });
       });
-      
-      progressValue.value = withTiming((currentStep / QUIZ_STEPS.length) * 100);
     } else if (onBack) {
       onBack();
     }
   };
 
-  React.useEffect(() => {
-    progressValue.value = withTiming(((currentStep + 1) / QUIZ_STEPS.length) * 100);
-  }, [currentStep, progressValue]);
-
   const currentQuestion = QUIZ_STEPS[currentStep];
+  const stepNum = `0${currentStep + 1}`;
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#667eea', '#764ba2']}
-        style={styles.gradient}
+      {/* Top nav */}
+      <View style={styles.nav}>
+        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>← BACK</Text>
+        </TouchableOpacity>
+        <Text style={styles.navLabel}>DIAGNOSTIC</Text>
+        <Text style={styles.navCounter}>{currentStep + 1}/{QUIZ_STEPS.length}</Text>
+      </View>
+
+      {/* Progress segments */}
+      <View style={styles.progressRow}>
+        {QUIZ_STEPS.map((_, i) => (
+          <View
+            key={i}
+            style={[
+              styles.progressSegment,
+              i <= currentStep && styles.progressSegmentActive,
+            ]}
+          />
+        ))}
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          
-          <Text style={styles.stepText}>
-            {currentStep + 1} of {QUIZ_STEPS.length}
-          </Text>
-          
-          <View style={styles.spacer} />
-        </View>
+        <Animated.View style={animatedStyle}>
+          {/* Step number */}
+          <Text style={styles.stepNumber}>{stepNum}</Text>
 
-        {/* Progress Bar */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <Animated.View style={[styles.progressFill, animatedProgressStyle]} />
-          </View>
-        </View>
-
-        {/* Question */}
-        <Animated.View style={[styles.questionContainer, animatedSlideStyle]}>
+          {/* Question */}
           <Text style={styles.question}>{currentQuestion.question}</Text>
-          
-          <View style={styles.optionsContainer}>
+
+          {currentQuestion.subtext && (
+            <Text style={styles.subtext}>{currentQuestion.subtext}</Text>
+          )}
+
+          {/* Divider */}
+          <View style={styles.divider} />
+
+          {/* Options */}
+          <View style={styles.options}>
             {currentQuestion.options.map((option, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.optionButton}
-                onPress={() => handleAnswer(option.value)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.optionContent}>
-                  <Text style={styles.optionEmoji}>{option.emoji}</Text>
-                  <View style={styles.optionText}>
+              <HardShadowOption key={index} onPress={() => handleAnswer(option.value)}>
+                <View style={styles.optionInner}>
+                  <Text style={styles.optionIndex}>{String(index + 1).padStart(2, '0')}</Text>
+                  <View style={styles.optionTextBlock}>
                     <Text style={styles.optionLabel}>{option.label}</Text>
-                    {option.description && (
-                      <Text style={styles.optionDescription}>{option.description}</Text>
+                    {option.sublabel && (
+                      <Text style={styles.optionSublabel}>{option.sublabel}</Text>
                     )}
                   </View>
+                  <Text style={styles.optionArrow}>→</Text>
                 </View>
-              </TouchableOpacity>
+              </HardShadowOption>
             ))}
           </View>
         </Animated.View>
-      </LinearGradient>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -202,98 +233,125 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F4F1EA',
   },
-  gradient: {
-    flex: 1,
-  },
-  header: {
+  nav: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: '#0A0A0A',
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  backBtn: {
+    paddingVertical: 6,
   },
-  backButtonText: {
-    fontSize: 20,
-    color: 'white',
-    fontWeight: 'bold',
+  backBtnText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: '#0A0A0A',
+    letterSpacing: 1,
   },
-  stepText: {
+  navLabel: {
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: '#0A0A0A',
+    letterSpacing: 2,
+  },
+  navCounter: {
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: 'rgba(10,10,10,0.4)',
+    letterSpacing: 1,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: '#0A0A0A',
+  },
+  progressSegment: {
     flex: 1,
-    textAlign: 'center',
-    fontSize: 16,
-    color: 'white',
-    fontWeight: '600',
+    height: 3,
+    backgroundColor: 'rgba(10,10,10,0.15)',
   },
-  spacer: {
-    width: 40,
+  progressSegmentActive: {
+    backgroundColor: '#FF3D00',
   },
-  progressContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: 'white',
-    borderRadius: 2,
-  },
-  questionContainer: {
+  scroll: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 20,
+    paddingTop: 32,
+    paddingBottom: 40,
+  },
+  stepNumber: {
+    fontFamily: 'SpaceMono',
+    fontSize: 64,
+    fontWeight: '700',
+    color: 'rgba(10,10,10,0.08)',
+    lineHeight: 64,
+    marginBottom: 8,
   },
   question: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
-    marginBottom: 40,
+    fontSize: 30,
+    fontWeight: '900',
+    color: '#0A0A0A',
     lineHeight: 36,
+    marginBottom: 12,
+    letterSpacing: -0.5,
   },
-  optionsContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  subtext: {
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: 'rgba(10,10,10,0.5)',
+    lineHeight: 18,
+    letterSpacing: 0.3,
   },
-  optionButton: {
-    marginBottom: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
+  divider: {
+    height: 2,
+    backgroundColor: '#0A0A0A',
+    marginVertical: 28,
   },
-  optionContent: {
+  options: {
+    gap: 0,
+  },
+  optionInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    padding: 20,
-    borderRadius: 16,
+    gap: 14,
   },
-  optionEmoji: {
-    fontSize: 32,
-    marginRight: 16,
+  optionIndex: {
+    fontFamily: 'SpaceMono',
+    fontSize: 12,
+    color: 'rgba(10,10,10,0.3)',
+    letterSpacing: 1,
+    width: 24,
   },
-  optionText: {
+  optionTextBlock: {
     flex: 1,
   },
   optionLabel: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: 4,
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0A0A0A',
+    letterSpacing: -0.3,
+    marginBottom: 2,
   },
-  optionDescription: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+  optionSublabel: {
+    fontFamily: 'SpaceMono',
+    fontSize: 10,
+    color: 'rgba(10,10,10,0.5)',
+    letterSpacing: 0.2,
+  },
+  optionArrow: {
+    fontSize: 18,
+    color: '#0A0A0A',
+    fontWeight: '700',
   },
 });

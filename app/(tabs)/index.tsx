@@ -19,9 +19,11 @@ import { Quiz } from '../../components/Quiz';
 import { ShoeCard } from '../../components/ShoeCard';
 import { CompareModal } from '../../components/CompareModal';
 import { ComparisonView } from '../../components/ComparisonView';
+import { RotationCard } from '../../components/RotationCard';
 import { SHOES, DAILY_TIPS, COMMUNITY_POLLS, Shoe } from '../data/shoes';
 import { QuizAnswers, getRecommendations, ScoredShoe } from '../utils/scoring';
 import { saveQuizResult, getFavorites, addToFavorites, removeFromFavorites } from '../utils/storage';
+import { getRotationProfile, getRotationInsights, getRotationHealthScore } from '../utils/rotationScore';
 
 type AppState = 'welcome' | 'quiz' | 'results';
 
@@ -215,6 +217,26 @@ const ResultsScreen: React.FC<{
         <Text style={styles.resultsSubtitle}>
           Based on your answers, here are the best shoes for you:
         </Text>
+
+        {/* Rotation Intelligence Card */}
+        <View style={{ paddingHorizontal: 20 }}>
+          <RotationCard
+            roleScores={(() => {
+              const recommendedShoes = recommendations.map(r => SHOES.find(s => s.id === r.id)!);
+              return getRotationProfile(recommendedShoes);
+            })()}
+            insights={(() => {
+              const recommendedShoes = recommendations.map(r => SHOES.find(s => s.id === r.id)!);
+              const profile = getRotationProfile(recommendedShoes);
+              return getRotationInsights(profile);
+            })()}
+            healthScore={(() => {
+              const recommendedShoes = recommendations.map(r => SHOES.find(s => s.id === r.id)!);
+              const profile = getRotationProfile(recommendedShoes);
+              return getRotationHealthScore(profile);
+            })()}
+          />
+        </View>
 
         {recommendations.map((shoe, index) => (
           <ShoeCard

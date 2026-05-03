@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ShoeCard } from '../../components/ShoeCard';
@@ -24,13 +23,11 @@ import { getFavorites, addToFavorites, removeFromFavorites } from '../utils/stor
 interface Filters {
   brands: string[];
   categories: string[];
-  cushion: string[];
   terrain: string[];
 }
 
 const BRAND_OPTIONS = [...new Set(SHOES.map(shoe => shoe.brand))].sort();
 const CATEGORY_OPTIONS = [...new Set(SHOES.map(shoe => shoe.category))].sort();
-const CUSHION_OPTIONS = [...new Set(SHOES.map(shoe => shoe.cushion))].sort();
 const TERRAIN_OPTIONS = [...new Set(SHOES.map(shoe => shoe.terrain))].sort();
 
 export default function SearchScreen() {
@@ -38,7 +35,6 @@ export default function SearchScreen() {
   const [filters, setFilters] = useState<Filters>({
     brands: [],
     categories: [],
-    cushion: [],
     terrain: [],
   });
   const [showFilters, setShowFilters] = useState(false);
@@ -118,10 +114,6 @@ export default function SearchScreen() {
       results = results.filter(shoe => filters.categories.includes(shoe.category));
     }
     
-    if (filters.cushion.length > 0) {
-      results = results.filter(shoe => filters.cushion.includes(shoe.cushion));
-    }
-    
     if (filters.terrain.length > 0) {
       results = results.filter(shoe => filters.terrain.includes(shoe.terrain));
     };
@@ -145,17 +137,13 @@ export default function SearchScreen() {
     setFilters({
       brands: [],
       categories: [],
-      cushion: [],
       terrain: [],
     });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
   const getActiveFilterCount = () => {
-    return filters.brands.length + 
-           filters.categories.length + 
-           filters.cushion.length + 
-           filters.terrain.length;
+    return filters.brands.length + filters.categories.length + filters.terrain.length;
   };
 
   const FilterSection: React.FC<{
@@ -191,34 +179,36 @@ export default function SearchScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Search & Filter</Text>
+        <Text style={styles.headerEyebrow}>// STRIDE PROTOCOL</Text>
+        <Text style={styles.title}>DISCOVER.</Text>
         <Text style={styles.subtitle}>
-          {filteredShoes.length} {filteredShoes.length === 1 ? 'shoe' : 'shoes'} found
+          {filteredShoes.length} {filteredShoes.length === 1 ? 'shoe' : 'shoes'} in the database
         </Text>
       </View>
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#adb5bd" />
+          <Ionicons name="search" size={18} color="rgba(10,10,10,0.4)" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search shoes by brand, model, or description..."
+            placeholder="Search brand, model, description..."
+            placeholderTextColor="rgba(10,10,10,0.35)"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color="#adb5bd" />
+              <Ionicons name="close-circle" size={18} color="rgba(10,10,10,0.35)" />
             </TouchableOpacity>
           )}
         </View>
-        
+
         <TouchableOpacity
           onPress={() => setShowFilters(true)}
           style={styles.filterButton}
         >
-          <Ionicons name="filter" size={20} color="#667eea" />
+          <Ionicons name="options-outline" size={20} color="#0A0A0A" />
           {getActiveFilterCount() > 0 && (
             <View style={styles.filterBadge}>
               <Text style={styles.filterBadgeText}>{getActiveFilterCount()}</Text>
@@ -234,16 +224,13 @@ export default function SearchScreen() {
       >
         {filteredShoes.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <LinearGradient
-              colors={['rgba(102, 126, 234, 0.1)', 'rgba(118, 75, 162, 0.1)']}
-              style={styles.emptyCard}
-            >
-              <Ionicons name="search-outline" size={64} color="#adb5bd" />
-              <Text style={styles.emptyTitle}>No Results Found</Text>
+            <View style={styles.emptyCard}>
+              <Ionicons name="search-outline" size={48} color="rgba(10,10,10,0.2)" />
+              <Text style={styles.emptyTitle}>NO RESULTS</Text>
               <Text style={styles.emptyDescription}>
                 Try adjusting your search terms or filters
               </Text>
-            </LinearGradient>
+            </View>
           </View>
         ) : (
           filteredShoes.map((shoe, index) => (
@@ -294,14 +281,7 @@ export default function SearchScreen() {
               selectedOptions={filters.categories}
               onToggle={(value) => toggleFilter('categories', value)}
             />
-            
-            <FilterSection
-              title="Cushion"
-              options={CUSHION_OPTIONS}
-              selectedOptions={filters.cushion}
-              onToggle={(value) => toggleFilter('cushion', value)}
-            />
-            
+
             <FilterSection
               title="Terrain"
               options={TERRAIN_OPTIONS}
@@ -314,14 +294,11 @@ export default function SearchScreen() {
             onPress={() => setShowFilters(false)}
             style={styles.applyButton}
           >
-            <LinearGradient
-              colors={['#667eea', '#764ba2']}
-              style={styles.applyGradient}
-            >
+            <View style={styles.applyGradient}>
               <Text style={styles.applyText}>
-                Show {filteredShoes.length} Results
+                SHOW {filteredShoes.length} RESULTS →
               </Text>
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </SafeAreaView>
       </Modal>
@@ -352,70 +329,88 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F4F1EA',
   },
   header: {
-    backgroundColor: 'white',
-    paddingTop: 60,
+    backgroundColor: '#F4F1EA',
+    paddingTop: 20,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomWidth: 2,
+    borderBottomColor: '#0A0A0A',
+  },
+  headerEyebrow: {
+    fontFamily: 'SpaceMono',
+    fontSize: 10,
+    color: 'rgba(10,10,10,0.4)',
+    letterSpacing: 2,
+    marginBottom: 6,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#212529',
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#0A0A0A',
+    letterSpacing: -1,
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6c757d',
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: 'rgba(10,10,10,0.5)',
+    letterSpacing: 0.5,
   },
   searchContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#F4F1EA',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: '#0A0A0A',
   },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
+    backgroundColor: 'rgba(10,10,10,0.06)',
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
+    borderRadius: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 10,
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
-    color: '#495057',
+    fontSize: 14,
+    color: '#0A0A0A',
+    fontFamily: 'SpaceMono',
   },
   filterButton: {
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: '#f8f9fa',
+    padding: 10,
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
+    borderRadius: 2,
+    backgroundColor: '#F4F1EA',
     position: 'relative',
   },
   filterBadge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: '#ff6b6b',
+    top: -6,
+    right: -6,
+    backgroundColor: '#FF3D00',
     borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    minWidth: 18,
+    height: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterBadgeText: {
-    fontSize: 12,
+    fontFamily: 'SpaceMono',
+    fontSize: 10,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#F4F1EA',
   },
   content: {
     paddingVertical: 20,
@@ -426,29 +421,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 40,
+    paddingTop: 80,
   },
   emptyCard: {
     alignItems: 'center',
     padding: 40,
-    borderRadius: 24,
+    borderRadius: 2,
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
     width: '100%',
   },
   emptyTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#495057',
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0A0A0A',
     marginTop: 16,
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   emptyDescription: {
-    fontSize: 16,
-    color: '#6c757d',
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: 'rgba(10,10,10,0.5)',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 18,
+    letterSpacing: 0.3,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F4F1EA',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -456,35 +457,42 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    backgroundColor: '#F4F1EA',
+    borderBottomWidth: 2,
+    borderBottomColor: '#0A0A0A',
   },
   modalCancel: {
-    fontSize: 16,
-    color: '#667eea',
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: '#0A0A0A',
+    letterSpacing: 1,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#212529',
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0A0A0A',
+    letterSpacing: 1,
   },
   modalClear: {
-    fontSize: 16,
-    color: '#667eea',
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: '#FF3D00',
+    letterSpacing: 1,
   },
   modalContent: {
     flex: 1,
     paddingHorizontal: 20,
   },
   filterSection: {
-    marginVertical: 16,
+    marginVertical: 20,
   },
   filterSectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#212529',
-    marginBottom: 12,
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(10,10,10,0.5)',
+    marginBottom: 14,
+    letterSpacing: 2,
   },
   filterOptions: {
     flexDirection: 'row',
@@ -492,38 +500,44 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterOption: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderRadius: 2,
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
+    backgroundColor: '#F4F1EA',
   },
   filterOptionSelected: {
-    backgroundColor: '#667eea',
-    borderColor: '#667eea',
+    backgroundColor: '#0A0A0A',
   },
   filterOptionText: {
-    fontSize: 14,
-    color: '#495057',
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: '#0A0A0A',
     textTransform: 'capitalize',
+    letterSpacing: 0.5,
   },
   filterOptionTextSelected: {
-    color: 'white',
+    color: '#F4F1EA',
   },
   applyButton: {
     margin: 20,
-    borderRadius: 16,
+    borderRadius: 2,
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
   },
   applyGradient: {
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#0A0A0A',
   },
   applyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+    fontFamily: 'SpaceMono',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#F4F1EA',
+    letterSpacing: 2,
   },
 });

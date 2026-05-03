@@ -9,15 +9,20 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ShoeCard } from '../../components/ShoeCard';
 import { CompareModal } from '../../components/CompareModal';
 import { ComparisonView } from '../../components/ComparisonView';
+import { RotationCard } from '../../components/RotationCard';
+import { LogRunModal } from '../../components/LogRunModal';
 import { SHOES } from '../data/shoes';
 import { Shoe } from '../data/shoes';
 import { getFavorites, removeFromFavorites } from '../utils/storage';
+import { getRotationProfile, getRotationInsights, getRotationHealthScore } from '../utils/rotationScore';
+import { getRuns } from '../utils/runStorage';
+import { getMileageForShoe } from '../utils/mileage';
+import { Run } from '../types/run';
 
 export default function FavoritesScreen() {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
@@ -27,11 +32,16 @@ export default function FavoritesScreen() {
   const [selectedCompareShoes, setSelectedCompareShoes] = useState<string[]>([]);
   const [showComparison, setShowComparison] = useState(false);
   const [comparisonShoes, setComparisonShoes] = useState<[Shoe, Shoe] | null>(null);
+  const [showLogRunModal, setShowLogRunModal] = useState(false);
+  const [selectedShoeForLog, setSelectedShoeForLog] = useState<Shoe | null>(null);
+  const [runs, setRuns] = useState<Run[]>([]);
 
   const loadFavorites = async () => {
     try {
       const favs = await getFavorites();
       setFavoriteIds(favs);
+      const allRuns = await getRuns();
+      setRuns(allRuns);
     } catch (error) {
       console.error('Error loading favorites:', error);
     } finally {
@@ -79,6 +89,21 @@ export default function FavoritesScreen() {
     setSelectedCompareShoes([]);
   };
 
+  const handleLogRun = (shoe: Shoe) => {
+    setSelectedShoeForLog(shoe);
+    setShowLogRunModal(true);
+  };
+
+  const handleCloseLogRunModal = () => {
+    setShowLogRunModal(false);
+    setSelectedShoeForLog(null);
+  };
+
+  const handleRunSaved = async () => {
+    const allRuns = await getRuns();
+    setRuns(allRuns);
+  };
+
   useFocusEffect(
     useCallback(() => {
       loadFavorites();
@@ -89,16 +114,13 @@ export default function FavoritesScreen() {
 
   const EmptyState = () => (
     <View style={styles.emptyContainer}>
-      <LinearGradient
-        colors={['rgba(102, 126, 234, 0.1)', 'rgba(118, 75, 162, 0.1)']}
-        style={styles.emptyCard}
-      >
-        <Ionicons name="heart-outline" size={64} color="#adb5bd" />
-        <Text style={styles.emptyTitle}>No Favorites Yet</Text>
+      <View style={styles.emptyCard}>
+        <Ionicons name="layers-outline" size={48} color="rgba(10,10,10,0.2)" />
+        <Text style={styles.emptyTitle}>ARSENAL EMPTY</Text>
         <Text style={styles.emptyDescription}>
-          Start taking quizzes and save your favorite shoe recommendations here!
+          Run the diagnostic and save your protocol shoes to build your arsenal.
         </Text>
-      </LinearGradient>
+      </View>
     </View>
   );
 
@@ -106,10 +128,11 @@ export default function FavoritesScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>My Favorites</Text>
+          <Text style={styles.headerEyebrow}>// STRIDE PROTOCOL</Text>
+          <Text style={styles.title}>MY ARSENAL.</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading your favorites...</Text>
+          <Text style={styles.loadingText}>LOADING...</Text>
         </View>
       </SafeAreaView>
     );
@@ -118,9 +141,10 @@ export default function FavoritesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Favorites</Text>
+        <Text style={styles.headerEyebrow}>// STRIDE PROTOCOL</Text>
+        <Text style={styles.title}>MY ARSENAL.</Text>
         <Text style={styles.subtitle}>
-          {favoriteShoes.length} {favoriteShoes.length === 1 ? 'shoe' : 'shoes'} saved
+          {favoriteShoes.length} {favoriteShoes.length === 1 ? 'shoe' : 'shoes'} in rotation
         </Text>
       </View>
 
@@ -134,20 +158,37 @@ export default function FavoritesScreen() {
         {favoriteShoes.length === 0 ? (
           <EmptyState />
         ) : (
-          favoriteShoes.map((shoe, index) => (
-            <Animated.View
-              key={shoe.id}
-              entering={FadeInDown.delay(index * 100).springify()}
-            >
-              <ShoeCard
-                shoe={shoe}
-                index={index}
-                isFavorite={true}
-                onToggleFavorite={() => handleRemoveFavorite(shoe.id)}
-                onCompare={() => handleAddToCompare(shoe.id)}
+          <>
+            {/* Rotation Intelligence Card */}
+            <View style={{ paddingHorizontal: 20, marginBottom: 8 }}>
+              <RotationCard
+                roleScores={getRotationProfile(favoriteShoes)}
+                insights={getRotationInsights(getRotationProfile(favoriteShoes))}
+                healthScore={getRotationHealthScore(getRotationProfile(favoriteShoes))}
               />
-            </Animated.View>
-          ))
+            </View>
+
+            {favoriteShoes.map((shoe, index) => {
+              const shoeMileage = getMileageForShoe(shoe.id, runs);
+              return (
+                <Animated.View
+                  key={shoe.id}
+                  entering={FadeInDown.delay(index * 100).springify()}
+                >
+                  <ShoeCard
+                    shoe={shoe}
+                    index={index}
+                    isFavorite={true}
+                    onToggleFavorite={() => handleRemoveFavorite(shoe.id)}
+                    onCompare={() => handleAddToCompare(shoe.id)}
+                    onLogRun={() => handleLogRun(shoe)}
+                    mileage={shoeMileage}
+                    showMileage={true}
+                  />
+                </Animated.View>
+              );
+            })}
+          </>
         )}
       </ScrollView>
 
@@ -170,6 +211,17 @@ export default function FavoritesScreen() {
           shoe2={comparisonShoes[1]}
         />
       )}
+
+      {/* Log Run Modal */}
+      {selectedShoeForLog && (
+        <LogRunModal
+          visible={showLogRunModal}
+          shoeId={selectedShoeForLog.id}
+          shoeName={`${selectedShoeForLog.brand} ${selectedShoeForLog.model}`}
+          onClose={handleCloseLogRunModal}
+          onSaved={handleRunSaved}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -177,25 +229,35 @@ export default function FavoritesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F4F1EA',
   },
   header: {
-    backgroundColor: 'white',
-    paddingTop: 60,
+    backgroundColor: '#F4F1EA',
+    paddingTop: 20,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomWidth: 2,
+    borderBottomColor: '#0A0A0A',
+  },
+  headerEyebrow: {
+    fontFamily: 'SpaceMono',
+    fontSize: 10,
+    color: 'rgba(10,10,10,0.4)',
+    letterSpacing: 2,
+    marginBottom: 6,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#212529',
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#0A0A0A',
+    letterSpacing: -1,
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6c757d',
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: 'rgba(10,10,10,0.5)',
+    letterSpacing: 0.5,
   },
   content: {
     paddingVertical: 20,
@@ -207,32 +269,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loadingText: {
-    fontSize: 16,
-    color: '#6c757d',
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: 'rgba(10,10,10,0.4)',
+    letterSpacing: 2,
   },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 40,
+    paddingTop: 80,
   },
   emptyCard: {
     alignItems: 'center',
     padding: 40,
-    borderRadius: 24,
+    borderRadius: 2,
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
     width: '100%',
   },
   emptyTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#495057',
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0A0A0A',
     marginTop: 16,
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   emptyDescription: {
-    fontSize: 16,
-    color: '#6c757d',
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: 'rgba(10,10,10,0.5)',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 18,
+    letterSpacing: 0.3,
   },
 });

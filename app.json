@@ -1,12 +1,46 @@
 {
   "expo": {
-    "name": "Shoe Finder",
+    "name": "ShoeAI",
     "slug": "shoe-finder",
     "scheme": "shoefinder",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2563EB"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "ShoeAI needs camera access to analyze your feet and provide personalized shoe recommendations.",
+        "NSPhotoLibraryUsageDescription": "ShoeAI needs photo library access to save foot scan images."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#2563EB"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow ShoeAI to access your camera to scan your feet for personalized recommendations."
+        }
+      ]
     ]
   }
 }

@@ -1,11 +1,11 @@
 import { Shoe } from '../data/shoes';
 
 export interface QuizAnswers {
-  activity: 'running' | 'walking';
-  distance: 'short' | 'medium' | 'long';
-  injuries: 'knee' | 'plantar' | 'shin' | 'none';
-  flatFeet: boolean;
-  terrain: 'road' | 'trail' | 'both';
+  terrain: 'road' | 'trail';
+  archType: 'flat' | 'normal' | 'high';
+  pronation: 'over' | 'neutral' | 'under';
+  injury: 'knee' | 'plantar' | 'shin' | 'none';
+  goal: 'daily' | 'speed' | 'race';
 }
 
 export interface ScoredShoe extends Shoe {
@@ -13,136 +13,144 @@ export interface ScoredShoe extends Shoe {
   reasons: string[];
 }
 
+// Map quiz answers to condition strings used in the shoes database
+function getTargetConditions(answers: QuizAnswers): string[] {
+  const conditions: string[] = [];
+
+  // Arch type
+  if (answers.archType === 'flat') {
+    conditions.push('flat_feet', 'overpronation');
+  } else if (answers.archType === 'normal') {
+    conditions.push('neutral_pronation');
+  } else if (answers.archType === 'high') {
+    conditions.push('high_arches', 'underpronation_supination');
+  }
+
+  // Pronation (overrides/supplements arch type)
+  if (answers.pronation === 'over') {
+    if (!conditions.includes('overpronation')) conditions.push('overpronation');
+    if (!conditions.includes('flat_feet')) conditions.push('flat_feet');
+  } else if (answers.pronation === 'neutral') {
+    if (!conditions.includes('neutral_pronation')) conditions.push('neutral_pronation');
+  } else if (answers.pronation === 'under') {
+    if (!conditions.includes('underpronation_supination')) conditions.push('underpronation_supination');
+    if (!conditions.includes('high_arches')) conditions.push('high_arches');
+  }
+
+  // Injury
+  if (answers.injury === 'knee') conditions.push('knee_pain');
+  if (answers.injury === 'plantar') conditions.push('plantar_fasciitis');
+  if (answers.injury === 'shin') conditions.push('shin_splints');
+
+  // Terrain
+  if (answers.terrain === 'trail') conditions.push('trail_running');
+
+  // Goal
+  if (answers.goal === 'race') conditions.push('racing');
+  if (answers.goal === 'speed') conditions.push('tempo_runs');
+
+  return conditions;
+}
+
 export const scoreShoe = (shoe: Shoe, answers: QuizAnswers): { score: number; reasons: string[] } => {
   let score = 0;
   const reasons: string[] = [];
 
-  // Terrain matching (highest importance)
-  if (answers.terrain === 'road') {
-    if (shoe.terrain.toLowerCase() === 'road') {
-      score += 3;
-      reasons.push('Perfect for road running');
-    } else if (shoe.terrain.toLowerCase() === 'trail') {
-      score -= 2; // Penalty for trail shoes on road
-    }
-  } else if (answers.terrain === 'trail') {
-    if (shoe.terrain.toLowerCase() === 'trail') {
-      score += 3;
-      reasons.push('Built for trail conditions');
-    } else if (shoe.terrain.toLowerCase() === 'road') {
-      score -= 1; // Small penalty for road shoes on trail
-    }
-  } else if (answers.terrain === 'both') {
+  const targetConditions = getTargetConditions(answers);
+
+  // Score based on condition matches
+  const matchedConditions = shoe.conditions.filter(c => targetConditions.includes(c));
+  score += matchedConditions.length * 4;
+
+  // Terrain matching
+  const isTrailShoe = shoe.terrain === 'Trail';
+  if (answers.terrain === 'trail' && isTrailShoe) {
+    score += 3;
+    reasons.push('Purpose-built for trail running');
+  } else if (answers.terrain === 'road' && !isTrailShoe) {
     score += 2;
-    reasons.push('Versatile for different terrains');
+  } else if (answers.terrain === 'trail' && !isTrailShoe) {
+    score -= 3; // Road shoe on trails
+  } else if (answers.terrain === 'road' && isTrailShoe) {
+    score -= 3; // Trail shoe on roads
   }
 
-  // Activity and distance matching
-  if (answers.activity === 'running') {
-    if (shoe.category.toLowerCase() === 'racing') {
-      if (answers.distance === 'long') {
-        score += 3;
-        reasons.push('Elite performance for long distances');
-      } else if (answers.distance === 'medium') {
-        score += 2;
-        reasons.push('Great for competitive running');
-      } else {
-        score += 1;
-        reasons.push('Racing performance');
-      }
-    } else if (shoe.category.toLowerCase() === 'neutral') {
-      score += 2;
-      reasons.push('Excellent for regular running');
-    } else if (shoe.category.toLowerCase() === 'stability') {
-      score += 1;
-      reasons.push('Supportive for consistent runs');
-    }
-  } else if (answers.activity === 'walking') {
-    // For walking, prioritize comfort
-    if (shoe.cushion.toLowerCase() === 'max') {
+  // Goal alignment
+  if (answers.goal === 'race') {
+    if (shoe.category === 'carbon_plate_racing') {
+      score += 5;
+      reasons.push('Carbon-plated race day shoe');
+    } else if (shoe.category === 'lightweight_speed') {
       score += 3;
-      reasons.push('Maximum comfort for walking');
-    } else if (shoe.cushion.toLowerCase() === 'high') {
-      score += 2;
-      reasons.push('Great cushioning for comfort');
+      reasons.push('Fast and lightweight for racing');
+    } else if (['neutral', 'stability', 'max_cushion', 'motion_control'].includes(shoe.category)) {
+      score -= 2; // Heavy trainers penalised for race goal
     }
-    
-    // Racing shoes are not ideal for walking
-    if (shoe.category.toLowerCase() === 'racing') {
-      score -= 2;
-    }
-  }
-
-  // Cushioning based on distance
-  if (answers.distance === 'long') {
-    if (shoe.cushion.toLowerCase() === 'max') {
-      score += 3;
-      reasons.push('Maximum cushioning for long distances');
-    } else if (shoe.cushion.toLowerCase() === 'high') {
+  } else if (answers.goal === 'speed') {
+    if (shoe.category === 'lightweight_speed') {
+      score += 4;
+      reasons.push('Designed for speed and tempo runs');
+    } else if (shoe.category === 'carbon_plate_racing') {
       score += 2;
-      reasons.push('Great support for extended activity');
-    }
-  } else if (answers.distance === 'medium') {
-    if (shoe.cushion.toLowerCase() === 'high' || shoe.cushion.toLowerCase() === 'moderate') {
-      score += 2;
-      reasons.push('Balanced cushioning');
-    }
-  } else if (answers.distance === 'short') {
-    if (shoe.cushion.toLowerCase() === 'moderate') {
-      score += 2;
-      reasons.push('Responsive for shorter distances');
-    } else if (shoe.cushion.toLowerCase() === 'high') {
+    } else if (shoe.category === 'neutral') {
       score += 1;
     }
-  }
-
-  // Injury considerations
-  if (answers.injuries !== 'none') {
-    if (shoe.cushion.toLowerCase() === 'max') {
-      score += 2;
-      
-      switch (answers.injuries) {
-        case 'knee':
-          reasons.push('Extra cushioning helps with knee support');
-          break;
-        case 'plantar':
-          reasons.push('Maximum cushioning for plantar comfort');
-          break;
-        case 'shin':
-          reasons.push('Shock absorption for shin protection');
-          break;
-      }
-    } else if (shoe.cushion.toLowerCase() === 'high') {
-      score += 1;
-      reasons.push('Good cushioning for injury protection');
-    }
-    
-    // Racing shoes not recommended for injuries
-    if (shoe.category.toLowerCase() === 'racing') {
-      score -= 3;
-    }
-  }
-
-  // Flat feet considerations
-  if (answers.flatFeet) {
-    if (shoe.category.toLowerCase() === 'stability') {
+    if (shoe.category === 'motion_control') score -= 2;
+  } else if (answers.goal === 'daily') {
+    if (['neutral', 'stability', 'max_cushion', 'motion_control'].includes(shoe.category)) {
       score += 3;
-      reasons.push('Stability support ideal for flat feet');
-    } else if (shoe.category.toLowerCase() === 'neutral') {
-      // Only slight penalty since some neutral shoes work for flat feet
+      reasons.push('Great everyday trainer');
+    }
+    if (shoe.category === 'carbon_plate_racing') {
+      score -= 4; // Carbon racers not for daily use
+    }
+  }
+
+  // Arch-specific bonuses
+  if (answers.archType === 'flat') {
+    if (shoe.category === 'motion_control') {
+      score += 4;
+      reasons.push('Motion control ideal for flat feet');
+    } else if (shoe.category === 'stability') {
+      score += 3;
+      reasons.push('Stability support for flat feet');
+    } else if (shoe.category === 'neutral') {
       score -= 1;
     }
-  } else {
-    if (shoe.category.toLowerCase() === 'neutral') {
-      score += 1;
-      reasons.push('Neutral support for normal arches');
+  } else if (answers.archType === 'high') {
+    if (shoe.category === 'max_cushion') {
+      score += 3;
+      reasons.push('Maximum cushioning for high arches');
+    } else if (shoe.category === 'neutral') {
+      score += 2;
+      reasons.push('Flexible neutral shoe for high arches');
+    }
+    if (['stability', 'motion_control'].includes(shoe.category)) {
+      score -= 2; // Stability/motion control not recommended for high arches
+    }
+  } else if (answers.archType === 'normal' && answers.pronation === 'over') {
+    if (shoe.category === 'stability') {
+      score += 3;
+      reasons.push('Stability support for overpronation');
     }
   }
 
-  // Category-specific bonuses
-  if (shoe.category.toLowerCase() === 'trail' && answers.terrain === 'trail') {
-    score += 1;
-    reasons.push('Purpose-built for trails');
+  // Injury bonuses
+  if (answers.injury !== 'none') {
+    if (shoe.conditions.includes('plantar_fasciitis') && answers.injury === 'plantar') {
+      score += 4;
+      reasons.push('Recommended for plantar fasciitis relief');
+    }
+    if (shoe.conditions.includes('knee_pain') && answers.injury === 'knee') {
+      score += 4;
+      reasons.push('Extra cushioning helps reduce knee stress');
+    }
+    if (shoe.category === 'max_cushion' && answers.injury !== 'none') {
+      score += 2;
+      if (reasons.length < 3) reasons.push('Maximum cushioning protects from impact');
+    }
+    // Carbon racers penalised during injury recovery
+    if (shoe.category === 'carbon_plate_racing') score -= 4;
   }
 
   return { score: Math.max(0, score), reasons: reasons.slice(0, 3) };
@@ -151,11 +159,11 @@ export const scoreShoe = (shoe: Shoe, answers: QuizAnswers): { score: number; re
 export const getRecommendations = (answers: QuizAnswers, shoes: Shoe[]): ScoredShoe[] => {
   const scoredShoes = shoes.map(shoe => ({
     ...shoe,
-    ...scoreShoe(shoe, answers)
+    ...scoreShoe(shoe, answers),
   }));
 
   return scoredShoes
-    .filter(shoe => shoe.score > 0) // Only include shoes with positive scores
-    .sort((a, b) => b.score - a.score) // Sort by score descending
-    .slice(0, 6); // Return top 6 recommendations
+    .filter(shoe => shoe.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8);
 };

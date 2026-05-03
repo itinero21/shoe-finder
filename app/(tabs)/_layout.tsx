@@ -1,62 +1,82 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform, useColorScheme } from 'react-native';
-
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
+import { Platform, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colorScheme === 'dark' ? '#667eea' : '#667eea',
         headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
+        tabBarActiveTintColor: '#FF3D00',
+        tabBarInactiveTintColor: 'rgba(244,241,234,0.4)',
+        tabBarStyle: {
+          backgroundColor: '#0A0A0A',
+          borderTopWidth: 2,
+          borderTopColor: '#FF3D00',
+          paddingTop: 8,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 10,
+          height: Platform.OS === 'ios' ? 80 : 62,
+        },
+        tabBarLabelStyle: {
+          fontFamily: 'SpaceMono',
+          fontSize: 9,
+          letterSpacing: 1,
+          marginTop: 2,
+        },
       }}>
+      <Tabs.Screen
+        name="scan"
+        options={{
+          title: 'SCOUT',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="scan-outline" size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="rotation"
+        options={{
+          title: 'ARSENAL',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="layers-outline" size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="discover"
+        options={{
+          title: 'DISCOVER',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="compass-outline" size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="coach"
+        options={{
+          title: 'COACH',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="pulse-outline" size={22} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Quiz',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.clipboard.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: 'Search',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="favorites"
-        options={{
-          title: 'Favorites',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="heart.fill" color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
-          title: 'History',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Settings',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
+          href: null,
         }}
       />
     </Tabs>
