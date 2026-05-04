@@ -16,11 +16,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Quiz } from '../../components/Quiz';
+import { WhyNotModal } from '../../components/WhyNotModal';
 import { SHOES } from '../data/shoes';
 import { Shoe } from '../data/shoes';
 import { QuizAnswers, getRecommendations, ScoredShoe } from '../utils/scoring';
 import { addToFavorites } from '../utils/storage';
+import { getUserProfile } from '../utils/userProfile';
+
+export const QUIZ_ANSWERS_KEY = 'stride_quiz_answers_v1';
 
 // ─── Design tokens ────────────────────────────────────────
 const INK = '#0A0A0A';
@@ -129,15 +134,22 @@ export default function ScanScreen() {
   const [answers, setAnswers] = useState<QuizAnswers | null>(null);
   const [selectedShoe, setSelectedShoe] = useState<ScoredShoe | null>(null);
   const [visibleCount, setVisibleCount] = useState(3);
+  const [whyNotShoe, setWhyNotShoe] = useState<ScoredShoe | null>(null);
+  const [isBeginnerMode, setIsBeginnerMode] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const handleQuizComplete = (quizAnswers: QuizAnswers) => {
+  useEffect(() => {
+    getUserProfile().then(p => setIsBeginnerMode(p.is_beginner_mode));
+  }, []);
+
+  const handleQuizComplete = async (quizAnswers: QuizAnswers) => {
     const results = getRecommendations(quizAnswers, SHOES);
     setRecs(results);
     setAnswers(quizAnswers);
     setShowQuiz(false);
     setMode('results');
     setVisibleCount(3);
+    await AsyncStorage.setItem(QUIZ_ANSWERS_KEY, JSON.stringify(quizAnswers));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
@@ -165,6 +177,7 @@ export default function ScanScreen() {
       <Quiz
         onComplete={handleQuizComplete}
         onBack={() => setShowQuiz(false)}
+        beginnerMode={isBeginnerMode}
       />
     );
   }
@@ -409,6 +422,12 @@ export default function ScanScreen() {
                     <Text style={s.inspectBtnText}>INSPECT MODEL →</Text>
                   </View>
                 </Pressable>
+                <Pressable
+                  onPress={() => { setWhyNotShoe(primary); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                  style={s.whyNotBtn}
+                >
+                  <Text style={s.whyNotBtnText}>WHY NOT THIS SHOE?</Text>
+                </Pressable>
               </View>
             </View>
           </View>
@@ -442,6 +461,12 @@ export default function ScanScreen() {
                         <Text style={s.secCatText}>{getCategoryLabel(shoe.category)}</Text>
                       </View>
                       <Text style={s.secInspect}>INSPECT →</Text>
+                      <Pressable
+                        onPress={(e) => { e.stopPropagation(); setWhyNotShoe(shoe); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                        style={s.secWhyNot}
+                      >
+                        <Text style={s.secWhyNotText}>WHY NOT?</Text>
+                      </Pressable>
                     </View>
                   </View>
                 </Pressable>
@@ -493,6 +518,14 @@ export default function ScanScreen() {
             <Text style={s.footerMeta}>END_OF_PROTOCOL_001</Text>
           </View>
         </ScrollView>
+
+        {/* WhyNot Modal */}
+        <WhyNotModal
+          visible={!!whyNotShoe}
+          shoe={whyNotShoe}
+          answers={answers}
+          onClose={() => setWhyNotShoe(null)}
+        />
       </View>
     );
   }
@@ -915,6 +948,22 @@ const s = StyleSheet.create({
   secCatBadge: { backgroundColor: INK, paddingHorizontal: 8, paddingVertical: 4 },
   secCatText: { fontFamily: 'SpaceMono', fontSize: 8, color: PAPER, letterSpacing: 1 },
   secInspect: { fontFamily: 'SpaceMono', fontSize: 10, color: ACCENT, letterSpacing: 1 },
+  secWhyNot: { paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: ACCENT },
+  secWhyNotText: { fontFamily: 'SpaceMono', fontSize: 8, color: ACCENT, letterSpacing: 1 },
+
+  // WhyNot button on primary card
+  whyNotBtn: {
+    marginTop: 10,
+    paddingVertical: 12,
+    borderWidth: 2,
+    borderColor: ACCENT,
+    borderRadius: 2,
+    alignItems: 'center',
+  },
+  whyNotBtnText: {
+    fontFamily: 'SpaceMono', fontSize: 11, fontWeight: '700',
+    color: ACCENT, letterSpacing: 1.5,
+  },
 
   // Show more / exhausted
   showMoreSection: { paddingHorizontal: 20, paddingVertical: 20 },

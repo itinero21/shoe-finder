@@ -1,385 +1,161 @@
+/**
+ * Run Log — hidden from tab bar (href: null), accessible as a sub-screen.
+ * Replaces old quiz history screen with real run data.
+ */
 import React, { useState, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  SafeAreaView,
-  TouchableOpacity,
-  RefreshControl,
+  View, Text, StyleSheet, ScrollView, RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { getRuns } from '../utils/runStorage';
+import { SHOES } from '../data/shoes';
+import { Run } from '../types/run';
+import { MATCH_LABELS } from '../utils/matchQuality';
 
-import { getQuizHistory, QuizResult } from '../utils/storage';
+const INK   = '#0A0A0A';
+const PAPER = '#F4F1EA';
+const ACCENT = '#FF3D00';
+const MONO  = 'SpaceMono';
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 export default function HistoryScreen() {
-  const [quizHistory, setQuizHistory] = useState<QuizResult[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [runs, setRuns] = useState<Run[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  const loadHistory = async () => {
-    try {
-      const history = await getQuizHistory();
-      setQuizHistory(history);
-    } catch (error) {
-      console.error('Error loading quiz history:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const load = async () => {
+    const data = await getRuns();
+    setRuns(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadHistory();
-    setRefreshing(false);
-  };
+  useFocusEffect(useCallback(() => { load(); }, []));
 
-  const toggleExpanded = (id: string) => {
-    const newExpandedItems = new Set(expandedItems);
-    if (newExpandedItems.has(id)) {
-      newExpandedItems.delete(id);
-    } else {
-      newExpandedItems.add(id);
-    }
-    setExpandedItems(newExpandedItems);
-  };
+  const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
-  useFocusEffect(
-    useCallback(() => {
-      loadHistory();
-    }, [])
-  );
-
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) {
-      return 'Today';
-    } else if (diffDays === 1) {
-      return 'Yesterday';
-    } else if (diffDays < 7) {
-      return `${diffDays} days ago`;
-    } else {
-      return date.toLocaleDateString();
-    }
-  };
-
-  const getActivityEmoji = (activity: string) => {
-    return activity === 'running' ? '🏃‍♂️' : '🚶‍♀️';
-  };
-
-  const getDistanceLabel = (distance: string) => {
-    switch (distance) {
-      case 'short': return 'Short distances (<5km)';
-      case 'medium': return 'Medium distances (5-15km)';
-      case 'long': return 'Long distances (>15km)';
-      default: return distance;
-    }
-  };
-
-  const getInjuryLabel = (injury: string) => {
-    switch (injury) {
-      case 'none': return 'No injuries';
-      case 'knee': return 'Knee pain';
-      case 'plantar': return 'Plantar fasciitis';
-      case 'shin': return 'Shin splints';
-      default: return injury;
-    }
-  };
-
-  const getTerrainLabel = (terrain: string) => {
-    switch (terrain) {
-      case 'road': return 'Road/Pavement';
-      case 'trail': return 'Trails';
-      case 'both': return 'Mixed terrain';
-      default: return terrain;
-    }
-  };
-
-  const EmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <LinearGradient
-        colors={['rgba(102, 126, 234, 0.1)', 'rgba(118, 75, 162, 0.1)']}
-        style={styles.emptyCard}
-      >
-        <Ionicons name="time-outline" size={64} color="#adb5bd" />
-        <Text style={styles.emptyTitle}>No Quiz History</Text>
-        <Text style={styles.emptyDescription}>
-          Take your first quiz to see your results history here!
-        </Text>
-      </LinearGradient>
-    </View>
-  );
-
-  const HistoryItem: React.FC<{ result: QuizResult; index: number }> = ({ result, index }) => {
-    const isExpanded = expandedItems.has(result.id);
-
-    return (
-      <Animated.View
-        entering={FadeInDown.delay(index * 100).springify()}
-        style={styles.historyItem}
-      >
-        <TouchableOpacity
-          onPress={() => toggleExpanded(result.id)}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={['#ffffff', '#f8f9ff']}
-            style={styles.historyCard}
-          >
-            <View style={styles.historyHeader}>
-              <View style={styles.historyHeaderLeft}>
-                <Text style={styles.activityEmoji}>
-                  {getActivityEmoji(result.answers.activity)}
-                </Text>
-                <View>
-                  <Text style={styles.historyTitle}>
-                    {result.answers.activity === 'running' ? 'Running' : 'Walking'} Quiz
-                  </Text>
-                  <Text style={styles.historyDate}>{formatDate(result.timestamp)}</Text>
-                </View>
-              </View>
-              
-              <View style={styles.historyHeaderRight}>
-                <Text style={styles.recommendationCount}>
-                  {result.recommendations.length} recommendations
-                </Text>
-                <Ionicons
-                  name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                  size={20}
-                  color="#6c757d"
-                />
-              </View>
-            </View>
-
-            {isExpanded && (
-              <View style={styles.historyDetails}>
-                <View style={styles.detailsSection}>
-                  <Text style={styles.detailsTitle}>Your Answers:</Text>
-                  <View style={styles.detailsList}>
-                    <Text style={styles.detailItem}>• Distance: {getDistanceLabel(result.answers.distance)}</Text>
-                    <Text style={styles.detailItem}>• Injuries: {getInjuryLabel(result.answers.injuries)}</Text>
-                    <Text style={styles.detailItem}>• Flat feet: {result.answers.flatFeet ? 'Yes' : 'No'}</Text>
-                    <Text style={styles.detailItem}>• Terrain: {getTerrainLabel(result.answers.terrain)}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.detailsSection}>
-                  <Text style={styles.detailsTitle}>Top Recommendations:</Text>
-                  <View style={styles.recommendationsList}>
-                    {result.recommendations.slice(0, 3).map((shoe, idx) => (
-                      <View key={shoe.id} style={styles.recommendationItem}>
-                        <Text style={styles.recommendationRank}>#{idx + 1}</Text>
-                        <Text style={styles.recommendationText}>
-                          {shoe.brand} {shoe.model}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              </View>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
-
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Quiz History</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading your history...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const totalKm = runs.reduce((sum, r) => sum + r.distanceKm, 0);
+  const totalMiles = totalKm * 0.621371;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Quiz History</Text>
-        <Text style={styles.subtitle}>
-          {quizHistory.length} {quizHistory.length === 1 ? 'quiz' : 'quizzes'} completed
-        </Text>
+    <SafeAreaView style={s.container}>
+      <View style={s.header}>
+        <Text style={s.eyebrow}>// STRIDE PROTOCOL</Text>
+        <Text style={s.title}>RUN LOG.</Text>
+        <Text style={s.subtitle}>{runs.length} runs · {totalMiles.toFixed(1)} mi lifetime</Text>
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        contentContainerStyle={s.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} />}
       >
-        {quizHistory.length === 0 ? (
-          <EmptyState />
+        {runs.length === 0 ? (
+          <View style={s.empty}>
+            <Text style={s.emptyIcon}>📋</Text>
+            <Text style={s.emptyTitle}>NO RUNS YET</Text>
+            <Text style={s.emptyDesc}>Log runs from the Arsenal tab to track your history.</Text>
+          </View>
         ) : (
-          quizHistory.map((result, index) => (
-            <HistoryItem key={result.id} result={result} index={index} />
-          ))
+          runs.map((run, i) => {
+            const shoe = SHOES.find(sh => sh.id === run.shoeId);
+            const matchInfo = run.match_quality ? MATCH_LABELS[run.match_quality] : null;
+            return (
+              <Animated.View key={run.id} entering={FadeInDown.delay(i * 30).springify()}>
+                <View style={s.card}>
+                  {/* Top row */}
+                  <View style={s.cardTop}>
+                    <View style={s.cardLeft}>
+                      <Text style={s.cardDate}>{formatDate(run.date)}</Text>
+                      <Text style={s.cardShoe}>{shoe ? `${shoe.brand} ${shoe.model}` : run.shoeId}</Text>
+                    </View>
+                    <View style={s.distBadge}>
+                      <Text style={s.distVal}>{(run.distanceKm * 0.621371).toFixed(1)}</Text>
+                      <Text style={s.distUnit}>MI</Text>
+                    </View>
+                  </View>
+
+                  {/* Tags row */}
+                  <View style={s.tagsRow}>
+                    {run.terrain && (
+                      <View style={s.tag}><Text style={s.tagText}>{run.terrain.toUpperCase()}</Text></View>
+                    )}
+                    {run.purpose && (
+                      <View style={s.tag}><Text style={s.tagText}>{run.purpose.toUpperCase()}</Text></View>
+                    )}
+                    {run.durationMinutes && (
+                      <View style={s.tag}><Text style={s.tagText}>{run.durationMinutes}MIN</Text></View>
+                    )}
+                    {run.feel && (
+                      <View style={s.tag}>
+                        <Text style={s.tagText}>{run.feel === 3 ? '🔥 FRESH' : run.feel === 2 ? '👍 OKAY' : '😵 DEAD'}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Match quality */}
+                  {matchInfo && (
+                    <View style={[s.matchRow, { borderLeftColor: matchInfo.color }]}>
+                      <Text style={[s.matchLabel, { color: matchInfo.color }]}>{matchInfo.label}</Text>
+                      {run.xp_earned && run.xp_earned > 0 && (
+                        <View style={[s.xpBadge, { backgroundColor: matchInfo.color }]}>
+                          <Text style={s.xpText}>+{run.xp_earned} XP</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  {/* Source */}
+                  {run.source && run.source !== 'manual' && (
+                    <Text style={s.source}>via {run.source.replace('_', ' ')}</Text>
+                  )}
+
+                  {run.notes && <Text style={s.notes}>{run.notes}</Text>}
+                </View>
+              </Animated.View>
+            );
+          })
         )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: PAPER },
   header: {
-    backgroundColor: 'white',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    paddingTop: 20, paddingHorizontal: 20, paddingBottom: 16,
+    borderBottomWidth: 2, borderBottomColor: INK,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#212529',
-    marginBottom: 4,
+  eyebrow: { fontFamily: MONO, fontSize: 9, color: ACCENT, letterSpacing: 2, marginBottom: 4 },
+  title: { fontSize: 32, fontWeight: '900', color: INK, letterSpacing: -1, marginBottom: 4 },
+  subtitle: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.5)', letterSpacing: 0.5 },
+  content: { padding: 16, paddingBottom: 60 },
+  empty: { alignItems: 'center', paddingTop: 80 },
+  emptyIcon: { fontSize: 40, marginBottom: 16 },
+  emptyTitle: { fontFamily: MONO, fontSize: 14, fontWeight: '700', color: INK, marginBottom: 8, letterSpacing: 1 },
+  emptyDesc: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.5)', textAlign: 'center', lineHeight: 18 },
+  card: {
+    backgroundColor: PAPER, borderWidth: 2, borderColor: INK, borderRadius: 2,
+    padding: 14, marginBottom: 12,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#6c757d',
-  },
-  content: {
-    paddingVertical: 20,
-    flexGrow: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6c757d',
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyCard: {
-    alignItems: 'center',
-    padding: 40,
-    borderRadius: 24,
-    width: '100%',
-  },
-  emptyTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#495057',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyDescription: {
-    fontSize: 16,
-    color: '#6c757d',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  historyItem: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  historyCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  historyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-  },
-  historyHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  activityEmoji: {
-    fontSize: 32,
-    marginRight: 16,
-  },
-  historyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#212529',
-    marginBottom: 2,
-  },
-  historyDate: {
-    fontSize: 14,
-    color: '#6c757d',
-  },
-  historyHeaderRight: {
-    alignItems: 'flex-end',
-  },
-  recommendationCount: {
-    fontSize: 12,
-    color: '#6c757d',
-    marginBottom: 4,
-  },
-  historyDetails: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f3f4',
-  },
-  detailsSection: {
-    marginBottom: 16,
-  },
-  detailsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#495057',
-    marginBottom: 8,
-  },
-  detailsList: {
-    paddingLeft: 8,
-  },
-  detailItem: {
-    fontSize: 14,
-    color: '#6c757d',
-    marginBottom: 4,
-  },
-  recommendationsList: {
-    paddingLeft: 8,
-  },
-  recommendationItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  recommendationRank: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#667eea',
-    minWidth: 20,
-  },
-  recommendationText: {
-    fontSize: 14,
-    color: '#495057',
-    marginLeft: 8,
-  },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
+  cardLeft: { flex: 1 },
+  cardDate: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', letterSpacing: 1, marginBottom: 4 },
+  cardShoe: { fontSize: 15, fontWeight: '800', color: INK, letterSpacing: -0.2 },
+  distBadge: { alignItems: 'center', backgroundColor: INK, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 2 },
+  distVal: { fontSize: 18, fontWeight: '900', color: PAPER, letterSpacing: -0.5 },
+  distUnit: { fontFamily: MONO, fontSize: 8, color: 'rgba(244,241,234,0.6)', letterSpacing: 1 },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  tag: { paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(10,10,10,0.2)', borderRadius: 2 },
+  tagText: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.5)', letterSpacing: 0.5 },
+  matchRow: { flexDirection: 'row', alignItems: 'center', borderLeftWidth: 3, paddingLeft: 8, gap: 8, marginBottom: 6 },
+  matchLabel: { fontFamily: MONO, fontSize: 9, fontWeight: '700', letterSpacing: 0.5, flex: 1 },
+  xpBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 2 },
+  xpText: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: PAPER, letterSpacing: 1 },
+  source: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.3)', letterSpacing: 1, marginTop: 2 },
+  notes: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.6)', marginTop: 6, fontStyle: 'italic' },
 });

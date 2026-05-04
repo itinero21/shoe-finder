@@ -12,13 +12,19 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ShoeCard } from '../../components/ShoeCard';
 import { CompareModal } from '../../components/CompareModal';
 import { ComparisonView } from '../../components/ComparisonView';
+import { WhyNotModal } from '../../components/WhyNotModal';
+import { GlossaryModal } from '../../components/GlossaryModal';
+import { InjuryBanner } from '../../components/InjuryBanner';
 import { SHOES } from '../data/shoes';
 import { Shoe } from '../data/shoes';
 import { getFavorites, addToFavorites, removeFromFavorites } from '../utils/storage';
+import { QuizAnswers } from '../utils/scoring';
+import { QUIZ_ANSWERS_KEY } from './scan';
 
 interface Filters {
   brands: string[];
@@ -39,18 +45,37 @@ export default function SearchScreen() {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
+
+  // Compare
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [selectedCompareShoes, setSelectedCompareShoes] = useState<string[]>([]);
   const [showComparison, setShowComparison] = useState(false);
   const [comparisonShoes, setComparisonShoes] = useState<[Shoe, Shoe] | null>(null);
 
+  // WhyNot
+  const [whyNotShoe, setWhyNotShoe] = useState<Shoe | null>(null);
+  const [savedAnswers, setSavedAnswers] = useState<QuizAnswers | null>(null);
+
+  // Glossary
+  const [showGlossary, setShowGlossary] = useState(false);
+
   useEffect(() => {
     loadFavorites();
+    loadSavedAnswers();
   }, []);
 
   const loadFavorites = async () => {
     const favs = await getFavorites();
     setFavorites(favs);
+  };
+
+  const loadSavedAnswers = async () => {
+    try {
+      const raw = await AsyncStorage.getItem(QUIZ_ANSWERS_KEY);
+      if (raw) setSavedAnswers(JSON.parse(raw));
+    } catch {
+      /* no answers yet */
+    }
   };
 
   const handleToggleFavorite = async (shoeId: string) => {
@@ -71,10 +96,10 @@ export default function SearchScreen() {
   };
 
   const handleToggleCompareShoe = (shoeId: string) => {
-    setSelectedCompareShoes(prev => 
-      prev.includes(shoeId) 
+    setSelectedCompareShoes(prev =>
+      prev.includes(shoeId)
         ? prev.filter(id => id !== shoeId)
-        : prev.length < 2 
+        : prev.length < 2
           ? [...prev, shoeId]
           : prev
     );
@@ -95,56 +120,47 @@ export default function SearchScreen() {
   const filteredShoes = useMemo(() => {
     let results = SHOES;
 
-    // Text search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      results = results.filter(shoe => 
+      results = results.filter(shoe =>
         shoe.brand.toLowerCase().includes(query) ||
         shoe.model.toLowerCase().includes(query) ||
         shoe.summary.toLowerCase().includes(query)
       );
     }
 
-    // Apply filters
     if (filters.brands.length > 0) {
       results = results.filter(shoe => filters.brands.includes(shoe.brand));
     }
-    
+
     if (filters.categories.length > 0) {
       results = results.filter(shoe => filters.categories.includes(shoe.category));
     }
-    
+
     if (filters.use_cases.length > 0) {
       results = results.filter(shoe => shoe.use_cases.some(u => filters.use_cases.includes(u)));
-    };
+    }
 
     return results;
   }, [searchQuery, filters]);
 
   const toggleFilter = (category: keyof Filters, value: string) => {
-    
     setFilters(prev => ({
       ...prev,
       [category]: prev[category].includes(value)
         ? prev[category].filter(item => item !== value)
         : [...prev[category], value]
     }));
-    
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const clearAllFilters = () => {
-    setFilters({
-      brands: [],
-      categories: [],
-      use_cases: [],
-    });
+    setFilters({ brands: [], categories: [], use_cases: [] });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
-  const getActiveFilterCount = () => {
-    return filters.brands.length + filters.categories.length + filters.use_cases.length;
-  };
+  const getActiveFilterCount = () =>
+    filters.brands.length + filters.categories.length + filters.use_cases.length;
 
   const FilterSection: React.FC<{
     title: string;
@@ -168,7 +184,7 @@ export default function SearchScreen() {
               styles.filterOptionText,
               selectedOptions.includes(option) && styles.filterOptionTextSelected
             ]}>
-              {option.replace('-', ' ')}
+              {option.replace(/-/g, ' ')}
             </Text>
           </TouchableOpacity>
         ))}
@@ -179,12 +195,28 @@ export default function SearchScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerEyebrow}>// STRIDE PROTOCOL</Text>
-        <Text style={styles.title}>DISCOVER.</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.headerEyebrow}>// STRIDE PROTOCOL</Text>
+            <Text style={styles.title}>DISCOVER.</Text>
+          </View>
+          <TouchableOpacity onPress={() => setShowGlossary(true)} style={styles.glossaryBtn}>
+            <Ionicons name="book-outline" size={18} color="#0A0A0A" />
+            <Text style={styles.glossaryBtnText}>GLOSSARY</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.subtitle}>
           {filteredShoes.length} {filteredShoes.length === 1 ? 'shoe' : 'shoes'} in the database
         </Text>
+        {!savedAnswers && (
+          <Text style={styles.noAnswersHint}>
+            ✦ Run the Scout quiz to unlock WHY NOT? explanations
+          </Text>
+        )}
       </View>
+
+      {/* Injury banner — shown when user has active injury */}
+      <InjuryBanner />
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
@@ -244,6 +276,7 @@ export default function SearchScreen() {
                 isFavorite={favorites.includes(shoe.id)}
                 onToggleFavorite={() => handleToggleFavorite(shoe.id)}
                 onCompare={() => handleAddToCompare(shoe.id)}
+                onWhyNot={savedAnswers ? () => setWhyNotShoe(shoe) : undefined}
               />
             </Animated.View>
           ))
@@ -274,14 +307,12 @@ export default function SearchScreen() {
               selectedOptions={filters.brands}
               onToggle={(value) => toggleFilter('brands', value)}
             />
-            
             <FilterSection
               title="Categories"
               options={CATEGORY_OPTIONS}
               selectedOptions={filters.categories}
               onToggle={(value) => toggleFilter('categories', value)}
             />
-
             <FilterSection
               title="Use Case"
               options={USE_CASE_OPTIONS}
@@ -322,6 +353,20 @@ export default function SearchScreen() {
           shoe2={comparisonShoes[1]}
         />
       )}
+
+      {/* WhyNot Modal */}
+      <WhyNotModal
+        visible={!!whyNotShoe}
+        shoe={whyNotShoe}
+        answers={savedAnswers}
+        onClose={() => setWhyNotShoe(null)}
+      />
+
+      {/* Glossary Modal */}
+      <GlossaryModal
+        visible={showGlossary}
+        onClose={() => setShowGlossary(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -335,9 +380,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4F1EA',
     paddingTop: 20,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 16,
     borderBottomWidth: 2,
     borderBottomColor: '#0A0A0A',
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
   },
   headerEyebrow: {
     fontFamily: 'SpaceMono',
@@ -353,11 +404,36 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
     marginBottom: 4,
   },
+  glossaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 2,
+    marginTop: 4,
+  },
+  glossaryBtnText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 9,
+    color: '#0A0A0A',
+    letterSpacing: 1.5,
+    fontWeight: '700',
+  },
   subtitle: {
     fontFamily: 'SpaceMono',
     fontSize: 11,
     color: 'rgba(10,10,10,0.5)',
     letterSpacing: 0.5,
+  },
+  noAnswersHint: {
+    fontFamily: 'SpaceMono',
+    fontSize: 9,
+    color: '#FF3D00',
+    letterSpacing: 0.5,
+    marginTop: 6,
   },
   searchContainer: {
     flexDirection: 'row',

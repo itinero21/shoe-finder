@@ -11,6 +11,8 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { IntegrationsModal } from '../../components/IntegrationsModal';
+import { InjuryBanner } from '../../components/InjuryBanner';
 
 // ===================================================================
 // STRIDE//COACH — Static Coaching System (NO AI)
@@ -297,6 +299,7 @@ export default function CoachScreen() {
   const [painResult, setPainResult] = useState<any>(null);
   const [chatInput, setChatInput] = useState('');
   const [chatHistory, setChatHistory] = useState<{ role: string; text: string }[]>([]);
+  const [showIntegrations, setShowIntegrations] = useState(false);
   const chatScrollRef = useRef<ScrollView>(null);
 
   // ── PLANS ──────────────────────────────────────────────────────────────────
@@ -304,13 +307,29 @@ export default function CoachScreen() {
     return (
       <SafeAreaView style={s.root}>
         <TopBar subtitle="STATIC ENGINE / NO AI" onBack={null} />
+        <InjuryBanner />
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollPad}>
           {/* Header */}
-          <Text style={s.eyebrow}>▎ COACHING / 06 PROTOCOLS</Text>
-          <Text style={s.heroTitle}>PICK YOUR{'\n'}MISSION.</Text>
+          <View style={s.coachHeaderRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.eyebrow}>▎ COACHING / 06 PROTOCOLS</Text>
+              <Text style={s.heroTitle}>PICK YOUR{'\n'}MISSION.</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setShowIntegrations(true)}
+              style={s.integrationsBtn}
+            >
+              <Text style={s.integrationsBtnText}>⚡ SYNC</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={s.heroSub}>
             Plans built from real coaching frameworks — Hal Higdon, C25K, return-to-run protocols. No subscription. No tokens.
           </Text>
+
+          <IntegrationsModal
+            visible={showIntegrations}
+            onClose={() => setShowIntegrations(false)}
+          />
 
           {/* Marquee Banner */}
           <View style={s.marqueeBand}>
@@ -787,6 +806,9 @@ const s = StyleSheet.create({
   eyebrow: { fontFamily: 'SpaceMono', fontSize: 10, color: '#FF3D00', letterSpacing: 2, marginBottom: 10 },
   heroTitle: { fontSize: 48, fontWeight: '900', color: '#0A0A0A', letterSpacing: -2, lineHeight: 46, marginBottom: 14 },
   heroSub: { fontFamily: 'SpaceMono', fontSize: 11, color: 'rgba(10,10,10,0.55)', lineHeight: 18, letterSpacing: 0.2, marginBottom: 20 },
+  coachHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  integrationsBtn: { borderWidth: 2, borderColor: '#0A0A0A', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 2, marginTop: 4 },
+  integrationsBtnText: { fontFamily: 'SpaceMono', fontSize: 9, fontWeight: '700', color: '#0A0A0A', letterSpacing: 1.5 },
 
   // Marquee banner
   marqueeBand: { backgroundColor: '#D4FF00', borderTopWidth: 2, borderBottomWidth: 2, borderColor: '#0A0A0A', paddingVertical: 10, marginHorizontal: -20, marginBottom: 24 },

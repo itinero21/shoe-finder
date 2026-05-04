@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { LogRunModal } from '../../components/LogRunModal';
 import { GameStatBars } from '../../components/GameStatBars';
+import { AchievementsModal } from '../../components/AchievementsModal';
 import { SHOES, Shoe } from '../data/shoes';
 import { getFavorites, removeFromFavorites } from '../utils/storage';
 import { getMileageForShoe } from '../utils/mileage';
@@ -286,6 +287,7 @@ export default function ArsenalScreen() {
   const [showObituaryForm, setShowObituaryForm] = useState(false);
   const [obituaryShoe, setObituaryShoe] = useState<Shoe | null>(null);
   const [obituaryAddedDate, setObituaryAddedDate] = useState('');
+  const [showAchievements, setShowAchievements] = useState(false);
 
   const load = async () => {
     const [favs, allRuns, grave, prof] = await Promise.all([
@@ -353,6 +355,34 @@ export default function ArsenalScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
+  // ── Streaks widget ─────────────────────────────────────────────────���──────
+  const renderStreaks = () => {
+    if (!profile) return null;
+    const streaks = profile.streak_states;
+    const items = [
+      { key: 'variety',         label: 'VARIETY',     icon: '🔀', weeks: streaks.variety.weeks_active },
+      { key: 'consistency',     label: 'CONSISTENCY', icon: '📅', weeks: streaks.consistency.weeks_active },
+      { key: 'recovery',        label: 'RECOVERY',    icon: '💤', weeks: streaks.recovery.weeks_active },
+      { key: 'rotation_health', label: 'ROTATION',    icon: '🔄', weeks: streaks.rotation_health.weeks_active },
+    ];
+    const hasAny = items.some(i => i.weeks > 0);
+    if (!hasAny) return null;
+    return (
+      <View style={ss.container}>
+        <Text style={ss.label}>ACTIVE STREAKS</Text>
+        <View style={ss.row}>
+          {items.filter(i => i.weeks > 0).map(item => (
+            <View key={item.key} style={ss.chip}>
+              <Text style={ss.chipIcon}>{item.icon}</Text>
+              <Text style={ss.chipWeeks}>{item.weeks}W</Text>
+              <Text style={ss.chipLabel}>{item.label}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
   // ── Level bar ─────────────────────────────────────────────────────────────
   const renderLevelBar = () => {
     if (!profile) return null;
@@ -390,9 +420,23 @@ export default function ArsenalScreen() {
     <SafeAreaView style={s.container}>
       {/* Header */}
       <View style={s.header}>
-        <Text style={s.eyebrow}>// STRIDE PROTOCOL</Text>
-        <Text style={s.title}>ARSENAL.</Text>
+        <View style={s.headerTop}>
+          <View>
+            <Text style={s.eyebrow}>// STRIDE PROTOCOL</Text>
+            <Text style={s.title}>ARSENAL.</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => { setShowAchievements(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+            style={s.achievementsBtn}
+          >
+            <Text style={s.achievementsBtnIcon}>🏆</Text>
+            <Text style={s.achievementsBtnText}>
+              {profile?.achievements_unlocked.length ?? 0}
+            </Text>
+          </TouchableOpacity>
+        </View>
         {renderLevelBar()}
+        {renderStreaks()}
       </View>
 
       {/* Tab bar */}
@@ -532,7 +576,7 @@ export default function ArsenalScreen() {
                 <Text style={s.graveyardStatsTitle}>// HALL OF RECORD</Text>
                 <View style={s.graveyardStatsGrid}>
                   <View style={s.graveyardStatCell}>
-                    <Text style={s.graveyardStatVal}>{graveyardStats.total_shoes}</Text>
+                    <Text style={s.graveyardStatVal}>{graveyardStats.totalShoes}</Text>
                     <Text style={s.graveyardStatLabel}>RETIRED</Text>
                   </View>
                   <View style={s.graveyardStatCell}>
@@ -588,6 +632,12 @@ export default function ArsenalScreen() {
           )}
         </SafeAreaView>
       </Modal>
+
+      <AchievementsModal
+        visible={showAchievements}
+        unlockedIds={profile?.achievements_unlocked ?? []}
+        onClose={() => setShowAchievements(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -606,12 +656,26 @@ const ls = StyleSheet.create({
   next: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.35)', letterSpacing: 0.5 },
 });
 
+const ss = StyleSheet.create({
+  container: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(10,10,10,0.1)' },
+  label: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.35)', letterSpacing: 2, marginBottom: 8 },
+  row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(10,10,10,0.15)', borderRadius: 2, backgroundColor: 'rgba(212,255,0,0.12)' },
+  chipIcon: { fontSize: 10 },
+  chipWeeks: { fontFamily: MONO, fontSize: 9, fontWeight: '700', color: INK },
+  chipLabel: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.45)', letterSpacing: 1 },
+});
+
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: PAPER },
   loading: { fontFamily: MONO, fontSize: 11, color: 'rgba(10,10,10,0.4)', textAlign: 'center', marginTop: 60, letterSpacing: 2 },
   header: { paddingTop: 20, paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 2, borderBottomColor: INK },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
   eyebrow: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginBottom: 4 },
   title: { fontSize: 36, fontWeight: '900', color: INK, letterSpacing: -1 },
+  achievementsBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 2, borderColor: INK, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 2, marginTop: 4 },
+  achievementsBtnIcon: { fontSize: 14 },
+  achievementsBtnText: { fontFamily: MONO, fontSize: 10, fontWeight: '700', color: INK, letterSpacing: 1 },
   tabBar: { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: INK },
   tabBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRightWidth: 1, borderRightColor: 'rgba(10,10,10,0.2)' },
   tabBtnActive: { backgroundColor: INK },

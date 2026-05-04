@@ -62,6 +62,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="race"
+        options={{
+          title: 'RACES',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="flag-outline" size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           href: null,

@@ -187,6 +187,15 @@ const TRAILING_STEPS: QuizStep[] = [
   },
 ];
 
+// 4-question beginner track: terrain + comfort + weight + injury + brand
+const BEGINNER_STEPS: QuizStep[] = [
+  SINGLE_STEPS[0], // terrain
+  SINGLE_STEPS[2], // comfort_pref
+  SINGLE_STEPS[3], // body_weight
+  INJURY_CURRENT_STEP,
+  TRAILING_STEPS[3], // brand_pref
+];
+
 const ALL_STEPS: QuizStep[] = [
   ...SINGLE_STEPS,
   INJURY_CURRENT_STEP,
@@ -201,6 +210,7 @@ const TOTAL_STEPS = ALL_STEPS.length;
 interface QuizProps {
   onComplete: (answers: QuizAnswers) => void;
   onBack?: () => void;
+  beginnerMode?: boolean;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -224,7 +234,8 @@ const HardShadowCard: React.FC<{
 
 // ─── Main Quiz component ──────────────────────────────────────────────────────
 
-export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack }) => {
+export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = false }) => {
+  const STEPS = beginnerMode ? BEGINNER_STEPS : ALL_STEPS;
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Partial<QuizAnswers>>({
     injury_current: [],
@@ -265,9 +276,9 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack }) => {
   };
 
   const advance = (newAnswers: Partial<QuizAnswers>) => {
-    if (currentStep < TOTAL_STEPS - 1) {
+    if (currentStep < STEPS.length - 1) {
       const next = currentStep + 1;
-      const nextStep = ALL_STEPS[next];
+      const nextStep = STEPS[next];
       animateForward(() => {
         setCurrentStep(next);
         // Pre-fill multi-selection state for multi steps
@@ -286,7 +297,7 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack }) => {
 
   // Single-select answer
   const handleSingleAnswer = (value: any) => {
-    const step = ALL_STEPS[currentStep] as SingleStep;
+    const step = STEPS[currentStep] as SingleStep;
     const newAnswers = { ...answers, [step.id]: value };
     setAnswers(newAnswers);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -295,7 +306,7 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack }) => {
 
   // Multi-select toggle
   const handleMultiToggle = (value: string) => {
-    const step = ALL_STEPS[currentStep] as MultiStep;
+    const step = STEPS[currentStep] as MultiStep;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     setMultiSelection(prev => {
@@ -313,7 +324,7 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack }) => {
   };
 
   const handleMultiConfirm = () => {
-    const step = ALL_STEPS[currentStep] as MultiStep;
+    const step = STEPS[currentStep] as MultiStep;
     const selection = multiSelection.length === 0 ? [step.noneValue] : multiSelection;
     const newAnswers = { ...answers, [step.id]: selection };
     setAnswers(newAnswers);
@@ -342,7 +353,7 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack }) => {
       animateBack(() => {
         const prev = currentStep - 1;
         setCurrentStep(prev);
-        const prevStep = ALL_STEPS[prev];
+        const prevStep = STEPS[prev];
         if (prevStep.kind === 'multi') {
           setMultiSelection((answers[prevStep.id] as string[]) ?? []);
         }
@@ -355,7 +366,7 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack }) => {
     }
   };
 
-  const step = ALL_STEPS[currentStep];
+  const step = STEPS[currentStep];
   const stepNum = String(currentStep + 1).padStart(2, '0');
 
   return (
@@ -365,13 +376,13 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack }) => {
         <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
           <Text style={styles.backBtnText}>← BACK</Text>
         </TouchableOpacity>
-        <Text style={styles.navLabel}>DIAGNOSTIC</Text>
-        <Text style={styles.navCounter}>{currentStep + 1}/{TOTAL_STEPS}</Text>
+        <Text style={styles.navLabel}>{beginnerMode ? 'QUICK SCAN' : 'DIAGNOSTIC'}</Text>
+        <Text style={styles.navCounter}>{currentStep + 1}/{STEPS.length}</Text>
       </View>
 
       {/* Progress bar */}
       <View style={styles.progressRow}>
-        {ALL_STEPS.map((_, i) => (
+        {STEPS.map((_, i) => (
           <View
             key={i}
             style={[styles.progressSegment, i <= currentStep && styles.progressSegmentActive]}

@@ -21,6 +21,7 @@ interface ShoeCardProps {
   onCompare?: () => void;
   onBuyNow?: () => void;
   onLogRun?: () => void;
+  onWhyNot?: () => void;
   index?: number;
   mileage?: number;
   showMileage?: boolean;
@@ -67,6 +68,7 @@ export const ShoeCard: React.FC<ShoeCardProps> = ({
   onCompare,
   onBuyNow,
   onLogRun,
+  onWhyNot,
   index = 0,
   mileage = 0,
   showMileage = false,
@@ -197,6 +199,15 @@ export const ShoeCard: React.FC<ShoeCardProps> = ({
               style={[styles.actionBtn, styles.actionBtnSecondary]}
             >
               <Text style={styles.actionBtnSecondaryText}>COMPARE</Text>
+            </TouchableOpacity>
+          )}
+
+          {onWhyNot && (
+            <TouchableOpacity
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onWhyNot(); }}
+              style={[styles.actionBtn, styles.actionBtnWhyNot]}
+            >
+              <Text style={styles.actionBtnWhyNotText}>WHY NOT?</Text>
             </TouchableOpacity>
           )}
 
@@ -397,6 +408,18 @@ const styles = StyleSheet.create({
     fontFamily: 'SpaceMono',
     fontSize: 11,
     color: '#0A0A0A',
+    letterSpacing: 1.5,
+    fontWeight: '700',
+  },
+  actionBtnWhyNot: {
+    borderWidth: 2,
+    borderColor: '#FF3D00',
+    backgroundColor: 'transparent',
+  },
+  actionBtnWhyNotText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 11,
+    color: '#FF3D00',
     letterSpacing: 1.5,
     fontWeight: '700',
   },
