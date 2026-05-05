@@ -84,7 +84,7 @@ export function GlossaryModal({ visible, onClose, initialTerm }: GlossaryModalPr
               {/* Myth buster */}
               <View style={[s.section, s.mythCard]}>
                 <View style={s.mythHeader}>
-                  <Text style={s.mythIcon}>⚡</Text>
+                  <Text style={s.mythIcon}>!!</Text>
                   <Text style={s.mythLabel}>MYTH BUSTER</Text>
                 </View>
                 <Text style={s.mythBody}>{entry.myth_buster}</Text>
@@ -94,7 +94,7 @@ export function GlossaryModal({ visible, onClose, initialTerm }: GlossaryModalPr
               <View style={s.relatedRow}>
                 <Text style={s.relatedLabel}>EXPLORE MORE TERMS</Text>
                 <TouchableOpacity onPress={() => setSelectedKey(null)}>
-                  <Text style={s.relatedLink}>VIEW ALL →</Text>
+                  <Text style={s.relatedLink}>VIEW ALL</Text>
                 </TouchableOpacity>
               </View>
             </Animated.View>
@@ -187,7 +187,7 @@ const s = StyleSheet.create({
     backgroundColor: INK, padding: 18, borderRadius: 2, marginBottom: 30,
   },
   mythHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  mythIcon: { fontSize: 16 },
+  mythIcon: { fontFamily: 'SpaceMono', fontSize: 10, fontWeight: '700', color: '#FF3D00' },
   mythLabel: { fontFamily: MONO, fontSize: 9, color: ACCENT, letterSpacing: 2, fontWeight: '700' },
   mythBody: { fontSize: 14, color: PAPER, lineHeight: 22 },
   relatedRow: {

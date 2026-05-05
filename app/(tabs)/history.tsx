@@ -55,7 +55,6 @@ export default function HistoryScreen() {
       >
         {runs.length === 0 ? (
           <View style={s.empty}>
-            <Text style={s.emptyIcon}>📋</Text>
             <Text style={s.emptyTitle}>NO RUNS YET</Text>
             <Text style={s.emptyDesc}>Log runs from the Arsenal tab to track your history.</Text>
           </View>
@@ -91,7 +90,7 @@ export default function HistoryScreen() {
                     )}
                     {run.feel && (
                       <View style={s.tag}>
-                        <Text style={s.tagText}>{run.feel === 3 ? '🔥 FRESH' : run.feel === 2 ? '👍 OKAY' : '😵 DEAD'}</Text>
+                        <Text style={s.tagText}>{run.feel === 3 ? 'FRESH' : run.feel === 2 ? 'OKAY' : 'DEAD'}</Text>
                       </View>
                     )}
                   </View>
@@ -135,7 +134,6 @@ const s = StyleSheet.create({
   subtitle: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.5)', letterSpacing: 0.5 },
   content: { padding: 16, paddingBottom: 60 },
   empty: { alignItems: 'center', paddingTop: 80 },
-  emptyIcon: { fontSize: 40, marginBottom: 16 },
   emptyTitle: { fontFamily: MONO, fontSize: 14, fontWeight: '700', color: INK, marginBottom: 8, letterSpacing: 1 },
   emptyDesc: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.5)', textAlign: 'center', lineHeight: 18 },
   card: {

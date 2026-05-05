@@ -216,7 +216,7 @@ export const ShoeCard: React.FC<ShoeCardProps> = ({
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onBuyNow(); }}
               style={[styles.actionBtn, styles.actionBtnPrimary, { flex: 2 }]}
             >
-              <Text style={styles.actionBtnPrimaryText}>BUY NOW →</Text>
+              <Text style={styles.actionBtnPrimaryText}>BUY NOW</Text>
             </TouchableOpacity>
           )}
         </View>

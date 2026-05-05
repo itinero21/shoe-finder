@@ -270,7 +270,7 @@ function TopBar({ subtitle, onBack }: { subtitle?: string; onBack?: (() => void)
     <View style={s.topBar}>
       <TouchableOpacity onPress={onBack ?? undefined} style={s.backBtn} disabled={!onBack}>
         <Text style={[s.backText, !onBack && { color: 'rgba(10,10,10,0.4)' }]}>
-          {onBack ? '← BACK' : 'STRIDE//COACH'}
+          {onBack ? 'BACK' : 'STRIDE//COACH'}
         </Text>
       </TouchableOpacity>
       {subtitle ? <Text style={s.topBarSub} numberOfLines={1}>{subtitle}</Text> : <View style={{ flex: 1 }} />}
@@ -319,7 +319,7 @@ export default function CoachScreen() {
               onPress={() => setShowIntegrations(true)}
               style={s.integrationsBtn}
             >
-              <Text style={s.integrationsBtnText}>⚡ SYNC</Text>
+              <Text style={s.integrationsBtnText}>SYNC</Text>
             </TouchableOpacity>
           </View>
           <Text style={s.heroSub}>
@@ -334,7 +334,7 @@ export default function CoachScreen() {
           {/* Marquee Banner */}
           <View style={s.marqueeBand}>
             <Text style={s.marqueeText} numberOfLines={1}>
-              {'  REAL COACHING. NO AI  ✦  REAL COACHING. NO AI  ✦  REAL COACHING. NO AI  ✦  '}
+              {'  REAL COACHING. NO AI  //  REAL COACHING. NO AI  //  REAL COACHING. NO AI  //  '}
             </Text>
           </View>
 
@@ -485,7 +485,7 @@ export default function CoachScreen() {
             </Text>
             <Card style={s.ctaBtn} shadowColor="#F4F1EA">
               <TouchableOpacity onPress={() => setScreen('checkin')} activeOpacity={0.85}>
-                <Text style={s.ctaBtnText}>BEGIN PROTOCOL →</Text>
+                <Text style={s.ctaBtnText}>BEGIN PROTOCOL</Text>
               </TouchableOpacity>
             </Card>
           </View>
@@ -537,10 +537,10 @@ export default function CoachScreen() {
           <Text style={[s.qLabel, { marginTop: 28 }]}>/02/ FEELING</Text>
           <Text style={s.qTitle}>How did your body feel?</Text>
           <View style={s.optRow}>
-            <OptionBtn id="great" label="Strong" icon="↑↑" field="feeling" />
-            <OptionBtn id="ok" label="Normal" icon="→" field="feeling" />
-            <OptionBtn id="tired" label="Tired" icon="↓" field="feeling" />
-            <OptionBtn id="pain" label="Pain" icon="✕" field="feeling" accent="#FF3D00" />
+            <OptionBtn id="great" label="Strong" icon="++" field="feeling" />
+            <OptionBtn id="ok" label="Normal" icon="OK" field="feeling" />
+            <OptionBtn id="tired" label="Tired" icon="--" field="feeling" />
+            <OptionBtn id="pain" label="Pain" icon="!!" field="feeling" accent="#FF3D00" />
           </View>
 
           {/* Q3 */}
@@ -558,7 +558,7 @@ export default function CoachScreen() {
             <Card style={[s.submitBtn, !allAnswered && s.submitBtnDisabled]} shadowColor={allAnswered ? '#0A0A0A' : 'transparent'}>
               <TouchableOpacity onPress={handleSubmit} disabled={!allAnswered} activeOpacity={0.85}>
                 <Text style={[s.submitBtnText, !allAnswered && { color: 'rgba(10,10,10,0.3)' }]}>
-                  GET COACHING →
+                  GET COACHING
                 </Text>
               </TouchableOpacity>
             </Card>
@@ -588,19 +588,19 @@ export default function CoachScreen() {
             <View style={{ marginTop: 36, gap: 12, marginBottom: 40 }}>
               <Card>
                 <TouchableOpacity onPress={() => { setCheckInData({ completion: null, feeling: null, rpe: null }); setScreen('plans'); }} style={[s.actionBtn, { backgroundColor: '#0A0A0A' }]} activeOpacity={0.85}>
-                  <Text style={[s.actionBtnText, { color: '#F4F1EA' }]}>← BACK TO PLANS</Text>
+                  <Text style={[s.actionBtnText, { color: '#F4F1EA' }]}>BACK TO PLANS</Text>
                 </TouchableOpacity>
               </Card>
               {coachResponse.status === 'RED' && (
                 <Card shadowColor="#FF3D00">
                   <TouchableOpacity onPress={() => setScreen('pain')} style={[s.actionBtn, { backgroundColor: '#FF3D00' }]} activeOpacity={0.85}>
-                    <Text style={[s.actionBtnText, { color: '#F4F1EA' }]}>PAIN TRIAGE →</Text>
+                    <Text style={[s.actionBtnText, { color: '#F4F1EA' }]}>PAIN TRIAGE</Text>
                   </TouchableOpacity>
                 </Card>
               )}
               <Card>
                 <TouchableOpacity onPress={() => setScreen('chat')} style={[s.actionBtn, { backgroundColor: '#D4FF00' }]} activeOpacity={0.85}>
-                  <Text style={[s.actionBtnText, { color: '#0A0A0A' }]}>ASK COACH →</Text>
+                  <Text style={[s.actionBtnText, { color: '#0A0A0A' }]}>ASK COACH</Text>
                 </TouchableOpacity>
               </Card>
             </View>
@@ -662,7 +662,7 @@ export default function CoachScreen() {
               <View style={{ marginTop: 36, marginBottom: 40 }}>
                 <Card style={[s.submitBtn, !painData.location && s.submitBtnDisabled]} shadowColor={painData.location ? '#0A0A0A' : 'transparent'}>
                   <TouchableOpacity onPress={handlePainSubmit} disabled={!painData.location} activeOpacity={0.85}>
-                    <Text style={[s.submitBtnText, !painData.location && { color: 'rgba(10,10,10,0.3)' }]}>TRIAGE →</Text>
+                    <Text style={[s.submitBtnText, !painData.location && { color: 'rgba(10,10,10,0.3)' }]}>TRIAGE</Text>
                   </TouchableOpacity>
                 </Card>
               </View>
@@ -695,7 +695,7 @@ export default function CoachScreen() {
 
               <Card style={[s.actionBtn, { backgroundColor: '#0A0A0A', marginTop: 24 }]} shadowColor="#FF3D00">
                 <TouchableOpacity onPress={() => { setPainData({ location: null, type: null }); setPainResult(null); }} activeOpacity={0.85}>
-                  <Text style={[s.actionBtnText, { color: '#F4F1EA' }]}>← TRIAGE ANOTHER</Text>
+                  <Text style={[s.actionBtnText, { color: '#F4F1EA' }]}>TRIAGE ANOTHER</Text>
                 </TouchableOpacity>
               </Card>
             </View>
@@ -775,7 +775,7 @@ export default function CoachScreen() {
             />
             <Card shadowColor="#0A0A0A">
               <TouchableOpacity onPress={() => handleSend()} style={s.chatSendBtn} activeOpacity={0.85}>
-                <Text style={s.chatSendText}>ASK →</Text>
+                <Text style={s.chatSendText}>ASK</Text>
               </TouchableOpacity>
             </Card>
           </View>

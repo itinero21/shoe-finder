@@ -19,6 +19,7 @@ import {
 } from '../app/services/healthService';
 import { getFavorites } from '../app/utils/storage';
 import { SHOES } from '../app/data/shoes';
+import { seedTestRuns, clearSeededRuns } from '../app/utils/testDataSeeder';
 
 const INK   = '#0A0A0A';
 const PAPER = '#F4F1EA';
@@ -45,6 +46,12 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
   const [healthSyncResult, setHealthSyncResult] = useState<string>('');
 
   const [arsenalIds, setArsenalIds] = useState<string[]>([]);
+
+  // ── Test mode ─────────────────────────────────────────────────────────────
+  const [seedSource, setSeedSource] = useState<'strava' | 'apple_health'>('strava');
+  const [seedCount, setSeedCount]   = useState<5 | 10 | 20>(10);
+  const [seedState, setSeedState]   = useState<SyncState>('idle');
+  const [seedResult, setSeedResult] = useState<string>('');
 
   useEffect(() => {
     if (!visible) return;
@@ -127,6 +134,33 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
     setTimeout(() => setHealthSync('idle'), 4000);
   };
 
+  const handleSeedRuns = async () => {
+    setSeedState('syncing');
+    setSeedResult('');
+    try {
+      const res = await seedTestRuns({ source: seedSource, count: seedCount });
+      setSeedState('done');
+      setSeedResult(`${res.imported} runs · +${res.xpEarned} XP · ${res.milesAdded} mi`);
+    } catch (e: any) {
+      setSeedState('error');
+      setSeedResult(e?.message ?? 'Seed failed');
+    }
+    setTimeout(() => setSeedState('idle'), 5000);
+  };
+
+  const handleClearSeeded = () => {
+    Alert.alert('Clear seeded runs?', 'All test runs (run_seed_*) will be deleted.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear', style: 'destructive', onPress: async () => {
+          await clearSeededRuns();
+          setSeedResult('');
+          Alert.alert('Done', 'Test runs removed.');
+        }
+      },
+    ]);
+  };
+
   const arsenalShoes = SHOES.filter(s => arsenalIds.includes(s.id));
 
   return (
@@ -167,7 +201,7 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
                 {/* Gear → Shoe mapping */}
                 {stravaGear.length > 0 && (
                   <View style={s.gearSection}>
-                    <Text style={s.gearLabel}>MAP STRAVA GEAR → ARSENAL SHOE</Text>
+                    <Text style={s.gearLabel}>MAP STRAVA GEAR // ARSENAL SHOE</Text>
                     {stravaGear.map(gear => (
                       <View key={gear.id} style={s.gearRow}>
                         <View style={s.gearLeft}>
@@ -205,7 +239,7 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
                     style={[s.syncBtn, stravaSync === 'syncing' && { opacity: 0.6 }]}
                   >
                     <Text style={s.syncBtnText}>
-                      {stravaSync === 'syncing' ? 'SYNCING...' : stravaSync === 'done' ? `✓ ${stravaSyncResult}` : stravaSync === 'error' ? `✕ ${stravaSyncResult}` : 'SYNC NOW →'}
+                      {stravaSync === 'syncing' ? 'SYNCING...' : stravaSync === 'done' ? `DONE: ${stravaSyncResult}` : stravaSync === 'error' ? `ERR: ${stravaSyncResult}` : 'SYNC NOW'}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={handleStravaDisconnect} style={s.disconnectBtn}>
@@ -219,7 +253,7 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
                   Connect Strava to automatically import every run and attribute mileage to your Arsenal shoes.
                 </Text>
                 <TouchableOpacity onPress={handleStravaConnect} style={s.connectBtn}>
-                  <Text style={s.connectBtnText}>CONNECT STRAVA →</Text>
+                  <Text style={s.connectBtnText}>CONNECT STRAVA</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -254,7 +288,7 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
                       style={[s.syncBtn, healthSync === 'syncing' && { opacity: 0.6 }]}
                     >
                       <Text style={s.syncBtnText}>
-                        {healthSync === 'syncing' ? 'SYNCING...' : healthSync === 'done' ? `✓ ${healthSyncResult}` : healthSync === 'error' ? `✕ ${healthSyncResult}` : 'SYNC NOW →'}
+                        {healthSync === 'syncing' ? 'SYNCING...' : healthSync === 'done' ? `DONE: ${healthSyncResult}` : healthSync === 'error' ? `ERR: ${healthSyncResult}` : 'SYNC NOW'}
                       </Text>
                     </TouchableOpacity>
                   </>
@@ -264,7 +298,7 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
                       Pull running workouts directly from your Apple Health data. Runs are matched to your weekly roster shoes automatically.
                     </Text>
                     <TouchableOpacity onPress={handleHealthConnect} style={s.connectBtn}>
-                      <Text style={s.connectBtnText}>CONNECT APPLE HEALTH →</Text>
+                      <Text style={s.connectBtnText}>CONNECT APPLE HEALTH</Text>
                     </TouchableOpacity>
                   </>
                 )}
@@ -294,12 +328,89 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
 
           <View style={s.divider} />
 
-          {/* ── Manual import note ─────────────────────────────────────────��─ */}
+          {/* ── Manual import note ─────────────────────────────────────────── */}
           <View style={s.manualNote}>
             <Text style={s.manualNoteTitle}>MANUAL LOG</Text>
             <Text style={s.manualNoteText}>
               Always available — tap "+ LOG RUN" on any shoe in your Arsenal to record a run manually with full terrain, purpose, and match-quality tracking.
             </Text>
+          </View>
+
+          <View style={s.divider} />
+
+          {/* ── Test mode ───────────────────────────────────────────────────── */}
+          <View style={s.testSection}>
+            <View style={s.testHeader}>
+              <View style={[s.iconBox, { backgroundColor: '#6D28D9' }]}>
+                <Text style={s.iconText}>T</Text>
+              </View>
+              <View style={s.sectionMeta}>
+                <Text style={s.sectionTitle}>TEST MODE</Text>
+                <Text style={s.sectionSub}>Simulate synced runs without a real watch</Text>
+              </View>
+            </View>
+
+            <Text style={s.integrationDesc}>
+              No Strava account? No watch? Seed realistic fake runs as if synced from Strava or Apple Health — all terrain types, run purposes, and distances covered.
+            </Text>
+
+            {/* Source picker */}
+            <Text style={s.seedLabel}>SIMULATE SOURCE</Text>
+            <View style={s.chipRow}>
+              {(['strava', 'apple_health'] as const).map(src => (
+                <TouchableOpacity
+                  key={src}
+                  onPress={() => setSeedSource(src)}
+                  style={[s.chip, seedSource === src && s.chipActive]}
+                >
+                  <Text style={[s.chipText, seedSource === src && s.chipTextActive]}>
+                    {src === 'strava' ? 'STRAVA' : 'APPLE HEALTH'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Count picker */}
+            <Text style={[s.seedLabel, { marginTop: 12 }]}>NUMBER OF RUNS</Text>
+            <View style={s.chipRow}>
+              {([5, 10, 20] as const).map(n => (
+                <TouchableOpacity
+                  key={n}
+                  onPress={() => setSeedCount(n)}
+                  style={[s.chip, seedCount === n && s.chipActive]}
+                >
+                  <Text style={[s.chipText, seedCount === n && s.chipTextActive]}>{n}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Seed result */}
+            {seedState === 'done' && seedResult !== '' && (
+              <View style={s.seedResult}>
+                <Text style={s.seedResultText}>DONE: {seedResult}</Text>
+              </View>
+            )}
+            {seedState === 'error' && seedResult !== '' && (
+              <View style={[s.seedResult, { borderColor: ACCENT }]}>
+                <Text style={[s.seedResultText, { color: ACCENT }]}>ERR: {seedResult}</Text>
+              </View>
+            )}
+
+            {/* Buttons */}
+            <View style={s.btnRow}>
+              <TouchableOpacity
+                onPress={handleSeedRuns}
+                disabled={seedState === 'syncing'}
+                style={[s.seedBtn, seedState === 'syncing' && { opacity: 0.6 }]}
+              >
+                <Text style={s.seedBtnText}>
+                  {seedState === 'syncing' ? 'SEEDING...' : 'SEED TEST DATA'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleClearSeeded} style={s.clearBtn}>
+                <Text style={s.clearBtnText}>CLEAR</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
         </ScrollView>
@@ -364,4 +475,20 @@ const s = StyleSheet.create({
   manualNote: { backgroundColor: LIME, padding: 16, borderRadius: 2, borderWidth: 2, borderColor: INK },
   manualNoteTitle: { fontFamily: MONO, fontSize: 10, fontWeight: '700', color: INK, letterSpacing: 1.5, marginBottom: 6 },
   manualNoteText: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.7)', lineHeight: 18 },
+
+  // test mode
+  testSection: { paddingVertical: 4 },
+  testHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  seedLabel: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginBottom: 8 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  chip: { paddingHorizontal: 12, paddingVertical: 7, borderWidth: 2, borderColor: 'rgba(10,10,10,0.2)', borderRadius: 2 },
+  chipActive: { borderColor: INK, backgroundColor: INK },
+  chipText: { fontFamily: MONO, fontSize: 9, color: INK, letterSpacing: 1 },
+  chipTextActive: { color: PAPER },
+  seedResult: { borderWidth: 1, borderColor: '#16A34A', borderRadius: 2, padding: 10, marginTop: 12 },
+  seedResultText: { fontFamily: MONO, fontSize: 10, color: '#16A34A', letterSpacing: 0.5 },
+  seedBtn: { flex: 2, backgroundColor: '#6D28D9', paddingVertical: 12, borderRadius: 2, alignItems: 'center' },
+  seedBtnText: { fontFamily: MONO, fontSize: 10, fontWeight: '700', color: '#fff', letterSpacing: 1 },
+  clearBtn: { flex: 1, paddingVertical: 12, borderWidth: 2, borderColor: 'rgba(10,10,10,0.3)', borderRadius: 2, alignItems: 'center' },
+  clearBtnText: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.5)', letterSpacing: 1 },
 });

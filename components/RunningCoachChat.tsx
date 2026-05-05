@@ -106,7 +106,7 @@ export default function RunningCoachChat({ context }: RunningCoachChatProps) {
             ]}
           >
             {message.role === 'assistant' && (
-              <Text style={styles.assistantIcon}>→</Text>
+              <Text style={styles.assistantIcon}>//</Text>
             )}
             <View style={styles.messageContent}>
               <Text
@@ -123,7 +123,7 @@ export default function RunningCoachChat({ context }: RunningCoachChatProps) {
 
         {isLoading && (
           <View style={[styles.messageBubble, styles.assistantBubble]}>
-            <Text style={styles.assistantIcon}>→</Text>
+            <Text style={styles.assistantIcon}>//</Text>
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color="#FF3D00" />
               <Text style={styles.loadingText}>PROCESSING...</Text>

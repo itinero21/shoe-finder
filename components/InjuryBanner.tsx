@@ -20,7 +20,7 @@ const PHASE_CONFIG: Record<InjuryPhase, {
     color: '#FF3D00',
     bg: '#FFF1EE',
     label: 'ACUTE PHASE',
-    icon: '🚨',
+    icon: '!!',
     advice: 'Rest is recovery. Avoid high-impact runs. Prioritize cushioned, low-drop shoes only.',
     cta: 'FEELING BETTER?',
   },
@@ -28,7 +28,7 @@ const PHASE_CONFIG: Record<InjuryPhase, {
     color: '#D97706',
     bg: '#FFFBEB',
     label: 'SUB-ACUTE',
-    icon: '⚠️',
+    icon: '!',
     advice: 'Easy walking and gentle movement OK. No speed work. Monitor for pain flare-ups.',
     cta: 'PAIN FREE? ADVANCE',
   },
@@ -36,7 +36,7 @@ const PHASE_CONFIG: Record<InjuryPhase, {
     color: '#2563EB',
     bg: '#EFF6FF',
     label: 'RETURN TO RUN',
-    icon: '🔄',
+    icon: 'RTR',
     advice: 'Start with run/walk intervals. Keep effort easy. Use your most cushioned shoe.',
     cta: 'RUNNING WELL? NEXT',
   },
@@ -44,7 +44,7 @@ const PHASE_CONFIG: Record<InjuryPhase, {
     color: '#16A34A',
     bg: '#F0FDF4',
     label: 'MAINTENANCE',
-    icon: '✅',
+    icon: 'OK',
     advice: 'Back to normal training. Stay mindful of load spikes. Strength work recommended.',
     cta: 'FULLY RECOVERED',
   },
@@ -137,7 +137,7 @@ export function InjuryBanner({ onInjuryCleared }: InjuryBannerProps) {
               disabled={isLoading}
             >
               <Text style={s.ctaBtnText}>
-                {injury.phase === 'maintenance' ? '✓ MARK RECOVERED' : `${config.cta} →`}
+                {injury.phase === 'maintenance' ? 'MARK RECOVERED' : config.cta}
               </Text>
             </TouchableOpacity>
           </View>
@@ -156,7 +156,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 12, paddingVertical: 10, gap: 10,
   },
-  icon: { fontSize: 18 },
+  icon: { fontFamily: MONO, fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
   labelCol: { flex: 1 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
   phase: {

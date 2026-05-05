@@ -137,7 +137,7 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
       <SafeAreaView style={styles.container}>
         <Animated.View entering={SlideInUp.delay(100)} style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Text style={styles.closeBtnText}>← BACK</Text>
+            <Text style={styles.closeBtnText}>BACK</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>HEAD TO HEAD</Text>
           <View style={{ width: 60 }} />

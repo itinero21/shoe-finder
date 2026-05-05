@@ -20,6 +20,8 @@ import { ComparisonView } from '../../components/ComparisonView';
 import { WhyNotModal } from '../../components/WhyNotModal';
 import { GlossaryModal } from '../../components/GlossaryModal';
 import { InjuryBanner } from '../../components/InjuryBanner';
+import { LeaderboardModal } from '../../components/LeaderboardModal';
+import { GaitCheckModal } from '../../components/GaitCheckModal';
 import { SHOES } from '../data/shoes';
 import { Shoe } from '../data/shoes';
 import { getFavorites, addToFavorites, removeFromFavorites } from '../utils/storage';
@@ -58,6 +60,10 @@ export default function SearchScreen() {
 
   // Glossary
   const [showGlossary, setShowGlossary] = useState(false);
+
+  // Leaderboard & Gait Check
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showGaitCheck, setShowGaitCheck] = useState(false);
 
   useEffect(() => {
     loadFavorites();
@@ -200,17 +206,25 @@ export default function SearchScreen() {
             <Text style={styles.headerEyebrow}>// STRIDE PROTOCOL</Text>
             <Text style={styles.title}>DISCOVER.</Text>
           </View>
-          <TouchableOpacity onPress={() => setShowGlossary(true)} style={styles.glossaryBtn}>
-            <Ionicons name="book-outline" size={18} color="#0A0A0A" />
-            <Text style={styles.glossaryBtnText}>GLOSSARY</Text>
-          </TouchableOpacity>
+          <View style={styles.headerBtns}>
+            <TouchableOpacity onPress={() => { setShowGaitCheck(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={styles.headerBtn}>
+              <Ionicons name="people-outline" size={16} color="#0A0A0A" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setShowLeaderboard(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }} style={styles.headerBtn}>
+              <Ionicons name="bar-chart-outline" size={16} color="#0A0A0A" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowGlossary(true)} style={styles.glossaryBtn}>
+              <Ionicons name="book-outline" size={18} color="#0A0A0A" />
+              <Text style={styles.glossaryBtnText}>GLOSSARY</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <Text style={styles.subtitle}>
           {filteredShoes.length} {filteredShoes.length === 1 ? 'shoe' : 'shoes'} in the database
         </Text>
         {!savedAnswers && (
           <Text style={styles.noAnswersHint}>
-            ✦ Run the Scout quiz to unlock WHY NOT? explanations
+            Run the Scout quiz to unlock WHY NOT? explanations
           </Text>
         )}
       </View>
@@ -327,7 +341,7 @@ export default function SearchScreen() {
           >
             <View style={styles.applyGradient}>
               <Text style={styles.applyText}>
-                SHOW {filteredShoes.length} RESULTS →
+                SHOW {filteredShoes.length} RESULTS
               </Text>
             </View>
           </TouchableOpacity>
@@ -367,6 +381,19 @@ export default function SearchScreen() {
         visible={showGlossary}
         onClose={() => setShowGlossary(false)}
       />
+
+      {/* Leaderboard Modal */}
+      <LeaderboardModal
+        visible={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+      />
+
+      {/* Gait Check Modal */}
+      <GaitCheckModal
+        visible={showGaitCheck}
+        answers={savedAnswers}
+        onClose={() => setShowGaitCheck(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -404,6 +431,18 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
     marginBottom: 4,
   },
+  headerBtns: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  headerBtn: {
+    padding: 8,
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
+    borderRadius: 2,
+  },
   glossaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -413,7 +452,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 2,
-    marginTop: 4,
   },
   glossaryBtnText: {
     fontFamily: 'SpaceMono',

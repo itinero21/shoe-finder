@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Modal, TextInput, Alert,
+  Modal, TextInput, Alert, Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -111,7 +111,7 @@ const ObituaryForm: React.FC<ObituaryFormProps> = ({ shoe, miles, addedDate, onS
             onPress={() => onSubmit({ memorable_run: memorable, epitaph, rating, would_buy_again: buyAgain })}
             style={of.submitBtn}
           >
-            <Text style={of.submitBtnText}>REST IN PEACE →</Text>
+            <Text style={of.submitBtnText}>REST IN PEACE</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -149,41 +149,68 @@ const of = StyleSheet.create({
 });
 
 // ─── Tombstone card ───────────────────────────────────────────────────────────
-const TombstoneCard: React.FC<{ obit: ShoeObituary }> = ({ obit }) => (
-  <View style={tc.wrap}>
-    <View style={tc.shadow} />
-    <View style={tc.card}>
-      <Text style={tc.cross}>✝</Text>
-      <Text style={tc.brand}>{obit.brand.toUpperCase()}</Text>
-      <Text style={tc.model}>{obit.model}</Text>
-      {obit.epitaph ? (
-        <Text style={tc.epitaph}>"{obit.epitaph}"</Text>
-      ) : null}
-      <View style={tc.divider} />
-      <View style={tc.stats}>
-        <Text style={tc.statVal}>{obit.total_miles.toFixed(0)} mi</Text>
-        <Text style={tc.statSep}>·</Text>
-        <Text style={tc.statVal}>{obit.days_in_service} days</Text>
-        <Text style={tc.statSep}>·</Text>
-        <View style={tc.stars}>
-          {Array.from({ length: obit.rating }).map((_, i) => (
-            <Text key={i} style={tc.star}>★</Text>
-          ))}
+const TombstoneCard: React.FC<{ obit: ShoeObituary }> = ({ obit }) => {
+  const handlePourOneOut = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  };
+
+  const handleShare = async () => {
+    const epitaphLine = obit.epitaph ? `\n"${obit.epitaph}"` : '';
+    const starsLine = '★'.repeat(obit.rating) + '☆'.repeat(5 - obit.rating);
+    const message =
+      `IN LOVING MEMORY\n` +
+      `${obit.brand} ${obit.model}${epitaphLine}\n\n` +
+      `${obit.total_miles.toFixed(0)} miles · ${obit.days_in_service} days in service\n` +
+      `${starsLine}\n\n` +
+      `Retired ${obit.retired_date} — tracked in Stride Protocol`;
+    try {
+      await Share.share({ message });
+    } catch {
+      // user dismissed
+    }
+  };
+
+  return (
+    <View style={tc.wrap}>
+      <View style={tc.shadow} />
+      <View style={tc.card}>
+        <Text style={tc.cross}>RIP</Text>
+        <Text style={tc.brand}>{obit.brand.toUpperCase()}</Text>
+        <Text style={tc.model}>{obit.model}</Text>
+        {obit.epitaph ? (
+          <Text style={tc.epitaph}>"{obit.epitaph}"</Text>
+        ) : null}
+        <View style={tc.divider} />
+        <View style={tc.stats}>
+          <Text style={tc.statVal}>{obit.total_miles.toFixed(0)} mi</Text>
+          <Text style={tc.statSep}>·</Text>
+          <Text style={tc.statVal}>{obit.days_in_service} days</Text>
+          <Text style={tc.statSep}>·</Text>
+          <View style={tc.stars}>
+            {Array.from({ length: obit.rating }).map((_, i) => (
+              <Text key={i} style={tc.star}>★</Text>
+            ))}
+          </View>
+        </View>
+        <Text style={tc.retired}>RETIRED {obit.retired_date}</Text>
+        <View style={tc.btnRow}>
+          <TouchableOpacity style={tc.pourBtn} onPress={handlePourOneOut} activeOpacity={0.7}>
+            <Text style={tc.pourText}>POUR ONE OUT</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={tc.shareBtn} onPress={handleShare} activeOpacity={0.7}>
+            <Ionicons name="share-outline" size={16} color="rgba(10,10,10,0.5)" />
+          </TouchableOpacity>
         </View>
       </View>
-      <Text style={tc.retired}>RETIRED {obit.retired_date}</Text>
-      <TouchableOpacity style={tc.pourBtn}>
-        <Text style={tc.pourText}>🥃 POUR ONE OUT</Text>
-      </TouchableOpacity>
     </View>
-  </View>
-);
+  );
+};
 
 const tc = StyleSheet.create({
   wrap: { position: 'relative', marginBottom: 20, marginHorizontal: 16 },
   shadow: { position: 'absolute', top: 6, left: 6, right: -6, bottom: -6, backgroundColor: INK, borderRadius: 2 },
   card: { backgroundColor: PAPER, borderWidth: 2, borderColor: INK, borderRadius: 2, padding: 20, alignItems: 'center' },
-  cross: { fontSize: 28, color: 'rgba(10,10,10,0.2)', marginBottom: 8 },
+  cross: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.2)', letterSpacing: 2, marginBottom: 8 },
   brand: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.4)', letterSpacing: 2 },
   model: { fontSize: 20, fontWeight: '900', color: INK, letterSpacing: -0.5, textAlign: 'center', marginTop: 2, marginBottom: 8 },
   epitaph: { fontFamily: MONO, fontSize: 11, color: 'rgba(10,10,10,0.55)', textAlign: 'center', lineHeight: 18, fontStyle: 'italic', marginBottom: 10, paddingHorizontal: 8 },
@@ -194,8 +221,10 @@ const tc = StyleSheet.create({
   stars: { flexDirection: 'row' },
   star: { color: '#D97706', fontSize: 12 },
   retired: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.3)', letterSpacing: 1.5, marginBottom: 12 },
-  pourBtn: { paddingHorizontal: 16, paddingVertical: 8, borderWidth: 2, borderColor: INK, borderRadius: 2 },
+  btnRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pourBtn: { flex: 1, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 2, borderColor: INK, borderRadius: 2, alignItems: 'center' },
   pourText: { fontFamily: MONO, fontSize: 10, color: INK, letterSpacing: 1 },
+  shareBtn: { paddingHorizontal: 12, paddingVertical: 8, borderWidth: 2, borderColor: 'rgba(10,10,10,0.2)', borderRadius: 2 },
 });
 
 // ─── Weekly Roster Picker ─────────────────────────────────────────────────────
@@ -221,7 +250,7 @@ const RosterPicker: React.FC<{
     <View style={rp.container}>
       <Text style={rp.title}>WEEKLY ROSTER</Text>
       <Text style={rp.sub}>Pick 3 shoes for this week's game. Locked Friday night.</Text>
-      {locked && <View style={rp.lockedBanner}><Text style={rp.lockedText}>🔒 ROSTER LOCKED UNTIL SUNDAY</Text></View>}
+      {locked && <View style={rp.lockedBanner}><Text style={rp.lockedText}>ROSTER LOCKED UNTIL SUNDAY</Text></View>}
 
       {favoriteShoes.map(shoe => {
         const stats = deriveShoeStats(shoe);
@@ -236,7 +265,7 @@ const RosterPicker: React.FC<{
               <Text style={[rp.tierBadge, { color: TIER_COLORS[stats.tier] }]}>{stats.tier}</Text>
               <Text style={[rp.overall, isSelected && rp.lightText]}>{stats.overall}/10</Text>
             </View>
-            {isSelected && <Text style={rp.check}>✓</Text>}
+            {isSelected && <Text style={rp.check}>OK</Text>}
           </TouchableOpacity>
         );
       })}
@@ -244,7 +273,7 @@ const RosterPicker: React.FC<{
       {!locked && (
         <TouchableOpacity onPress={() => onSave(selected)} style={rp.saveBtn} disabled={selected.length === 0}>
           <Text style={rp.saveBtnText}>
-            {selected.length === 3 ? 'LOCK IN ROSTER →' : `SELECT ${3 - selected.length} MORE`}
+            {selected.length === 3 ? 'LOCK IN ROSTER' : `SELECT ${3 - selected.length} MORE`}
           </Text>
         </TouchableOpacity>
       )}
@@ -360,10 +389,10 @@ export default function ArsenalScreen() {
     if (!profile) return null;
     const streaks = profile.streak_states;
     const items = [
-      { key: 'variety',         label: 'VARIETY',     icon: '🔀', weeks: streaks.variety.weeks_active },
-      { key: 'consistency',     label: 'CONSISTENCY', icon: '📅', weeks: streaks.consistency.weeks_active },
-      { key: 'recovery',        label: 'RECOVERY',    icon: '💤', weeks: streaks.recovery.weeks_active },
-      { key: 'rotation_health', label: 'ROTATION',    icon: '🔄', weeks: streaks.rotation_health.weeks_active },
+      { key: 'variety',         label: 'VARIETY',     weeks: streaks.variety.weeks_active },
+      { key: 'consistency',     label: 'CONSISTENCY', weeks: streaks.consistency.weeks_active },
+      { key: 'recovery',        label: 'RECOVERY',    weeks: streaks.recovery.weeks_active },
+      { key: 'rotation_health', label: 'ROTATION',    weeks: streaks.rotation_health.weeks_active },
     ];
     const hasAny = items.some(i => i.weeks > 0);
     if (!hasAny) return null;
@@ -373,7 +402,6 @@ export default function ArsenalScreen() {
         <View style={ss.row}>
           {items.filter(i => i.weeks > 0).map(item => (
             <View key={item.key} style={ss.chip}>
-              <Text style={ss.chipIcon}>{item.icon}</Text>
               <Text style={ss.chipWeeks}>{item.weeks}W</Text>
               <Text style={ss.chipLabel}>{item.label}</Text>
             </View>
@@ -429,9 +457,8 @@ export default function ArsenalScreen() {
             onPress={() => { setShowAchievements(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
             style={s.achievementsBtn}
           >
-            <Text style={s.achievementsBtnIcon}>🏆</Text>
             <Text style={s.achievementsBtnText}>
-              {profile?.achievements_unlocked.length ?? 0}
+              ACHIEVEMENTS // {profile?.achievements_unlocked.length ?? 0}
             </Text>
           </TouchableOpacity>
         </View>
@@ -536,7 +563,7 @@ export default function ArsenalScreen() {
                           onPress={() => handleRetire(shoe)}
                           style={s.actionRetire}
                         >
-                          <Text style={s.actionRetireText}>RETIRE ✝</Text>
+                          <Text style={s.actionRetireText}>RETIRE</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -565,7 +592,6 @@ export default function ArsenalScreen() {
         <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
           {graveyard.length === 0 ? (
             <View style={s.empty}>
-              <Text style={s.graveyardEmoji}>🪦</Text>
               <Text style={s.emptyTitle}>GRAVEYARD EMPTY</Text>
               <Text style={s.emptySub}>When a shoe runs its last mile, retire it here with a ceremony it deserves.</Text>
             </View>
@@ -661,7 +687,6 @@ const ss = StyleSheet.create({
   label: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.35)', letterSpacing: 2, marginBottom: 8 },
   row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(10,10,10,0.15)', borderRadius: 2, backgroundColor: 'rgba(212,255,0,0.12)' },
-  chipIcon: { fontSize: 10 },
   chipWeeks: { fontFamily: MONO, fontSize: 9, fontWeight: '700', color: INK },
   chipLabel: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.45)', letterSpacing: 1 },
 });
@@ -673,8 +698,7 @@ const s = StyleSheet.create({
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
   eyebrow: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginBottom: 4 },
   title: { fontSize: 36, fontWeight: '900', color: INK, letterSpacing: -1 },
-  achievementsBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 2, borderColor: INK, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 2, marginTop: 4 },
-  achievementsBtnIcon: { fontSize: 14 },
+  achievementsBtn: { borderWidth: 2, borderColor: INK, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 2, marginTop: 4 },
   achievementsBtnText: { fontFamily: MONO, fontSize: 10, fontWeight: '700', color: INK, letterSpacing: 1 },
   tabBar: { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: INK },
   tabBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRightWidth: 1, borderRightColor: 'rgba(10,10,10,0.2)' },
@@ -684,7 +708,6 @@ const s = StyleSheet.create({
   scrollContent: { paddingVertical: 20, paddingBottom: 80 },
 
   empty: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 40 },
-  graveyardEmoji: { fontSize: 48, marginBottom: 12 },
   emptyTitle: { fontSize: 20, fontWeight: '900', color: INK, letterSpacing: -0.5, marginTop: 12, marginBottom: 6 },
   emptySub: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.4)', textAlign: 'center', lineHeight: 17 },
 

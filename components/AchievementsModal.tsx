@@ -102,7 +102,7 @@ export function AchievementsModal({ visible, unlockedIds, onClose }: Achievement
               <Animated.View key={a.id} entering={FadeInDown.delay(i * 30).springify()}>
                 <View style={[s.card, unlocked && s.cardUnlocked]}>
                   <View style={[s.iconBox, unlocked && s.iconBoxUnlocked]}>
-                    <Text style={s.iconText}>{unlocked ? a.icon : '🔒'}</Text>
+                    <Text style={s.iconText}>{unlocked ? a.icon : '--'}</Text>
                   </View>
                   <View style={s.cardBody}>
                     <View style={s.cardTop}>
@@ -175,7 +175,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(10,10,10,0.04)',
   },
   iconBoxUnlocked: { borderColor: INK, backgroundColor: LIME },
-  iconText: { fontSize: 22 },
+  iconText: { fontSize: 11, fontFamily: MONO, fontWeight: '700', color: INK, letterSpacing: 0.5 },
   cardBody: { flex: 1 },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   cardTitle: { fontFamily: MONO, fontSize: 11, fontWeight: '700', color: INK, letterSpacing: 0.5, flex: 1 },

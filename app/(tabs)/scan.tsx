@@ -68,7 +68,7 @@ const Marquee: React.FC<MarqueeProps> = ({ text, textColor, bgColor, bordered = 
 
   useEffect(() => () => animX.stopAnimation(), [animX]);
 
-  const segment = `${text}   ✦   `;
+  const segment = `${text}   //   `;
 
   return (
     <View style={[
@@ -295,7 +295,7 @@ export default function ScanScreen() {
             >
               <View style={s.ctaBtnShadow} />
               <View style={s.ctaBtnInner}>
-                <Text style={s.ctaBtnText}>ADD TO ARSENAL →</Text>
+                <Text style={s.ctaBtnText}>ADD TO ARSENAL</Text>
               </View>
             </Pressable>
             <Text style={s.footerMeta}>END_OF_SPEC_SHEET</Text>
@@ -332,7 +332,7 @@ export default function ScanScreen() {
         <View style={[s.navBar, { paddingTop: insets.top + 8, backgroundColor: PAPER }]}>
           <Text style={[s.navBrand, { color: INK }]}>STRIDE//PROTOCOL</Text>
           <Pressable onPress={handleReset}>
-            <Text style={[s.navReset, { color: ACCENT }]}>RESTART ↺</Text>
+            <Text style={[s.navReset, { color: ACCENT }]}>RESTART</Text>
           </Pressable>
         </View>
 
@@ -419,7 +419,7 @@ export default function ScanScreen() {
                 >
                   <View style={s.inspectBtnShadow} />
                   <View style={s.inspectBtnInner}>
-                    <Text style={s.inspectBtnText}>INSPECT MODEL →</Text>
+                    <Text style={s.inspectBtnText}>INSPECT MODEL</Text>
                   </View>
                 </Pressable>
                 <Pressable
@@ -460,7 +460,7 @@ export default function ScanScreen() {
                       <View style={s.secCatBadge}>
                         <Text style={s.secCatText}>{getCategoryLabel(shoe.category)}</Text>
                       </View>
-                      <Text style={s.secInspect}>INSPECT →</Text>
+                      <Text style={s.secInspect}>INSPECT</Text>
                       <Pressable
                         onPress={(e) => { e.stopPropagation(); setWhyNotShoe(shoe); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
                         style={s.secWhyNot}
@@ -486,7 +486,7 @@ export default function ScanScreen() {
               >
                 <View style={s.showMoreShadow} />
                 <View style={s.showMoreBtn}>
-                  <Text style={s.showMoreText}>NOT HAPPY? SHOW 3 MORE →</Text>
+                  <Text style={s.showMoreText}>NOT HAPPY? SHOW 3 MORE</Text>
                 </View>
               </Pressable>
             ) : (
@@ -498,7 +498,7 @@ export default function ScanScreen() {
                     : 'Showing all compatible shoes from the database.'}
                 </Text>
                 <Pressable onPress={handleReset} style={s.restartSmall}>
-                  <Text style={s.restartSmallText}>RESTART PROTOCOL ↺</Text>
+                  <Text style={s.restartSmallText}>RESTART PROTOCOL</Text>
                 </Pressable>
               </View>
             )}
@@ -628,7 +628,6 @@ const SplashView: React.FC<{ onBegin: () => void }> = ({ onBegin }) => {
             <View style={s.ctaShadowLight} />
             <View style={s.ctaInnerDark}>
               <Text style={s.ctaTextLight}>BEGIN PROTOCOL</Text>
-              <Text style={s.ctaArrow}>→</Text>
             </View>
           </Pressable>
         </Animated.View>

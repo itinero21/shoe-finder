@@ -374,7 +374,7 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
       {/* Top nav */}
       <View style={styles.nav}>
         <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← BACK</Text>
+          <Text style={styles.backBtnText}>BACK</Text>
         </TouchableOpacity>
         <Text style={styles.navLabel}>{beginnerMode ? 'QUICK SCAN' : 'DIAGNOSTIC'}</Text>
         <Text style={styles.navCounter}>{currentStep + 1}/{STEPS.length}</Text>
@@ -426,7 +426,7 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
                         <Text style={styles.optionLabel}>{opt.label}</Text>
                         {opt.sublabel && <Text style={styles.optionSublabel}>{opt.sublabel}</Text>}
                       </View>
-                      <Text style={styles.optionArrow}>→</Text>
+                      <Text style={styles.optionArrow}>//</Text>
                     </View>
                   </TouchableOpacity>
                 </View>
@@ -443,7 +443,7 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
                   <HardShadowCard key={i} onPress={() => handleMultiToggle(opt.value)} selected={selected}>
                     <View style={styles.optionInner}>
                       <View style={[styles.multiCheck, selected && styles.multiCheckSelected]}>
-                        {selected && <Text style={styles.multiCheckMark}>✓</Text>}
+                        {selected && <Text style={styles.multiCheckMark}>OK</Text>}
                       </View>
                       <View style={styles.optionTextBlock}>
                         <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>
@@ -466,8 +466,8 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
                 <TouchableOpacity onPress={handleMultiConfirm} style={styles.confirmBtn}>
                   <Text style={styles.confirmText}>
                     {multiSelection.length === 0 || multiSelection.includes((step as MultiStep).noneValue)
-                      ? 'CONFIRM — NO ISSUES →'
-                      : `CONFIRM ${multiSelection.length} SELECTED →`}
+                      ? 'CONFIRM — NO ISSUES'
+                      : `CONFIRM ${multiSelection.length} SELECTED`}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -481,7 +481,7 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
               <View style={styles.anyBrandWrap}>
                 <View style={styles.confirmShadow} />
                 <TouchableOpacity onPress={() => handleBrandConfirm(true)} style={styles.anyBrandBtn}>
-                  <Text style={styles.anyBrandText}>OPEN TO ANY BRAND →</Text>
+                  <Text style={styles.anyBrandText}>OPEN TO ANY BRAND</Text>
                 </TouchableOpacity>
               </View>
 
@@ -511,7 +511,7 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
                   <View style={styles.confirmShadow} />
                   <TouchableOpacity onPress={() => handleBrandConfirm(false)} style={styles.confirmBtn}>
                     <Text style={styles.confirmText}>
-                      {`SHOW RESULTS — ${brandSelection.length} BRAND${brandSelection.length > 1 ? 'S' : ''} →`}
+                      {`SHOW RESULTS — ${brandSelection.length} BRAND${brandSelection.length > 1 ? 'S' : ''}`}
                     </Text>
                   </TouchableOpacity>
                 </View>

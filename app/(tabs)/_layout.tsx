@@ -71,6 +71,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="wars"
+        options={{
+          title: 'WARS',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="flash-outline" size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           href: null,

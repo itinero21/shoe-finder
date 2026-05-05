@@ -34,6 +34,7 @@ export interface UserProfile {
   is_beginner_mode: boolean;
   graduated_at: string | null;
   created_at: string;
+  quiz_completed_at: string | null;
   streak_states: StreakState;
   active_injury: ActiveInjury | null;
   injury_history: ActiveInjury[];
@@ -51,6 +52,7 @@ const DEFAULT_PROFILE: UserProfile = {
   is_beginner_mode: true,
   graduated_at: null,
   created_at: new Date().toISOString(),
+  quiz_completed_at: null,
   streak_states: {
     variety:         { weeks_active: 0, best_weeks: 0 },
     exploration:     { weeks_active: 0, best_weeks: 0 },
@@ -66,6 +68,22 @@ const DEFAULT_PROFILE: UserProfile = {
   week_starting: getThisSunday(),
   graveyard_count: 0,
 };
+
+/**
+ * Returns true if a beginner profile should graduate.
+ * Conditions: 50+ lifetime miles OR 28+ days since account creation.
+ */
+function shouldGraduate(profile: UserProfile): boolean {
+  if (!profile.is_beginner_mode || profile.graduated_at) return false;
+  if (profile.lifetime_miles >= 50) return true;
+  const daysSince = (Date.now() - new Date(profile.created_at).getTime()) / 86400000;
+  return daysSince >= 28;
+}
+
+function graduate(profile: UserProfile): void {
+  profile.is_beginner_mode = false;
+  profile.graduated_at = new Date().toISOString();
+}
 
 function getThisSunday(): string {
   const now = new Date();
@@ -97,11 +115,8 @@ export async function addXP(amount: number): Promise<UserProfile> {
   const { current } = getUserLevel(profile.total_xp);
   profile.current_level = current.level;
 
-  // Beginner mode graduation
-  if (profile.lifetime_miles >= 50 && !profile.graduated_at && profile.is_beginner_mode) {
-    profile.is_beginner_mode = false;
-    profile.graduated_at = new Date().toISOString();
-  }
+  // Beginner mode graduation (50 miles OR 28 days)
+  if (shouldGraduate(profile)) graduate(profile);
 
   await saveUserProfile(profile);
   return profile;
@@ -110,12 +125,17 @@ export async function addXP(amount: number): Promise<UserProfile> {
 export async function addMiles(miles: number): Promise<UserProfile> {
   const profile = await getUserProfile();
   profile.lifetime_miles += miles;
-  if (profile.is_beginner_mode && profile.lifetime_miles >= 50) {
-    profile.is_beginner_mode = false;
-    profile.graduated_at = new Date().toISOString();
-  }
+  if (shouldGraduate(profile)) graduate(profile);
   await saveUserProfile(profile);
   return profile;
+}
+
+export async function setQuizCompleted(): Promise<void> {
+  const profile = await getUserProfile();
+  if (!profile.quiz_completed_at) {
+    profile.quiz_completed_at = new Date().toISOString();
+    await saveUserProfile(profile);
+  }
 }
 
 export async function setActiveInjury(injury: ActiveInjury): Promise<void> {

@@ -148,7 +148,7 @@ const RaceForm: React.FC<RaceFormProps> = ({ race, arsenalShoes, onSave, onCance
           <Text style={rf.cancelText}>CANCEL</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleSave} style={rf.saveBtn}>
-          <Text style={rf.saveText}>SAVE RACE →</Text>
+          <Text style={rf.saveText}>SAVE RACE</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -253,7 +253,6 @@ export default function RaceScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
         {displayed.length === 0 ? (
           <View style={s.empty}>
-            <Text style={s.emptyIcon}>{tab === 'upcoming' ? '📅' : '🏁'}</Text>
             <Text style={s.emptyTitle}>
               {tab === 'upcoming' ? 'NO UPCOMING RACES' : 'NO COMPLETED RACES'}
             </Text>
@@ -267,7 +266,7 @@ export default function RaceScreen() {
                 onPress={() => { setEditRace(undefined); setShowForm(true); }}
                 style={s.emptyBtn}
               >
-                <Text style={s.emptyBtnText}>+ ADD RACE →</Text>
+                <Text style={s.emptyBtnText}>+ ADD RACE</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -315,7 +314,7 @@ export default function RaceScreen() {
                     <View style={[s.shoeRec, isRecommended && s.shoeRecAuto]}>
                       <View style={s.shoeRecLeft}>
                         <Text style={s.shoeRecLabel}>
-                          {isRecommended ? '⚡ RECOMMENDED' : '👟 RACE SHOE'}
+                          {isRecommended ? 'RECOMMENDED' : 'RACE SHOE'}
                         </Text>
                         <Text style={s.shoeRecName}>{raceShoe.brand} {raceShoe.model}</Text>
                       </View>
@@ -329,7 +328,7 @@ export default function RaceScreen() {
                   <View style={s.cardActions}>
                     {!race.completed && (
                       <TouchableOpacity onPress={() => handleComplete(race)} style={s.actionBtn}>
-                        <Text style={s.actionBtnText}>✓ DONE</Text>
+                        <Text style={s.actionBtnText}>DONE</Text>
                       </TouchableOpacity>
                     )}
                     <TouchableOpacity
@@ -390,7 +389,6 @@ const s = StyleSheet.create({
   tabTextActive: { color: PAPER, fontWeight: '700' },
   content: { padding: 16, paddingBottom: 60 },
   empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 40 },
-  emptyIcon: { fontSize: 40, marginBottom: 16 },
   emptyTitle: { fontFamily: MONO, fontSize: 12, fontWeight: '700', color: INK, marginBottom: 8, letterSpacing: 1 },
   emptyDesc: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.5)', textAlign: 'center', lineHeight: 18, marginBottom: 20 },
   emptyBtn: { borderWidth: 2, borderColor: INK, paddingHorizontal: 20, paddingVertical: 10 },

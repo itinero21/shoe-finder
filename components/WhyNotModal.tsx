@@ -105,7 +105,7 @@ export const WhyNotModal: React.FC<Props> = ({ visible, shoe, answers, onClose }
               These are evidence-based rules, not laws. If you know your body and want to run in this shoe anyway, that's valid.
             </Text>
             <TouchableOpacity onPress={onClose} style={s.overrideBtn}>
-              <Text style={s.overrideBtnText}>SHOW ME ANYWAY →</Text>
+              <Text style={s.overrideBtnText}>SHOW ME ANYWAY</Text>
             </TouchableOpacity>
           </View>
 

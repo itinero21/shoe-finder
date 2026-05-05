@@ -259,7 +259,7 @@ export default function RunningCoach() {
                           /{String(i + 1).padStart(2, '0')}/
                         </Text>
                         <Text style={styles.tipHeading}>{tip.heading}</Text>
-                        <Text style={styles.tipChevron}>{tipOpen ? '↑' : '↓'}</Text>
+                        <Text style={styles.tipChevron}>{tipOpen ? 'CLOSE' : 'OPEN'}</Text>
                       </TouchableOpacity>
 
                       {tipOpen && (

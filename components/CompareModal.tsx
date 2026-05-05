@@ -54,7 +54,7 @@ export const CompareModal: React.FC<CompareModalProps> = ({
       <SafeAreaView style={styles.container}>
         <Animated.View entering={SlideInUp.delay(100)} style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.navBtn}>
-            <Text style={styles.navBtnText}>← CANCEL</Text>
+            <Text style={styles.navBtnText}>CANCEL</Text>
           </TouchableOpacity>
 
           <Text style={styles.title}>COMPARE</Text>
@@ -68,7 +68,7 @@ export const CompareModal: React.FC<CompareModalProps> = ({
               styles.navBtnText,
               selectedShoes.length === 2 && styles.navBtnTextActive
             ]}>
-              GO →
+              GO
             </Text>
           </TouchableOpacity>
         </Animated.View>
