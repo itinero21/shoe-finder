@@ -27,6 +27,16 @@ export interface StreakState {
   rotation_health: { weeks_active: number; best_weeks: number };
 }
 
+export interface TerritoryStats {
+  total_paths: number;       // unique paths ever detected
+  legendary_count: number;   // LEGENDARY-tier paths
+  yours_count: number;       // YOURS-tier paths (excludes legendary)
+  hot_count: number;
+  warm_count: number;
+  cities_visited: string[];  // city IDs
+  home_city_id?: string;
+}
+
 export interface UserProfile {
   lifetime_miles: number;
   total_xp: number;
@@ -43,7 +53,19 @@ export interface UserProfile {
   weekly_roster_locked: boolean;
   week_starting: string; // ISO date Sunday
   graveyard_count: number;
+  // DRIFT territory stats
+  territory: TerritoryStats;
 }
+
+const DEFAULT_TERRITORY: TerritoryStats = {
+  total_paths: 0,
+  legendary_count: 0,
+  yours_count: 0,
+  hot_count: 0,
+  warm_count: 0,
+  cities_visited: [],
+  home_city_id: undefined,
+};
 
 const DEFAULT_PROFILE: UserProfile = {
   lifetime_miles: 0,
@@ -67,6 +89,7 @@ const DEFAULT_PROFILE: UserProfile = {
   weekly_roster_locked: false,
   week_starting: getThisSunday(),
   graveyard_count: 0,
+  territory: { ...DEFAULT_TERRITORY },
 };
 
 /**
@@ -96,7 +119,12 @@ export async function getUserProfile(): Promise<UserProfile> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
     if (!raw) return { ...DEFAULT_PROFILE };
-    return { ...DEFAULT_PROFILE, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    return {
+      ...DEFAULT_PROFILE,
+      ...parsed,
+      territory: { ...DEFAULT_TERRITORY, ...(parsed.territory ?? {}) },
+    };
   } catch {
     return { ...DEFAULT_PROFILE };
   }

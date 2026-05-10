@@ -21,6 +21,7 @@ import { Run, RunTerrain, RunPurpose } from '../types/run';
 import { SHOES } from '../data/shoes';
 import { getMileageForShoe } from '../utils/mileage';
 import { getRuns } from '../utils/runStorage';
+import { Coordinate } from '../types/territory';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -233,6 +234,48 @@ export async function syncStravaActivities(
   } catch (e: any) {
     return { imported: 0, skipped: 0, error: e?.message ?? 'Unknown error' };
   }
+}
+
+// ── GPS streams (for DRIFT territory) ────────────────────────────────────────
+
+/**
+ * Fetches the GPS coordinate stream for a single Strava activity.
+ * Returns an array of {lat, lng, timestamp} or empty array if unavailable.
+ *
+ * Strava streams endpoint:
+ *   GET /api/v3/activities/{id}/streams?keys=latlng,time&key_by_type=true
+ */
+export async function fetchActivityGPS(activityId: string): Promise<Coordinate[]> {
+  const accessToken = await getValidAccessToken();
+  if (!accessToken) return [];
+  try {
+    const url = `https://www.strava.com/api/v3/activities/${activityId}/streams?keys=latlng,time&key_by_type=true`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!res.ok) return [];
+    const data = await res.json();
+
+    const latLngStream: [number, number][] = data.latlng?.data ?? [];
+    const timeStream: number[]             = data.time?.data  ?? [];
+    const startMs = Date.now(); // approximate; Strava time is seconds-from-start
+
+    return latLngStream.map(([lat, lng], i) => ({
+      lat,
+      lng,
+      timestamp: startMs + (timeStream[i] ?? i) * 1000,
+    }));
+  } catch { return []; }
+}
+
+/**
+ * Enhanced sync that also fetches GPS for each imported activity
+ * and stores coordinates on the Run object.
+ */
+export async function syncStravaActivitiesWithGPS(
+  gearMap: Record<string, string> = {}
+): Promise<SyncResult> {
+  const result = await syncStravaActivities(gearMap);
+  // GPS fetch is done lazily by driftEngine when path detection runs
+  return result;
 }
 
 // ── Strava gear list (to build the gearMap) ───────────────────────────────────

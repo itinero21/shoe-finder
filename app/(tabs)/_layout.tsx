@@ -59,7 +59,18 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Tab 4 — GAMES: shoe wars, character cards, battle log */}
+      {/* Tab 4 — DRIFT: territory map, paths, cities */}
+      <Tabs.Screen
+        name="map"
+        options={{
+          title: 'DRIFT',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="map-outline" size={22} color={color} />
+          ),
+        }}
+      />
+
+      {/* Tab 5 — GAMES: shoe wars, character cards, battle log */}
       <Tabs.Screen
         name="wars"
         options={{
@@ -70,7 +81,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Tab 5 — COACH: training plans, race calendar */}
+      {/* Tab 6 — COACH: training plans, race calendar */}
       <Tabs.Screen
         name="coach"
         options={{

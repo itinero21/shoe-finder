@@ -14,7 +14,7 @@ export interface AchievementDef {
   desc: string;
   icon: string;
   xp_reward: number;
-  category: 'mileage' | 'rotation' | 'streaks' | 'quiz' | 'explorer' | 'graveyard' | 'match';
+  category: 'mileage' | 'rotation' | 'streaks' | 'quiz' | 'explorer' | 'graveyard' | 'match' | 'territory';
   secret?: boolean;
 }
 
@@ -54,6 +54,17 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   // ── Streaks ──────────────────────────────────────────────────────────────────
   { id: 'streak_4w',        title: 'Creature of Habit', icon: 'S4', desc: 'Keep any streak going for 4 weeks.',     xp_reward: 75,  category: 'streaks' },
   { id: 'streak_8w',        title: 'Locked In',         icon: 'S8', desc: 'Keep any streak going for 8 weeks.',     xp_reward: 150, category: 'streaks' },
+
+  // ── DRIFT Territory ───────────────────────────────────────────────────────────
+  { id: 'drifter',          title: 'Drifter',           icon: 'DR', desc: 'Log your first GPS-tracked territory run.',         xp_reward: 30,   category: 'territory' },
+  { id: 'warmth',           title: 'Warmth',            icon: 'WM', desc: 'Heat a path to WARM for the first time.',           xp_reward: 50,   category: 'territory' },
+  { id: 'heat',             title: 'Heat',              icon: 'HT', desc: 'Heat a path to HOT.',                               xp_reward: 100,  category: 'territory' },
+  { id: 'first_claim',      title: 'The First Claim',   icon: 'FC', desc: 'Own a path — 10 runs on the same route.',           xp_reward: 200,  category: 'territory' },
+  { id: 'engraved',         title: 'Engraved',          icon: 'EN', desc: 'Reach LEGENDARY status on a path (25 runs).',       xp_reward: 500,  category: 'territory' },
+  { id: 'the_engraver',     title: 'The Engraver',      icon: 'EV', desc: 'Hold 3 LEGENDARY paths simultaneously.',           xp_reward: 1000, category: 'territory', secret: true },
+  { id: 'city_pioneer',     title: 'City Pioneer',      icon: 'CP', desc: 'Log a run in a city you\'ve added to the map.',     xp_reward: 75,   category: 'territory' },
+  { id: 'territory_10',     title: 'Territory Lord',    icon: 'T0', desc: 'Own 10+ paths (YOURS or LEGENDARY).',               xp_reward: 300,  category: 'territory' },
+  { id: 'territory_25',     title: 'Domain',            icon: 'T5', desc: 'Own 25+ paths — your city knows your name.',        xp_reward: 750,  category: 'territory', secret: true },
 ];
 
 export const ACHIEVEMENT_MAP: Record<string, AchievementDef> =
@@ -128,6 +139,19 @@ export async function checkAndUnlockAchievements(): Promise<string[]> {
   );
   if (maxStreak >= 4) tryUnlock('streak_4w');
   if (maxStreak >= 8) tryUnlock('streak_8w');
+
+  // ── DRIFT Territory ──────────────────────────────────────────────────────────
+  const t = profile.territory;
+  const gpsRuns = runs.filter(r => r.path_id);
+  if (gpsRuns.length >= 1)                                                    tryUnlock('drifter');
+  if (t.warm_count + t.hot_count + t.yours_count + t.legendary_count >= 1)   tryUnlock('warmth');
+  if (t.hot_count + t.yours_count + t.legendary_count >= 1)                   tryUnlock('heat');
+  if (t.yours_count + t.legendary_count >= 1)                                 tryUnlock('first_claim');
+  if (t.legendary_count >= 1)                                                  tryUnlock('engraved');
+  if (t.legendary_count >= 3)                                                  tryUnlock('the_engraver');
+  if (t.cities_visited.length >= 1)                                            tryUnlock('city_pioneer');
+  if (t.yours_count + t.legendary_count >= 10)                                tryUnlock('territory_10');
+  if (t.yours_count + t.legendary_count >= 25)                                tryUnlock('territory_25');
 
   if (newlyUnlocked.length > 0) {
     await saveUserProfile(profile);
@@ -204,5 +228,15 @@ export function computeAchievementProgress(
     graduated:        make(profile.graduated_at ? 1 : 0, 1, 'GRADUATE'),
     streak_4w:        make(maxStreakWeeks, 4, 'WEEKS'),
     streak_8w:        make(maxStreakWeeks, 8, 'WEEKS'),
+    // Territory
+    drifter:          make(runs.filter(r => r.path_id).length >= 1 ? 1 : 0, 1, 'GPS RUN'),
+    warmth:           make(Math.min((profile.territory?.warm_count ?? 0) + (profile.territory?.hot_count ?? 0) + (profile.territory?.yours_count ?? 0) + (profile.territory?.legendary_count ?? 0), 1), 1, 'WARM PATH'),
+    heat:             make(Math.min((profile.territory?.hot_count ?? 0) + (profile.territory?.yours_count ?? 0) + (profile.territory?.legendary_count ?? 0), 1), 1, 'HOT PATH'),
+    first_claim:      make(Math.min((profile.territory?.yours_count ?? 0) + (profile.territory?.legendary_count ?? 0), 1), 1, 'OWNED'),
+    engraved:         make(Math.min(profile.territory?.legendary_count ?? 0, 1), 1, 'LEGENDARY'),
+    the_engraver:     make(profile.territory?.legendary_count ?? 0, 3, 'LEGENDARY'),
+    city_pioneer:     make(Math.min((profile.territory?.cities_visited?.length ?? 0), 1), 1, 'CITY'),
+    territory_10:     make((profile.territory?.yours_count ?? 0) + (profile.territory?.legendary_count ?? 0), 10, 'OWNED'),
+    territory_25:     make((profile.territory?.yours_count ?? 0) + (profile.territory?.legendary_count ?? 0), 25, 'OWNED'),
   };
 }

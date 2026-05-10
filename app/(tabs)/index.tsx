@@ -22,6 +22,8 @@ import { getUserLevel, getLifecycleStatus, getExpectedLifespan, TIER_COLORS } fr
 import { getMileageForShoe } from '../utils/mileage';
 import { getDetailedRotationScore } from '../utils/rotationScore';
 import { Run } from '../types/run';
+import { getTerritorySnapshot } from '../utils/driftEngine';
+import { HEAT_COLOR, HeatLevel } from '../types/territory';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
@@ -48,17 +50,20 @@ export default function HomeScreen() {
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [runs, setRuns] = React.useState<Run[]>([]);
   const [favoriteIds, setFavoriteIds] = React.useState<string[]>([]);
+  const [territory, setTerritory] = React.useState<{ total: number; legendary: number; yours: number; hot: number; warm: number; cold: number } | null>(null);
 
   useFocusEffect(useCallback(() => {
     (async () => {
-      const [prof, allRuns, favs] = await Promise.all([
+      const [prof, allRuns, favs, snap] = await Promise.all([
         getUserProfile(),
         getRuns(),
         getFavorites(),
+        getTerritorySnapshot(),
       ]);
       setProfile(prof);
       setRuns(allRuns);
       setFavoriteIds(favs);
+      setTerritory(snap);
     })();
   }, []));
 
@@ -245,6 +250,38 @@ export default function HomeScreen() {
           </Animated.View>
         )}
 
+        {/* ── DRIFT territory card ─────────────────────────────────────── */}
+        {territory && territory.total > 0 && (
+          <Animated.View entering={FadeInDown.delay(220).duration(300)}>
+            <Text style={s.sectionTitle}>DRIFT TERRITORY</Text>
+            <TouchableOpacity
+              style={s.driftCard}
+              onPress={() => navigate('/(tabs)/map')}
+              activeOpacity={0.85}
+            >
+              <View style={s.driftHeader}>
+                <Text style={s.driftTotal}>{territory.total}</Text>
+                <Text style={s.driftTotalLabel}>ROUTES MAPPED</Text>
+              </View>
+              <View style={s.driftTiers}>
+                {([
+                  { h: 'LEGENDARY', val: territory.legendary },
+                  { h: 'YOURS',     val: territory.yours },
+                  { h: 'HOT',       val: territory.hot },
+                  { h: 'WARM',      val: territory.warm },
+                  { h: 'COLD',      val: territory.cold },
+                ] as { h: HeatLevel; val: number }[]).filter(t => t.val > 0).map(({ h, val }) => (
+                  <View key={h} style={[s.driftTier, { borderColor: HEAT_COLOR[h] }]}>
+                    <Text style={[s.driftTierCount, { color: HEAT_COLOR[h] }]}>{val}</Text>
+                    <Text style={[s.driftTierLabel, { color: HEAT_COLOR[h] }]}>{h}</Text>
+                  </View>
+                ))}
+              </View>
+              <Text style={s.driftCta}>TAP TO VIEW MAP →</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+
         {/* ── Active streaks ───────────────────────────────────────────── */}
         {activeStreaks.length > 0 && (
           <Animated.View entering={FadeInDown.delay(240).duration(300)}>
@@ -280,6 +317,7 @@ export default function HomeScreen() {
             {[
               { icon: 'layers-outline',  tab: 'MY SHOES', desc: 'Mileage tracking, log runs, retire shoes, roster' },
               { icon: 'search-outline',  tab: 'FIND',     desc: 'Scout quiz for recommendations + browse all shoes' },
+              { icon: 'map-outline',     tab: 'DRIFT',    desc: 'Territory map — own routes, build heat, claim paths' },
               { icon: 'flash-outline',   tab: 'GAMES',    desc: 'Shoe Wars, character cards, battle log, XP' },
               { icon: 'pulse-outline',   tab: 'COACH',    desc: 'Training plans, race calendar, coaching tips' },
             ].map(({ icon, tab, desc }) => (
@@ -376,6 +414,16 @@ const s = StyleSheet.create({
   emptyBody: { fontFamily: MONO, fontSize: 10, color: 'rgba(244,241,234,0.6)', lineHeight: 17, marginBottom: 16 },
   emptyBtn: { backgroundColor: LIME, paddingVertical: 14, borderRadius: 2, alignItems: 'center' },
   emptyBtnText: { fontFamily: MONO, fontSize: 11, fontWeight: '700', color: INK, letterSpacing: 2 },
+
+  driftCard: { borderWidth: 2, borderColor: INK, borderRadius: 2, padding: 16, marginBottom: 20, backgroundColor: INK },
+  driftHeader: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 14 },
+  driftTotal: { fontSize: 40, fontWeight: '900', color: '#FF3D00', letterSpacing: -2 },
+  driftTotalLabel: { fontFamily: MONO, fontSize: 9, color: 'rgba(244,241,234,0.4)', letterSpacing: 2 },
+  driftTiers: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 },
+  driftTier: { borderWidth: 1, borderRadius: 3, paddingHorizontal: 10, paddingVertical: 6, alignItems: 'center', minWidth: 56 },
+  driftTierCount: { fontFamily: MONO, fontSize: 16, fontWeight: '700' },
+  driftTierLabel: { fontFamily: MONO, fontSize: 7, letterSpacing: 1, marginTop: 2 },
+  driftCta: { fontFamily: MONO, fontSize: 9, color: 'rgba(244,241,234,0.3)', letterSpacing: 1 },
 
   guideList: { gap: 0, borderWidth: 2, borderColor: INK, borderRadius: 2, overflow: 'hidden', marginBottom: 20 },
   guideRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(10,10,10,0.08)' },

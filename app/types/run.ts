@@ -1,3 +1,5 @@
+import { Coordinate } from './territory';
+
 export type RunTerrain = 'road' | 'trail' | 'track' | 'treadmill';
 export type RunPurpose = 'easy' | 'tempo' | 'long' | 'race' | 'recovery' | 'speed' | 'walk';
 export type MatchQuality = 'perfect' | 'good' | 'neutral' | 'poor' | 'abuse';
@@ -17,8 +19,11 @@ export type Run = {
   match_quality?: MatchQuality;
   xp_earned?: number;
   source?: RunSource;
-  route_hash?: string; // for exploration tracking
-  external_id?: string; // Strava activity ID etc
+  route_hash?: string;          // for exploration tracking
+  external_id?: string;         // Strava activity ID etc
+  // DRIFT territory fields
+  coordinates?: Coordinate[];   // GPS trace from Strava/Garmin
+  path_id?: string;             // matched RunPath ID after detection
 };
 
 export type ShoeStats = {
