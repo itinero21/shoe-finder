@@ -26,7 +26,9 @@ import { getTerritorySnapshot } from '../utils/driftEngine';
 import { HEAT_COLOR, HeatLevel } from '../types/territory';
 import { getStravaTokens } from '../services/stravaService';
 import { getHealthPermStatus } from '../services/healthService';
+import { getWatchStatus, WatchStatus } from '../services/watchService';
 import { IntegrationsModal } from '../../components/IntegrationsModal';
+import { WatchConnectModal } from '../../components/WatchConnectModal';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
@@ -56,17 +58,20 @@ export default function HomeScreen() {
   const [territory, setTerritory] = React.useState<{ total: number; legendary: number; yours: number; hot: number; warm: number; cold: number } | null>(null);
   const [stravaConnected, setStravaConnected] = React.useState(false);
   const [healthConnected, setHealthConnected] = React.useState(false);
+  const [watchStatus, setWatchStatus] = React.useState<WatchStatus | null>(null);
   const [showIntegrations, setShowIntegrations] = React.useState(false);
+  const [showWatches, setShowWatches] = React.useState(false);
 
   useFocusEffect(useCallback(() => {
     (async () => {
-      const [prof, allRuns, favs, snap, stravaTokens, healthStatus] = await Promise.all([
+      const [prof, allRuns, favs, snap, stravaTokens, healthStatus, ws] = await Promise.all([
         getUserProfile(),
         getRuns(),
         getFavorites(),
         getTerritorySnapshot(),
         getStravaTokens(),
         getHealthPermStatus(),
+        getWatchStatus(),
       ]);
       setProfile(prof);
       setRuns(allRuns);
@@ -74,6 +79,7 @@ export default function HomeScreen() {
       setTerritory(snap);
       setStravaConnected(!!stravaTokens?.access_token);
       setHealthConnected(healthStatus === 'authorized');
+      setWatchStatus(ws);
     })();
   }, []));
 
@@ -168,51 +174,54 @@ export default function HomeScreen() {
           </View>
         </Animated.View>
 
-        {/* ── Integrations sync card ──────────────────────────────────── */}
+        {/* ── Watch connect card ───────────────────────────────────────── */}
         <Animated.View entering={FadeInDown.delay(110).duration(300)}>
           <TouchableOpacity
             style={[s.syncCard, (!stravaConnected && !healthConnected) && s.syncCardCTA]}
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowIntegrations(true); }}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowWatches(true); }}
             activeOpacity={0.85}
           >
             <View style={s.syncCardLeft}>
               {(!stravaConnected && !healthConnected) ? (
                 <>
-                  <Text style={s.syncCardTitle}>CONNECT YOUR WATCH</Text>
-                  <Text style={s.syncCardSub}>Strava · Apple Health · Garmin — auto-import every run</Text>
+                  <Text style={s.syncCardTitle}>CONNECT YOUR WATCHES</Text>
+                  <Text style={s.syncCardSub}>Apple Watch · Garmin · Strava — auto-import every run</Text>
                 </>
               ) : (
                 <>
-                  <Text style={[s.syncCardTitle, { color: INK }]}>SYNC RUNS</Text>
+                  <Text style={[s.syncCardTitle, { color: INK }]}>YOUR WATCHES</Text>
                   <View style={s.syncDots}>
-                    {stravaConnected && (
-                      <View style={s.syncDot}>
-                        <View style={[s.syncDotDot, { backgroundColor: '#FC4C02' }]} />
-                        <Text style={s.syncDotLabel}>STRAVA</Text>
-                      </View>
-                    )}
                     {healthConnected && (
                       <View style={s.syncDot}>
-                        <View style={[s.syncDotDot, { backgroundColor: '#FF2D55' }]} />
-                        <Text style={s.syncDotLabel}>HEALTH</Text>
+                        <View style={[s.syncDotDot, { backgroundColor: watchStatus?.appleWatchDetected ? '#1C1C1E' : '#FF2D55' }]} />
+                        <Text style={s.syncDotLabel}>{watchStatus?.appleWatchDetected ? '⌚ WATCH' : 'HEALTH'}</Text>
                       </View>
                     )}
-                    <View style={s.syncDot}>
-                      <View style={[s.syncDotDot, { backgroundColor: '#007CC3' }]} />
-                      <Text style={s.syncDotLabel}>GARMIN</Text>
-                    </View>
+                    {stravaConnected && (
+                      <View style={s.syncDot}>
+                        <View style={[s.syncDotDot, { backgroundColor: watchStatus?.garminViaStrava ? '#007CC3' : '#FC4C02' }]} />
+                        <Text style={s.syncDotLabel}>{watchStatus?.garminSteps.every(Boolean) ? 'GARMIN' : 'STRAVA'}</Text>
+                      </View>
+                    )}
+                    {(watchStatus?.totalWatchRuns ?? 0) > 0 && (
+                      <View style={s.syncDot}>
+                        <View style={[s.syncDotDot, { backgroundColor: '#16A34A' }]} />
+                        <Text style={s.syncDotLabel}>{watchStatus!.totalWatchRuns} RUNS</Text>
+                      </View>
+                    )}
                   </View>
                 </>
               )}
             </View>
             <Ionicons
-              name={(!stravaConnected && !healthConnected) ? 'link-outline' : 'sync-outline'}
+              name={(!stravaConnected && !healthConnected) ? 'watch-outline' : 'sync-outline'}
               size={22}
               color={(!stravaConnected && !healthConnected) ? PAPER : INK}
             />
           </TouchableOpacity>
         </Animated.View>
 
+        <WatchConnectModal visible={showWatches} onClose={() => { setShowWatches(false); }} />
         <IntegrationsModal visible={showIntegrations} onClose={() => setShowIntegrations(false)} />
 
         {/* ── Alert: shoes needing attention ──────────────────────────── */}

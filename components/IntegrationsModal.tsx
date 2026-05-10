@@ -21,6 +21,7 @@ import {
 import { getFavorites } from '../app/utils/storage';
 import { SHOES } from '../app/data/shoes';
 import { seedTestRuns, clearSeededRuns } from '../app/utils/testDataSeeder';
+import { WatchConnectModal } from './WatchConnectModal';
 
 const INK   = '#0A0A0A';
 const PAPER = '#F4F1EA';
@@ -47,6 +48,7 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
   const [healthSyncResult, setHealthSyncResult] = useState<string>('');
 
   const [arsenalIds, setArsenalIds] = useState<string[]>([]);
+  const [showWatches, setShowWatches] = useState(false);
 
   // ── Test mode ─────────────────────────────────────────────────────────────
   const [seedSource, setSeedSource] = useState<'strava' | 'apple_health'>('strava');
@@ -180,6 +182,20 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} style={s.scroll} contentContainerStyle={s.content}>
+
+          {/* ── Watches shortcut ───────────────────────────────────────────── */}
+          <TouchableOpacity style={s.watchShortcut} onPress={() => setShowWatches(true)} activeOpacity={0.85}>
+            <View style={s.watchShortcutLeft}>
+              <Text style={s.watchShortcutIcon}>⌚</Text>
+              <View>
+                <Text style={s.watchShortcutTitle}>APPLE WATCH & GARMIN</Text>
+                <Text style={s.watchShortcutSub}>Set up your watches here</Text>
+              </View>
+            </View>
+            <Ionicons name="arrow-forward" size={18} color={PAPER} />
+          </TouchableOpacity>
+
+          <View style={s.divider} />
 
           {/* ── Strava ─────────────────────────────────────────────────────── */}
           <View style={s.section}>
@@ -483,6 +499,8 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
 
         </ScrollView>
       </SafeAreaView>
+
+      <WatchConnectModal visible={showWatches} onClose={() => setShowWatches(false)} />
     </Modal>
   );
 }
@@ -552,6 +570,15 @@ const s = StyleSheet.create({
   manualNote: { backgroundColor: LIME, padding: 16, borderRadius: 2, borderWidth: 2, borderColor: INK },
   manualNoteTitle: { fontFamily: MONO, fontSize: 10, fontWeight: '700', color: INK, letterSpacing: 1.5, marginBottom: 6 },
   manualNoteText: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.7)', lineHeight: 18 },
+
+  watchShortcut: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: INK, borderRadius: 2, padding: 16,
+  },
+  watchShortcutLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  watchShortcutIcon: { fontSize: 24 },
+  watchShortcutTitle: { fontFamily: MONO, fontSize: 11, fontWeight: '700', color: PAPER, letterSpacing: 1 },
+  watchShortcutSub:   { fontFamily: MONO, fontSize: 9, color: 'rgba(244,241,234,0.45)', marginTop: 2 },
 
   // test mode
   testSection: { paddingVertical: 4 },
