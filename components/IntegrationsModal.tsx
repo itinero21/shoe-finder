@@ -5,13 +5,13 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, Modal, StyleSheet, ScrollView,
-  TouchableOpacity, Alert, Linking, Platform,
+  TouchableOpacity, Alert, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
   getStravaTokens, disconnectStrava, syncStravaActivities,
-  getStravaAuthUrl, getStravaGear, StravaGear, StravaTokens,
+  connectStrava, getStravaGear, StravaGear, StravaTokens,
 } from '../app/services/stravaService';
 import {
   getHealthPermStatus, requestHealthPermission,
@@ -75,12 +75,14 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
 
   // ── Strava ────────────────────────────────────────────────────────────────
   const handleStravaConnect = async () => {
-    const url = getStravaAuthUrl();
-    const canOpen = await Linking.canOpenURL(url);
-    if (canOpen) {
-      await Linking.openURL(url);
+    const tokens = await connectStrava();
+    if (tokens) {
+      setStravaTokens(tokens);
+      const gear = await getStravaGear();
+      setStravaGear(gear);
+      Alert.alert('Strava connected', `Welcome, ${tokens.athlete_name}!`);
     } else {
-      Alert.alert('Cannot open Strava', 'Make sure Strava is installed or use Safari.');
+      Alert.alert('Connection failed', 'Could not connect to Strava. Please try again.');
     }
   };
 

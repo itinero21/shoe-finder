@@ -40,7 +40,8 @@
         {
           "cameraPermission": "Allow ShoeAI to access your camera to scan your feet for personalized recommendations."
         }
-      ]
+      ],
+      "expo-secure-store"
     ]
   }
 }

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -291,6 +292,7 @@ function Card({ style, children, shadowColor = '#0A0A0A' }: { style?: any; child
 
 // ── MAIN COMPONENT ─────────────────────────────────────────────────────────────
 export default function CoachScreen() {
+  const router = useRouter();
   const [screen, setScreen] = useState<'plans' | 'plan_detail' | 'checkin' | 'response' | 'pain' | 'chat'>('plans');
   const [activePlan, setActivePlan] = useState<any>(null);
   const [checkInData, setCheckInData] = useState<Record<string, string | null>>({ completion: null, feeling: null, rpe: null });
@@ -394,6 +396,13 @@ export default function CoachScreen() {
                 <Text style={[s.quickCardIdx, { color: 'rgba(10,10,10,0.5)' }]}>/03/</Text>
                 <Text style={[s.quickCardTitle, { color: '#0A0A0A' }]}>ASK COACH</Text>
                 <Text style={[s.quickCardSub, { color: 'rgba(10,10,10,0.6)' }]}>Pre-written answers, no AI</Text>
+              </TouchableOpacity>
+            </Card>
+            <Card style={[s.quickCard, { backgroundColor: '#2563EB' }]}>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/race' as any)} activeOpacity={0.85}>
+                <Text style={[s.quickCardIdx, { color: 'rgba(244,241,234,0.6)' }]}>/04/</Text>
+                <Text style={[s.quickCardTitle, { color: '#F4F1EA' }]}>RACE CALENDAR</Text>
+                <Text style={[s.quickCardSub, { color: 'rgba(244,241,234,0.65)' }]}>Track upcoming races + shoe picks</Text>
               </TouchableOpacity>
             </Card>
           </View>

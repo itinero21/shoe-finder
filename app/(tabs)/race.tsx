@@ -36,7 +36,7 @@ function recommendShoeForRace(race: Race, arsenalIds: string[]): Shoe | null {
     let score = 0;
     if (isTrail && shoe.use_cases.some(u => u.startsWith('trail'))) score += 4;
     if (!isTrail && !shoe.use_cases.some(u => u.startsWith('trail'))) score += 2;
-    if (isRace && shoe.category === 'carbon_plate_racing') score += 3;
+    if (isRace && shoe.category === 'carbon_racer') score += 3;
     if (isRace && shoe.category === 'super_trainer') score += 2;
     if (isLong && (shoe.category.startsWith('max_cushion') || shoe.category.startsWith('neutral'))) score += 1;
     if (km <= 10 && shoe.category === 'lightweight_speed') score += 2;

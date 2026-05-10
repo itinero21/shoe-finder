@@ -104,6 +104,8 @@ export async function getUserProfile(): Promise<UserProfile> {
 
 export async function saveUserProfile(profile: UserProfile): Promise<void> {
   await AsyncStorage.setItem(KEY, JSON.stringify(profile));
+  // Fire-and-forget cloud push — works offline, syncs when connected
+  import('../services/cloudSync').then(({ pushProfile }) => pushProfile(profile)).catch(() => {});
 }
 
 export async function addXP(amount: number): Promise<UserProfile> {

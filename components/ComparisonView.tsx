@@ -24,7 +24,7 @@ const cardWidth = (screenWidth - 52) / 2;
 
 const getCategoryLabel = (category: string): string => {
   switch (category) {
-    case 'carbon_plate_racing': return 'CARBON';
+    case 'carbon_racer': return 'CARBON';
     case 'motion_control': return 'MOTION CTRL';
     case 'max_cushion': return 'MAX CUSH';
     case 'lightweight_speed': return 'SPEED';

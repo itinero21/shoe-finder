@@ -98,7 +98,7 @@ export const TIER_COLORS: Record<StatTier, string> = {
 
 export function getExpectedLifespan(shoe: Shoe, weightKg?: number): number {
   const BASE: Record<string, number> = {
-    carbon_plate_racing: 300,
+    carbon_racer: 300,
     super_trainer:       350,
     max_cushion_premium: 400,
     premium_neutral:     400,
@@ -131,14 +131,12 @@ export function getLifecycleStatus(miles: number, lifespan: number): {
 } {
   const pct = miles / lifespan;
   if (pct >= 1.2) return { label: 'OVERDUE', color: '#FF3D00', pct: Math.min(pct, 1), alert: `Past lifespan by ${Math.round((pct - 1) * lifespan)} mi — injury risk elevated.` };
-  if (pct >= 1.0) return { label: 'RETIRE', color: '#FF3D00', pct: 1, alert: `${shoe_name_placeholder} has run its last mile. Time to retire it.` };
+  if (pct >= 1.0) return { label: 'RETIRE', color: '#FF3D00', pct: 1, alert: `This shoe has run its last mile. Time to retire it.` };
   if (pct >= 0.87) return { label: 'AGING', color: '#D97706', pct, alert: `At ${Math.round(pct * 100)}% lifespan. ~${Math.round((1 - pct) * lifespan)} miles left.` };
   if (pct >= 0.70) return { label: 'WARMED', color: '#2563EB', pct, alert: null };
   return { label: 'FRESH', color: '#16A34A', pct, alert: null };
 }
 
-// placeholder gets overridden at call site
-const shoe_name_placeholder = 'This shoe';
 
 export function getUserLevel(totalXP: number): { current: UserLevel; progress: number } {
   let current = LEVELS[0];

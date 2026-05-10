@@ -4,8 +4,9 @@
  */
 import { getUserProfile, saveUserProfile, UserProfile } from './userProfile';
 import { getRuns } from './runStorage';
-import { getGraveyard, getGraveyardStats } from './obituaryStorage';
+import { getGraveyard, getGraveyardStats, ShoeObituary } from './obituaryStorage';
 import { SHOES } from '../data/shoes';
+import { Run } from '../types/run';
 
 export interface AchievementDef {
   id: string;
@@ -133,4 +134,75 @@ export async function checkAndUnlockAchievements(): Promise<string[]> {
   }
 
   return newlyUnlocked;
+}
+
+// ── Achievement progress for UI progress bars ─────────────────────────────────
+
+export interface AchievementProgress {
+  current: number;
+  max: number;
+  pct: number;   // 0–1
+  label: string; // e.g. "47 / 100 MI"
+}
+
+/**
+ * Returns progress toward each locked achievement.
+ * Call once per screen load — safe to call with empty arrays.
+ */
+export function computeAchievementProgress(
+  profile: UserProfile,
+  runs: Run[],
+  graveyard: ShoeObituary[],
+  arsenalSize: number,
+): Record<string, AchievementProgress> {
+  const miles = profile.lifetime_miles;
+  const perfectRuns = runs.filter(r => r.match_quality === 'perfect');
+  const terrains = new Set(runs.map(r => r.terrain).filter(Boolean));
+  const purposes = new Set(runs.map(r => r.purpose).filter(Boolean));
+  const brands = new Set(
+    runs.map(r => SHOES.find(s => s.id === r.shoeId)?.brand).filter(Boolean)
+  );
+  const maxRun = runs.length > 0 ? Math.max(...runs.map(r => r.distanceKm)) : 0;
+  const graveyardStats = getGraveyardStats(graveyard);
+  const buyAgainCount = graveyardStats.buyAgainCount;
+  const maxStreakWeeks = Object.values(profile.streak_states).length > 0
+    ? Math.max(...Object.values(profile.streak_states).map(s => s.weeks_active ?? 0))
+    : 0;
+
+  const make = (current: number, max: number, unit: string): AchievementProgress => {
+    const capped = Math.min(current, max);
+    return {
+      current: capped,
+      max,
+      pct: max > 0 ? capped / max : 0,
+      label: `${capped} / ${max} ${unit}`,
+    };
+  };
+
+  return {
+    first_mile:       make(Math.min(runs.length, 1), 1, 'RUN'),
+    miles_50:         make(Math.round(miles), 50, 'MI'),
+    miles_100:        make(Math.round(miles), 100, 'MI'),
+    miles_500:        make(Math.round(miles), 500, 'MI'),
+    miles_1000:       make(Math.round(miles), 1000, 'MI'),
+    single_run_20k:   make(Math.round(maxRun * 10) / 10, 20, 'KM'),
+    single_run_42k:   make(Math.round(maxRun * 10) / 10, 42, 'KM'),
+    first_perfect:    make(Math.min(perfectRuns.length, 1), 1, 'PERFECT'),
+    ten_perfect:      make(perfectRuns.length, 10, 'PERFECT'),
+    no_abuse:         make(runs.filter(r => r.match_quality !== 'abuse').length, 20, 'CLEAN RUNS'),
+    race_day_racer:   make(0, 1, 'RACE+CARBON'),   // binary, hard to compute without shoe lookup
+    three_shoe_rot:   make(arsenalSize, 3, 'SHOES'),
+    five_shoe_rot:    make(arsenalSize, 5, 'SHOES'),
+    first_funeral:    make(graveyardStats.totalShoes, 1, 'RETIRED'),
+    graveyard_five:   make(graveyardStats.totalShoes, 5, 'RETIRED'),
+    buyagain_streak:  make(buyAgainCount, 3, 'BUY-AGAIN'),
+    trail_run:        make(terrains.has('trail') ? 1 : 0, 1, 'TRAIL RUN'),
+    all_terrains:     make(terrains.size, 4, 'TERRAINS'),
+    all_purposes:     make(purposes.size, 7, 'RUN TYPES'),
+    tried_five_brands:make(brands.size, 5, 'BRANDS'),
+    quiz_complete:    make(profile.quiz_completed_at ? 1 : 0, 1, 'QUIZ'),
+    graduated:        make(profile.graduated_at ? 1 : 0, 1, 'GRADUATE'),
+    streak_4w:        make(maxStreakWeeks, 4, 'WEEKS'),
+    streak_8w:        make(maxStreakWeeks, 8, 'WEEKS'),
+  };
 }

@@ -31,12 +31,20 @@ export const getFavorites = async (): Promise<string[]> => {
   }
 };
 
+async function syncArsenalToCloud(ids: string[]) {
+  try {
+    const { pushArsenal } = await import('../services/cloudSync');
+    await pushArsenal(ids);
+  } catch { /* offline */ }
+}
+
 export const addToFavorites = async (shoeId: string): Promise<void> => {
   try {
     const favorites = await getFavorites();
     if (!favorites.includes(shoeId)) {
       const updatedFavorites = [...favorites, shoeId];
       await AsyncStorage.setItem('favorites', JSON.stringify(updatedFavorites));
+      syncArsenalToCloud(updatedFavorites); // fire-and-forget
     }
   } catch (error) {
     console.error('Error adding to favorites:', error);
@@ -48,6 +56,7 @@ export const removeFromFavorites = async (shoeId: string): Promise<void> => {
     const favorites = await getFavorites();
     const updatedFavorites = favorites.filter(id => id !== shoeId);
     await AsyncStorage.setItem('favorites', JSON.stringify(updatedFavorites));
+    syncArsenalToCloud(updatedFavorites); // fire-and-forget
   } catch (error) {
     console.error('Error removing from favorites:', error);
   }

@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SHOES, Shoe } from '../app/data/shoes';
-import { QuizAnswers, scoreShoes } from '../app/utils/scoring';
+import { QuizAnswers, getRecommendations } from '../app/utils/scoring';
 import { deriveShoeStats, TIER_COLORS } from '../app/utils/gameEngine';
 
 const INK    = '#0A0A0A';
@@ -89,8 +89,8 @@ function buildCluster(answers: QuizAnswers | null): ClusterResult {
   const isEditorsPick = matchCount < MIN_CLUSTER;
 
   // Determine top shoes: score shoes against answers then pick top 3
-  const scored = scoreShoes(answers, SHOES);
-  const topShoes = scored.slice(0, 3).map(r => r.shoe);
+  const scored = getRecommendations(answers, SHOES);
+  const topShoes = scored.slice(0, 3);
 
   // Cluster label from active dimensions
   const parts: string[] = [];

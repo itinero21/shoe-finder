@@ -14,6 +14,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as WebBrowser from 'expo-web-browser';
 import { saveRun } from '../utils/runStorage';
 import { addMiles, addXP } from '../utils/userProfile';
 import { Run, RunTerrain, RunPurpose } from '../types/run';
@@ -21,11 +22,12 @@ import { SHOES } from '../data/shoes';
 import { getMileageForShoe } from '../utils/mileage';
 import { getRuns } from '../utils/runStorage';
 
-// ── Config — replace with real Strava app credentials ────────────────────────
-const CLIENT_ID     = process.env.EXPO_PUBLIC_STRAVA_CLIENT_ID ?? 'YOUR_STRAVA_CLIENT_ID';
-const CLIENT_SECRET = process.env.EXPO_PUBLIC_STRAVA_CLIENT_SECRET ?? 'YOUR_STRAVA_CLIENT_SECRET';
-const REDIRECT_URI  = 'stride://strava-callback';
-const STRAVA_AUTH_URL = `https://www.strava.com/oauth/mobile/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&approval_prompt=auto&scope=activity:read_all`;
+WebBrowser.maybeCompleteAuthSession();
+
+// ── Config ────────────────────────────────────────────────────────────────────
+const CLIENT_ID     = process.env.EXPO_PUBLIC_STRAVA_CLIENT_ID ?? '';
+const CLIENT_SECRET = process.env.EXPO_PUBLIC_STRAVA_CLIENT_SECRET ?? '';
+const REDIRECT_URI  = 'shoefinder://strava-callback';
 
 const TOKEN_KEY   = 'stride_strava_tokens_v1';
 const LAST_SYNC   = 'stride_strava_last_sync_v1';
@@ -57,9 +59,31 @@ export function isStravaConnected(tokens: StravaTokens | null): boolean {
   return !!tokens?.access_token;
 }
 
-// ── OAuth URL (open in browser via expo-web-browser) ─────────────────────────
+// ── OAuth URL ─────────────────────────────────────────────────────────────────
 export function getStravaAuthUrl(): string {
-  return STRAVA_AUTH_URL;
+  return `https://www.strava.com/oauth/mobile/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&approval_prompt=auto&scope=activity:read_all`;
+}
+
+// ── Full OAuth flow using expo-auth-session ───────────────────────────────────
+// Call this from the UI instead of manually opening a URL.
+// Returns tokens on success, null on failure/cancel.
+export async function connectStrava(): Promise<StravaTokens | null> {
+  const authUrl = getStravaAuthUrl();
+  const result = await WebBrowser.openAuthSessionAsync(authUrl, REDIRECT_URI);
+
+  if (result.type !== 'success') return null;
+
+  const url = result.url;
+  const code = getParam(url, 'code');
+  const error = getParam(url, 'error');
+
+  if (error || !code) return null;
+  return exchangeStravaCode(code);
+}
+
+function getParam(url: string, key: string): string | null {
+  const match = url.match(new RegExp(`[?&]${key}=([^&]+)`));
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
 // ── Exchange code for tokens ──────────────────────────────────────────────────

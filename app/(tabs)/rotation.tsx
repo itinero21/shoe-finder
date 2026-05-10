@@ -9,6 +9,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
+// ─── Error boundary ───────────────────────────────────────────────────────────
+
 import { LogRunModal } from '../../components/LogRunModal';
 import { GameStatBars } from '../../components/GameStatBars';
 import { AchievementsModal } from '../../components/AchievementsModal';
@@ -20,6 +22,8 @@ import { Run } from '../types/run';
 import { deriveShoeStats, getExpectedLifespan, getLifecycleStatus, getUserLevel, TIER_COLORS } from '../utils/gameEngine';
 import { getUserProfile, UserProfile, addXP } from '../utils/userProfile';
 import { getGraveyard, addToGraveyard, getGraveyardStats, ShoeObituary } from '../utils/obituaryStorage';
+import { computeAchievementProgress, AchievementProgress } from '../utils/achievementEngine';
+import { getDetailedRotationScore, RotationBreakdown } from '../utils/rotationScore';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
@@ -180,6 +184,16 @@ const TombstoneCard: React.FC<{ obit: ShoeObituary }> = ({ obit }) => {
         {obit.epitaph ? (
           <Text style={tc.epitaph}>"{obit.epitaph}"</Text>
         ) : null}
+
+        {/* Memorable run quote */}
+        {obit.memorable_run ? (
+          <View style={tc.quoteWrap}>
+            <Text style={[tc.quote, obit.memorable_run.length < 80 && tc.quoteLarge]}>
+              "{obit.memorable_run}"
+            </Text>
+          </View>
+        ) : null}
+
         <View style={tc.divider} />
         <View style={tc.stats}>
           <Text style={tc.statVal}>{obit.total_miles.toFixed(0)} mi</Text>
@@ -192,6 +206,25 @@ const TombstoneCard: React.FC<{ obit: ShoeObituary }> = ({ obit }) => {
             ))}
           </View>
         </View>
+
+        {/* First / last run timeline */}
+        <View style={tc.timeline}>
+          <View style={tc.timelineItem}>
+            <Text style={tc.timelineKey}>FIRST RUN</Text>
+            <Text style={tc.timelineVal}>{obit.added_date.slice(0, 10)}</Text>
+          </View>
+          <View style={tc.timelineDivider} />
+          <View style={tc.timelineItem}>
+            <Text style={tc.timelineKey}>LAST RUN</Text>
+            <Text style={tc.timelineVal}>{obit.retired_date}</Text>
+          </View>
+          <View style={tc.timelineDivider} />
+          <View style={tc.timelineItem}>
+            <Text style={tc.timelineKey}>SPAN</Text>
+            <Text style={tc.timelineVal}>{obit.days_in_service} DAYS</Text>
+          </View>
+        </View>
+
         <Text style={tc.retired}>RETIRED {obit.retired_date}</Text>
         <View style={tc.btnRow}>
           <TouchableOpacity style={tc.pourBtn} onPress={handlePourOneOut} activeOpacity={0.7}>
@@ -225,6 +258,14 @@ const tc = StyleSheet.create({
   pourBtn: { flex: 1, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 2, borderColor: INK, borderRadius: 2, alignItems: 'center' },
   pourText: { fontFamily: MONO, fontSize: 10, color: INK, letterSpacing: 1 },
   shareBtn: { paddingHorizontal: 12, paddingVertical: 8, borderWidth: 2, borderColor: 'rgba(10,10,10,0.2)', borderRadius: 2 },
+  quoteWrap: { marginBottom: 10, paddingHorizontal: 4 },
+  quote: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.5)', textAlign: 'center', lineHeight: 16, fontStyle: 'italic' },
+  quoteLarge: { fontSize: 13, color: 'rgba(10,10,10,0.65)', lineHeight: 20 },
+  timeline: { flexDirection: 'row', marginBottom: 8, borderWidth: 1, borderColor: 'rgba(10,10,10,0.1)', borderRadius: 2, overflow: 'hidden' },
+  timelineItem: { flex: 1, alignItems: 'center', paddingVertical: 6 },
+  timelineKey: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.35)', letterSpacing: 1, marginBottom: 2 },
+  timelineVal: { fontFamily: MONO, fontSize: 9, fontWeight: '700', color: INK },
+  timelineDivider: { width: 1, backgroundColor: 'rgba(10,10,10,0.1)' },
 });
 
 // ─── Weekly Roster Picker ─────────────────────────────────────────────────────
@@ -317,6 +358,8 @@ export default function ArsenalScreen() {
   const [obituaryShoe, setObituaryShoe] = useState<Shoe | null>(null);
   const [obituaryAddedDate, setObituaryAddedDate] = useState('');
   const [showAchievements, setShowAchievements] = useState(false);
+  const [achievementProgress, setAchievementProgress] = useState<Record<string, AchievementProgress>>({});
+  const [rotationBreakdown, setRotationBreakdown] = useState<RotationBreakdown | null>(null);
 
   const load = async () => {
     const [favs, allRuns, grave, prof] = await Promise.all([
@@ -329,6 +372,9 @@ export default function ArsenalScreen() {
     setRuns(allRuns);
     setGraveyard(grave);
     setProfile(prof);
+    setAchievementProgress(computeAchievementProgress(prof, allRuns, grave, favs.length));
+    const favoriteShoeObjects = SHOES.filter(s => favs.includes(s.id));
+    setRotationBreakdown(getDetailedRotationScore(favoriteShoeObjects, allRuns));
     setIsLoading(false);
   };
 
@@ -388,24 +434,47 @@ export default function ArsenalScreen() {
   const renderStreaks = () => {
     if (!profile) return null;
     const streaks = profile.streak_states;
+    // Check current-week progress for at-risk detection
+    const monday = (() => {
+      const d = new Date(); const day = d.getDay();
+      d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+      d.setHours(0, 0, 0, 0); return d;
+    })();
+    const weekRuns    = runs.filter(r => new Date(r.date) >= monday);
+    const weekShoes   = new Set(weekRuns.map(r => r.shoeId).filter(Boolean));
+    const weekRecover = weekRuns.some(r => r.purpose === 'recovery');
+    const dayOfWeek   = new Date().getDay(); // 0=Sun, 5=Fri, 6=Sat
+    const isWeekEnding = dayOfWeek === 0 || dayOfWeek >= 5;
+
     const items = [
-      { key: 'variety',         label: 'VARIETY',     weeks: streaks.variety.weeks_active },
-      { key: 'consistency',     label: 'CONSISTENCY', weeks: streaks.consistency.weeks_active },
-      { key: 'recovery',        label: 'RECOVERY',    weeks: streaks.recovery.weeks_active },
-      { key: 'rotation_health', label: 'ROTATION',    weeks: streaks.rotation_health.weeks_active },
+      { key: 'variety',         label: 'VARIETY',     weeks: streaks.variety?.weeks_active ?? 0,         rule: '2+ SHOES / WEEK',    met: weekShoes.size >= 2 },
+      { key: 'consistency',     label: 'CONSISTENCY', weeks: streaks.consistency?.weeks_active ?? 0,     rule: '2+ RUNS / WEEK',     met: weekRuns.length >= 2 },
+      { key: 'recovery',        label: 'RECOVERY',    weeks: streaks.recovery?.weeks_active ?? 0,        rule: '1 RECOVERY / WEEK',  met: weekRecover },
+      { key: 'rotation_health', label: 'ROTATION',    weeks: streaks.rotation_health?.weeks_active ?? 0, rule: 'HEALTH SCORE 60+',   met: (rotationBreakdown?.total ?? 0) >= 60 },
     ];
+
     const hasAny = items.some(i => i.weeks > 0);
     if (!hasAny) return null;
+
     return (
       <View style={ss.container}>
-        <Text style={ss.label}>ACTIVE STREAKS</Text>
-        <View style={ss.row}>
-          {items.filter(i => i.weeks > 0).map(item => (
-            <View key={item.key} style={ss.chip}>
-              <Text style={ss.chipWeeks}>{item.weeks}W</Text>
-              <Text style={ss.chipLabel}>{item.label}</Text>
-            </View>
-          ))}
+        <Text style={ss.label}>// ACTIVE STREAKS</Text>
+        <View style={ss.col}>
+          {items.filter(i => i.weeks > 0).map(item => {
+            const atRisk = isWeekEnding && !item.met;
+            return (
+              <View key={item.key} style={[ss.bar, atRisk && ss.barAtRisk]}>
+                <View style={ss.barLeft}>
+                  <View style={ss.barTop}>
+                    <Text style={ss.barWeeks}>{item.weeks}W</Text>
+                    <Text style={ss.barLabel}>{item.label}</Text>
+                  </View>
+                  <Text style={ss.barRule}>{item.rule}</Text>
+                </View>
+                {atRisk && <Text style={ss.atRisk}>COMPLETE BY SUNDAY</Text>}
+              </View>
+            );
+          })}
         </View>
       </View>
     );
@@ -662,6 +731,7 @@ export default function ArsenalScreen() {
       <AchievementsModal
         visible={showAchievements}
         unlockedIds={profile?.achievements_unlocked ?? []}
+        progressData={achievementProgress}
         onClose={() => setShowAchievements(false)}
       />
     </SafeAreaView>
@@ -685,10 +755,21 @@ const ls = StyleSheet.create({
 const ss = StyleSheet.create({
   container: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(10,10,10,0.1)' },
   label: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.35)', letterSpacing: 2, marginBottom: 8 },
+  // legacy (unused but kept to avoid regressions)
   row: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(10,10,10,0.15)', borderRadius: 2, backgroundColor: 'rgba(212,255,0,0.12)' },
   chipWeeks: { fontFamily: MONO, fontSize: 9, fontWeight: '700', color: INK },
   chipLabel: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.45)', letterSpacing: 1 },
+  // new streak bar layout
+  col: { gap: 6 },
+  bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, paddingVertical: 8, borderWidth: 1, borderColor: 'rgba(10,10,10,0.12)', borderRadius: 2, backgroundColor: 'rgba(212,255,0,0.08)' },
+  barAtRisk: { borderColor: 'rgba(10,10,10,0.25)', backgroundColor: 'rgba(10,10,10,0.04)' },
+  barLeft: { gap: 2 },
+  barTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  barWeeks: { fontFamily: MONO, fontSize: 11, fontWeight: '700', color: INK },
+  barLabel: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.55)', letterSpacing: 1.5 },
+  barRule: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.35)', letterSpacing: 0.5 },
+  atRisk: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.5)', letterSpacing: 0.5 },
 });
 
 const s = StyleSheet.create({

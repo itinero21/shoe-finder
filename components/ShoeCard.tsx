@@ -28,7 +28,7 @@ interface ShoeCardProps {
 }
 
 const CATEGORY_ACCENT: Record<string, string> = {
-  carbon_plate_racing: '#FF3D00',
+  carbon_racer: '#FF3D00',
   trail: '#16A34A',
   stability: '#2563EB',
   motion_control: '#D97706',
@@ -39,7 +39,7 @@ const CATEGORY_ACCENT: Record<string, string> = {
 
 const getCategoryLabel = (category: string): string => {
   switch (category) {
-    case 'carbon_plate_racing': return 'CARBON PLATE';
+    case 'carbon_racer': return 'CARBON PLATE';
     case 'motion_control': return 'MOTION CTRL';
     case 'max_cushion': return 'MAX CUSHION';
     case 'lightweight_speed': return 'SPEED';

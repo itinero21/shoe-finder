@@ -21,7 +21,7 @@ export function explainShoe(shoe: Shoe, answers: QuizAnswers, allShoes: Shoe[]):
   const s = shoe.specs;
   const needsTrail = answers.terrain === 'trail_groomed' || answers.terrain === 'trail_technical';
   const isTrail = shoe.use_cases.some(u => u.startsWith('trail'));
-  const isCarbon = shoe.category === 'carbon_plate_racing';
+  const isCarbon = shoe.category === 'carbon_racer';
   const firmness = b.cushioning_firmness;
 
   // ── Terrain mismatch ──────────────────────────────────────────────────────

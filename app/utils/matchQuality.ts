@@ -10,7 +10,7 @@ const TERRAIN_ROAD: RunTerrain[] = ['road', 'track', 'treadmill'];
 
 export function calcMatchQuality(shoe: Shoe, terrain: RunTerrain, purpose: RunPurpose, distanceKm: number): MatchQuality {
   const isTrailShoe = shoe.use_cases.some(u => u.startsWith('trail'));
-  const isRacer = shoe.category === 'carbon_plate_racing';
+  const isRacer = shoe.category === 'carbon_racer';
   const isSuperTrainer = shoe.category === 'super_trainer';
   const isMaxCushion = shoe.category.startsWith('max_cushion');
   const isDaily = ['neutral_daily', 'stability_daily', 'premium_neutral', 'max_cushion_neutral'].includes(shoe.category);

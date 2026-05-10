@@ -3,6 +3,21 @@ import { Run } from '../types/run';
 
 const RUNS_KEY = 'RUNS_V1';
 
+// Lazy import to avoid circular deps
+async function syncRunToCloud(run: Run) {
+  try {
+    const { pushRun } = await import('../services/cloudSync');
+    await pushRun(run);
+  } catch { /* offline — local write already done */ }
+}
+
+async function deleteRunFromCloud(runId: string) {
+  try {
+    const { deleteRunCloud } = await import('../services/cloudSync');
+    await deleteRunCloud(runId);
+  } catch { /* offline */ }
+}
+
 export async function getRuns(): Promise<Run[]> {
   try {
     const raw = await AsyncStorage.getItem(RUNS_KEY);
@@ -18,6 +33,7 @@ export async function saveRun(run: Run): Promise<void> {
     const runs = await getRuns();
     const updatedRuns = [run, ...runs];
     await AsyncStorage.setItem(RUNS_KEY, JSON.stringify(updatedRuns));
+    syncRunToCloud(run); // fire-and-forget
   } catch (error) {
     console.error('Error saving run:', error);
     throw error;
@@ -34,6 +50,7 @@ export async function deleteRun(runId: string): Promise<void> {
     const runs = await getRuns();
     const updatedRuns = runs.filter(run => run.id !== runId);
     await AsyncStorage.setItem(RUNS_KEY, JSON.stringify(updatedRuns));
+    deleteRunFromCloud(runId); // fire-and-forget
   } catch (error) {
     console.error('Error deleting run:', error);
     throw error;

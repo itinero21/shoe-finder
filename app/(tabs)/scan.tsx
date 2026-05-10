@@ -13,6 +13,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -128,6 +129,7 @@ const HardShadow: React.FC<{
 
 // ─── Main Screen ──────────────────────────────────────────
 export default function ScanScreen() {
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>('splash');
   const [showQuiz, setShowQuiz] = useState(false);
   const [recs, setRecs] = useState<ScoredShoe[]>([]);
@@ -315,7 +317,7 @@ export default function ScanScreen() {
 
     const getCategoryLabel = (cat: string) => {
       const map: Record<string, string> = {
-        carbon_plate_racing: 'CARBON RACER',
+        carbon_racer: 'CARBON RACER',
         motion_control: 'MOTION CTRL',
         max_cushion: 'MAX CUSHION',
         lightweight_speed: 'SPEED',
@@ -531,7 +533,20 @@ export default function ScanScreen() {
   }
 
   // ── Splash ──────────────────────────────────────────────
-  return <SplashView onBegin={() => { setShowQuiz(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }} />;
+  return (
+    <View style={{ flex: 1 }}>
+      <SplashView onBegin={() => { setShowQuiz(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }} />
+      {/* Browse all shoes — surfaced so it's not hidden */}
+      <View style={s.browseBar}>
+        <Pressable
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(tabs)/discover' as any); }}
+          style={({ pressed }) => [s.browseBtn, pressed && { opacity: 0.75 }]}
+        >
+          <Text style={s.browseBtnText}>BROWSE ALL SHOES</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
 }
 
 // ─── Splash Screen (separate component for clean unmount) ─
@@ -652,6 +667,9 @@ const SplashView: React.FC<{ onBegin: () => void }> = ({ onBegin }) => {
 // ─── Styles ───────────────────────────────────────────────
 const s = StyleSheet.create({
   fill: { flex: 1 },
+  browseBar: { position: 'absolute', bottom: 90, left: 0, right: 0, alignItems: 'center', zIndex: 10 },
+  browseBtn: { paddingHorizontal: 24, paddingVertical: 12, borderWidth: 2, borderColor: 'rgba(244,241,234,0.35)', borderRadius: 2 },
+  browseBtnText: { fontFamily: 'SpaceMono', fontSize: 10, color: 'rgba(244,241,234,0.55)', letterSpacing: 2, fontWeight: '700' },
 
   // Marquee
   marqueeWrap: { paddingVertical: 10, overflow: 'hidden' },
