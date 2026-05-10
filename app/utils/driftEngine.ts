@@ -146,13 +146,13 @@ export async function updateTerritoryAfterRun(run: Run): Promise<DriftResult | n
   run.path_id = matchedPath.id;
   await saveRun(run);
 
-  // Update user territory stats
-  const profile = await getUserProfile();
+  // Update user territory stats (single read)
+  const [profile, allStates] = await Promise.all([getUserProfile(), getAllTerritoryStates()]);
   if (isNewPath) profile.territory.total_paths += 1;
-  profile.territory.legendary_count = (await getAllTerritoryStates()).filter(s => s.heat === 'LEGENDARY').length;
-  profile.territory.yours_count     = (await getAllTerritoryStates()).filter(s => s.heat === 'YOURS').length;
-  profile.territory.hot_count       = (await getAllTerritoryStates()).filter(s => s.heat === 'HOT').length;
-  profile.territory.warm_count      = (await getAllTerritoryStates()).filter(s => s.heat === 'WARM').length;
+  profile.territory.legendary_count = allStates.filter(s => s.heat === 'LEGENDARY').length;
+  profile.territory.yours_count     = allStates.filter(s => s.heat === 'YOURS').length;
+  profile.territory.hot_count       = allStates.filter(s => s.heat === 'HOT').length;
+  profile.territory.warm_count      = allStates.filter(s => s.heat === 'WARM').length;
   await saveUserProfile(profile);
 
   return {

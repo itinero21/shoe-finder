@@ -134,9 +134,8 @@ export async function checkAndUnlockAchievements(): Promise<string[]> {
   if (graveyardStats.buyAgainCount >= 3) tryUnlock('buyagain_streak');
 
   // ── Streaks ─────────────────────────────────
-  const maxStreak = Math.max(
-    ...Object.values(profile.streak_states).map(s => s.best_weeks)
-  );
+  const streakVals = Object.values(profile.streak_states).map(s => s.best_weeks);
+  const maxStreak = streakVals.length > 0 ? Math.max(0, ...streakVals) : 0;
   if (maxStreak >= 4) tryUnlock('streak_4w');
   if (maxStreak >= 8) tryUnlock('streak_8w');
 

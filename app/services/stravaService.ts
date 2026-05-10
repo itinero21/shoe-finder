@@ -220,6 +220,11 @@ export async function syncStravaActivities(
         external_id: externalId,
       };
 
+      // Base XP: 10 per km (capped at 20 km per run to prevent abuse)
+      const xpForRun = Math.round(Math.min(distKm, 20) * 10);
+      run.xp_earned = xpForRun;
+      totalXPAdded += xpForRun;
+
       await saveRun(run);
       const miles = distKm * 0.621371;
       totalMilesAdded += miles;

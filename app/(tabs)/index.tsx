@@ -79,12 +79,12 @@ export default function HomeScreen() {
     : null;
 
   // Streaks
-  const streaks = profile?.streak_states ?? {};
+  const streaks = profile?.streak_states;
   const activeStreaks = [
-    { key: 'variety',         label: 'VARIETY',     weeks: streaks.variety?.weeks_active ?? 0 },
-    { key: 'consistency',     label: 'CONSISTENCY', weeks: streaks.consistency?.weeks_active ?? 0 },
-    { key: 'recovery',        label: 'RECOVERY',    weeks: streaks.recovery?.weeks_active ?? 0 },
-    { key: 'rotation_health', label: 'ROTATION',    weeks: streaks.rotation_health?.weeks_active ?? 0 },
+    { key: 'variety',         label: 'VARIETY',     weeks: streaks?.variety?.weeks_active ?? 0 },
+    { key: 'consistency',     label: 'CONSISTENCY', weeks: streaks?.consistency?.weeks_active ?? 0 },
+    { key: 'recovery',        label: 'RECOVERY',    weeks: streaks?.recovery?.weeks_active ?? 0 },
+    { key: 'rotation_health', label: 'ROTATION',    weeks: streaks?.rotation_health?.weeks_active ?? 0 },
   ].filter(s => s.weeks > 0);
 
   // Shoes that need attention (aging/overdue)
@@ -206,7 +206,7 @@ export default function HomeScreen() {
                 {recentShoe && <Text style={s.recentShoe}>{recentShoe.brand} {recentShoe.model}</Text>}
                 <Text style={s.recentTerrain}>{recentRun.terrain}  ·  {recentRun.purpose}</Text>
               </View>
-              {recentRun.xp_earned > 0 && (
+              {(recentRun.xp_earned ?? 0) > 0 && (
                 <View style={s.xpEarned}>
                   <Text style={s.xpEarnedText}>+{recentRun.xp_earned} XP EARNED</Text>
                 </View>

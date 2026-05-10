@@ -15,11 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
-import { RunPath, TerritoryState, City, HeatLevel, HEAT_COLOR, HEAT_RANK } from '../../types/territory';
-import { getAllPaths, getAllTerritoryStates, renamePath, getTerritoryState } from '../../utils/pathStorage';
-import { getAllCities, saveCity, setHomeCity, getHomeCity } from '../../utils/cityStorage';
-import { getTerritorySnapshot } from '../../utils/driftEngine';
-import { getUserProfile } from '../../utils/userProfile';
+import { RunPath, TerritoryState, City, HeatLevel, HEAT_COLOR, HEAT_RANK } from '../types/territory';
+import { getAllPaths, getAllTerritoryStates, renamePath, getTerritoryState } from '../utils/pathStorage';
+import { getAllCities, saveCity, setHomeCity, getHomeCity } from '../utils/cityStorage';
+import { getTerritorySnapshot } from '../utils/driftEngine';
+import { getUserProfile } from '../utils/userProfile';
 import * as Crypto from 'expo-crypto';
 
 const { width: SW } = Dimensions.get('window');
@@ -195,7 +195,7 @@ export default function MapScreen() {
       getTerritorySnapshot(),
       getUserProfile(),
     ]);
-    const stateMap = new Map(allStates.map(st => [st.path_id, st]));
+    const stateMap = new Map<string, TerritoryState>(allStates.map((st: TerritoryState) => [st.path_id, st]));
     // Sort paths by heat rank descending, then run_count
     const sorted = [...allPaths].sort((a, b) => {
       const ha = HEAT_RANK[stateMap.get(a.id)?.heat ?? 'COLD'];
@@ -256,9 +256,15 @@ export default function MapScreen() {
     <ScrollView style={s.scrollArea} contentContainerStyle={{ paddingBottom: 40 }}>
       {/* Summary chips */}
       <View style={s.chipRow}>
-        {(['LEGENDARY', 'YOURS', 'HOT', 'WARM', 'COLD'] as HeatLevel[]).map(h => (
+        {([
+          { h: 'LEGENDARY' as HeatLevel, count: snapshot.legendary },
+          { h: 'YOURS'     as HeatLevel, count: snapshot.yours },
+          { h: 'HOT'       as HeatLevel, count: snapshot.hot },
+          { h: 'WARM'      as HeatLevel, count: snapshot.warm },
+          { h: 'COLD'      as HeatLevel, count: snapshot.cold },
+        ]).map(({ h, count }) => (
           <View key={h} style={[s.chip, { borderColor: HEAT_COLOR[h] }]}>
-            <Text style={[s.chipCount, { color: HEAT_COLOR[h] }]}>{(snapshot as any)[h.toLowerCase()]}</Text>
+            <Text style={[s.chipCount, { color: HEAT_COLOR[h] }]}>{count}</Text>
             <Text style={[s.chipLabel, { color: HEAT_COLOR[h] }]}>{h}</Text>
           </View>
         ))}

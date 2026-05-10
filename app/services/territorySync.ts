@@ -13,7 +13,7 @@
 import { supabase } from '../lib/supabase';
 import { RunPath, TerritoryState, City, Rivalry } from '../types/territory';
 import { getAllPaths } from '../utils/pathStorage';
-import { getAllTerritoryStates, getTerritoryTotals } from '../utils/pathStorage';
+import { getAllTerritoryStates } from '../utils/pathStorage';
 import { getAllCities } from '../utils/cityStorage';
 import { getUserProfile } from '../utils/userProfile';
 import * as Crypto from 'expo-crypto';
