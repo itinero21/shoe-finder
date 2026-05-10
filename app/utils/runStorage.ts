@@ -57,6 +57,16 @@ export async function deleteRun(runId: string): Promise<void> {
   }
 }
 
+/** Replace entire runs array — used by seeder/cleanup utilities */
+export async function saveRuns(runs: Run[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(RUNS_KEY, JSON.stringify(runs));
+  } catch (error) {
+    console.error('Error saving runs:', error);
+    throw error;
+  }
+}
+
 export async function clearAllRuns(): Promise<void> {
   try {
     await AsyncStorage.removeItem(RUNS_KEY);

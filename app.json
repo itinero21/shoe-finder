@@ -19,7 +19,11 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "ShoeAI needs camera access to analyze your feet and provide personalized shoe recommendations.",
-        "NSPhotoLibraryUsageDescription": "ShoeAI needs photo library access to save foot scan images."
+        "NSPhotoLibraryUsageDescription": "ShoeAI needs photo library access to save foot scan images.",
+        "NSLocationWhenInUseUsageDescription": "Stride uses your location to map your runs, build territory in DRIFT, and detect your city automatically.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Stride uses your location to map your runs, build territory in DRIFT, and detect your city automatically.",
+        "NSHealthShareUsageDescription": "Stride reads your workouts from Apple Health to automatically log runs and track mileage on your shoes.",
+        "NSHealthUpdateUsageDescription": "Stride writes workout summaries to Apple Health to keep your fitness data in sync."
       }
     },
     "android": {
@@ -30,7 +34,11 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
       ]
     },
     "plugins": [
@@ -41,7 +49,15 @@
           "cameraPermission": "Allow ShoeAI to access your camera to scan your feet for personalized recommendations."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Stride uses your location to map your runs, track territory in DRIFT, and detect your city automatically.",
+          "locationWhenInUsePermission": "Stride uses your location while you run to map your route and track territory.",
+          "isIosBackgroundLocationEnabled": false
+        }
+      ]
     ]
   }
 }

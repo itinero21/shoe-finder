@@ -15,6 +15,9 @@ import { checkAndUnlockAchievements } from '../app/utils/achievementEngine';
 import { calcRunBonuses, applyRunBonuses, RunBonusResult } from '../app/utils/runBonuses';
 import { updateStreaksAfterRun } from '../app/utils/streakEngine';
 import { SHOES, Shoe } from '../app/data/shoes';
+import { getLocationPermStatus, getCurrentCoordinate, requestLocationPermission } from '../app/services/locationService';
+import { updateTerritoryAfterRun } from '../app/utils/driftEngine';
+import { Coordinate } from '../app/types/territory';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
@@ -64,11 +67,33 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
   const [isBeginnerMode, setIsBeginnerMode] = useState(true);
   const [previousRuns, setPreviousRuns] = useState<Run[]>([]);
   const [bonusResult, setBonusResult] = useState<RunBonusResult | null>(null);
+  const [gpsStatus, setGpsStatus] = useState<'checking' | 'ready' | 'off' | 'denied'>('checking');
+  const [capturedCoord, setCapturedCoord] = useState<Coordinate | null>(null);
 
   useEffect(() => {
     if (visible) {
       getUserProfile().then(p => setIsBeginnerMode(p.is_beginner_mode));
       getRuns().then(r => setPreviousRuns(r));
+      // Check GPS and capture current position
+      (async () => {
+        setGpsStatus('checking');
+        const status = await getLocationPermStatus();
+        if (status === 'not_asked') {
+          // Ask for permission if not yet asked
+          const granted = await requestLocationPermission();
+          if (granted !== 'granted') { setGpsStatus('denied'); return; }
+        } else if (status === 'denied') {
+          setGpsStatus('denied');
+          return;
+        }
+        const coord = await getCurrentCoordinate();
+        if (coord) {
+          setCapturedCoord(coord);
+          setGpsStatus('ready');
+        } else {
+          setGpsStatus('off');
+        }
+      })();
     }
   }, [visible]);
 
@@ -116,6 +141,8 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
       match_quality: matchQuality ?? 'neutral',
       xp_earned: xpPreview,
       source: 'manual',
+      // Attach current GPS position if available
+      coordinates: capturedCoord ? [capturedCoord] : undefined,
     };
 
     try {
@@ -128,6 +155,9 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
       const { seasonBonusXP } = await updateStreaksAfterRun(allRuns);
       if (seasonBonusXP > 0) await addXP(seasonBonusXP);
       await checkAndUnlockAchievements();
+      // DRIFT territory — only fires when GPS trace has enough points (Strava runs)
+      // For manual logs, single coord is stored but path detection skipped gracefully
+      updateTerritoryAfterRun(run).catch(() => {});
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -152,13 +182,31 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
       <SafeAreaView style={s.container}>
         {/* Header */}
         <View style={s.header}>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={s.eyebrow}>// LOG RUN</Text>
             <Text style={s.headerShoe}>{shoeName}</Text>
           </View>
-          <TouchableOpacity onPress={onClose} style={s.closeBtn}>
-            <Ionicons name="close" size={22} color={INK} />
-          </TouchableOpacity>
+          <View style={s.headerRight}>
+            {/* GPS status pill */}
+            <View style={[s.gpsPill, gpsStatus === 'ready' && s.gpsPillReady, gpsStatus === 'denied' && s.gpsPillDenied]}>
+              <View style={[s.gpsDot,
+                gpsStatus === 'ready'    ? s.gpsDotReady :
+                gpsStatus === 'denied'   ? s.gpsDotDenied :
+                gpsStatus === 'checking' ? s.gpsDotChecking : s.gpsDotOff
+              ]} />
+              <Text style={[s.gpsLabel,
+                gpsStatus === 'ready'  ? { color: '#16A34A' } :
+                gpsStatus === 'denied' ? { color: '#EF4444' } : {}
+              ]}>
+                {gpsStatus === 'ready'    ? 'GPS READY' :
+                 gpsStatus === 'denied'   ? 'NO GPS' :
+                 gpsStatus === 'checking' ? 'GPS...' : 'GPS OFF'}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={s.closeBtn}>
+              <Ionicons name="close" size={22} color={INK} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -309,6 +357,16 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 2, borderBottomColor: INK,
   },
+  headerRight:      { alignItems: 'flex-end', gap: 8 },
+  gpsPill:          { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(10,10,10,0.15)', backgroundColor: 'rgba(10,10,10,0.04)' },
+  gpsPillReady:     { borderColor: '#16A34A', backgroundColor: 'rgba(22,163,74,0.07)' },
+  gpsPillDenied:    { borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.07)' },
+  gpsDot:           { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(10,10,10,0.25)' },
+  gpsDotReady:      { backgroundColor: '#16A34A' },
+  gpsDotDenied:     { backgroundColor: '#EF4444' },
+  gpsDotChecking:   { backgroundColor: '#F59E0B' },
+  gpsDotOff:        { backgroundColor: 'rgba(10,10,10,0.2)' },
+  gpsLabel:         { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.4)', letterSpacing: 0.8 },
   eyebrow: { fontFamily: MONO, fontSize: 9, color: ACCENT, letterSpacing: 2, marginBottom: 4 },
   headerShoe: { fontSize: 18, fontWeight: '900', color: INK, letterSpacing: -0.3 },
   closeBtn: { padding: 4 },

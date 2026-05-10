@@ -15,7 +15,8 @@ import {
 } from '../app/services/stravaService';
 import {
   getHealthPermStatus, requestHealthPermission,
-  syncHealthWorkouts, HealthPermStatus, GARMIN_INTEGRATION_NOTE,
+  syncHealthWorkouts, HealthPermStatus,
+  GARMIN_INTEGRATION_NOTE, APPLE_WATCH_NOTE,
 } from '../app/services/healthService';
 import { getFavorites } from '../app/utils/storage';
 import { SHOES } from '../app/data/shoes';
@@ -310,6 +311,42 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
             </>
           )}
 
+          {/* ── Apple Watch ────────────────────────────────────────────────── */}
+          {Platform.OS === 'ios' && (
+            <>
+              <View style={s.section}>
+                <View style={s.sectionHeader}>
+                  <View style={[s.iconBox, { backgroundColor: '#1C1C1E' }]}>
+                    <Text style={s.iconText}>⌚</Text>
+                  </View>
+                  <View style={s.sectionMeta}>
+                    <Text style={s.sectionTitle}>APPLE WATCH</Text>
+                    <Text style={s.sectionSub}>Auto-syncs via Apple Health</Text>
+                  </View>
+                  <View style={[s.statusDot, { backgroundColor: healthStatus === 'authorized' ? '#16A34A' : 'rgba(10,10,10,0.2)' }]} />
+                </View>
+                <View style={s.wizardCard}>
+                  <Text style={s.wizardTitle}>HOW IT WORKS</Text>
+                  {[
+                    { n: '1', text: 'Start a workout on your Apple Watch (Outdoor Run, Indoor Run, or Trail Run)' },
+                    { n: '2', text: 'Workout saves automatically to iPhone Apple Health when watches sync' },
+                    { n: '3', text: 'Tap "Sync Apple Health" above to pull it into Stride' },
+                  ].map(step => (
+                    <View key={step.n} style={s.wizardStep}>
+                      <View style={s.wizardNum}><Text style={s.wizardNumText}>{step.n}</Text></View>
+                      <Text style={s.wizardText}>{step.text}</Text>
+                    </View>
+                  ))}
+                  <View style={s.garminNote}>
+                    <Ionicons name="checkmark-circle-outline" size={14} color="#16A34A" />
+                    <Text style={[s.garminNoteText, { color: '#16A34A' }]}>{APPLE_WATCH_NOTE}</Text>
+                  </View>
+                </View>
+              </View>
+              <View style={s.divider} />
+            </>
+          )}
+
           {/* ── Garmin ─────────────────────────────────────────────────────── */}
           <View style={s.section}>
             <View style={s.sectionHeader}>
@@ -318,13 +355,42 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
               </View>
               <View style={s.sectionMeta}>
                 <Text style={s.sectionTitle}>GARMIN</Text>
-                <Text style={s.sectionSub}>Via Strava auto-sync</Text>
+                <Text style={s.sectionSub}>Setup in 3 steps via Strava</Text>
               </View>
-              <View style={[s.statusDot, { backgroundColor: stravaTokens ? '#16A34A' : 'rgba(10,10,10,0.2)' }]} />
+              <View style={[s.statusDot, { backgroundColor: stravaTokens ? '#16A34A' : '#F59E0B' }]} />
             </View>
-            <View style={s.garminNote}>
-              <Ionicons name="information-circle-outline" size={16} color="rgba(10,10,10,0.4)" />
-              <Text style={s.garminNoteText}>{GARMIN_INTEGRATION_NOTE}</Text>
+
+            <View style={s.wizardCard}>
+              <Text style={s.wizardTitle}>GARMIN SETUP (ONE TIME)</Text>
+              {[
+                { n: '1', text: 'Connect Strava above (if not already done)' },
+                { n: '2', text: 'Open Garmin Connect app → ☰ Menu → Settings → Partner Apps → find Strava → tap Connect' },
+                { n: '3', text: 'Turn on "Auto Upload" — every Garmin run will now auto-appear in Strava and Stride' },
+              ].map(step => (
+                <View key={step.n} style={s.wizardStep}>
+                  <View style={[s.wizardNum, !stravaTokens && step.n === '1' && s.wizardNumActive]}>
+                    <Text style={s.wizardNumText}>{step.n}</Text>
+                  </View>
+                  <Text style={[s.wizardText, !stravaTokens && step.n !== '1' && s.wizardTextMuted]}>
+                    {step.text}
+                  </Text>
+                </View>
+              ))}
+              {stravaTokens ? (
+                <View style={s.garminNote}>
+                  <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
+                  <Text style={[s.garminNoteText, { color: '#16A34A' }]}>
+                    Strava connected — complete step 2 and 3 in Garmin Connect to finish setup.
+                  </Text>
+                </View>
+              ) : (
+                <View style={s.garminNote}>
+                  <Ionicons name="alert-circle-outline" size={14} color="#F59E0B" />
+                  <Text style={[s.garminNoteText, { color: '#F59E0B' }]}>
+                    Connect Strava first (step 1), then complete the Garmin setup.
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -469,8 +535,17 @@ const s = StyleSheet.create({
   gearShoeText: { fontFamily: MONO, fontSize: 9, color: INK },
   gearShoeTextActive: { color: PAPER },
 
-  garminNote: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', backgroundColor: 'rgba(10,10,10,0.04)', padding: 12, borderRadius: 2 },
+  garminNote: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', backgroundColor: 'rgba(10,10,10,0.04)', padding: 12, borderRadius: 2, marginTop: 8 },
   garminNoteText: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.6)', flex: 1, lineHeight: 18 },
+
+  wizardCard:      { backgroundColor: 'rgba(10,10,10,0.04)', borderRadius: 2, padding: 14, gap: 10, borderWidth: 1, borderColor: 'rgba(10,10,10,0.08)' },
+  wizardTitle:     { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginBottom: 4 },
+  wizardStep:      { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  wizardNum:       { width: 22, height: 22, borderRadius: 11, backgroundColor: INK, alignItems: 'center', justifyContent: 'center', marginTop: 1, flexShrink: 0 },
+  wizardNumActive: { backgroundColor: ACCENT },
+  wizardNumText:   { fontFamily: MONO, fontSize: 9, fontWeight: '700', color: PAPER },
+  wizardText:      { fontFamily: MONO, fontSize: 10, color: INK, flex: 1, lineHeight: 17 },
+  wizardTextMuted: { color: 'rgba(10,10,10,0.35)' },
 
   divider: { height: 2, backgroundColor: 'rgba(10,10,10,0.06)', marginVertical: 20 },
 

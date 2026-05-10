@@ -63,11 +63,10 @@ function buildCluster(answers: QuizAnswers | null): ClusterResult {
   // Define all possible dimensions
   type Dim = { key: string; label: string; value: string };
   const allDims: Dim[] = [
-    { key: 'arch',       label: 'Arch type',        value: answers.arch_type ?? '' },
-    { key: 'pronation',  label: 'Pronation',         value: answers.pronation ?? '' },
-    { key: 'weight',     label: 'Body weight range', value: answers.body_weight ?? '' },
-    { key: 'use_case',   label: 'Use case',          value: (answers.use_case as string) ?? '' },
-    { key: 'experience', label: 'Experience',        value: answers.running_experience ?? '' },
+    { key: 'arch',       label: 'Arch type',        value: (answers.arch_type  as string) ?? '' },
+    { key: 'weight',     label: 'Body weight range', value: (answers.body_weight as string) ?? '' },
+    { key: 'use_case',   label: 'Use case',          value: (answers.goal       as string) ?? '' },
+    { key: 'experience', label: 'Experience',        value: (answers.experience as string) ?? '' },
   ].filter(d => d.value !== '');
 
   // Simulate cluster size by hashing the active dimensions' values
@@ -103,8 +102,7 @@ function buildCluster(answers: QuizAnswers | null): ClusterResult {
     mild_overpronation: 'slight overpronator',
   };
   if (answers.arch_type && activeDims.find(d => d.key === 'arch')) parts.push(archMap[answers.arch_type] ?? answers.arch_type);
-  if (answers.pronation  && activeDims.find(d => d.key === 'pronation')) parts.push(pronMap[answers.pronation] ?? answers.pronation);
-  if (answers.use_case   && activeDims.find(d => d.key === 'use_case')) parts.push(`${answers.use_case} runner`);
+  if (answers.goal      && activeDims.find(d => d.key === 'use_case')) parts.push(`${answers.goal} runner`);
 
   const clusterLabel = parts.length > 0
     ? parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' · ')

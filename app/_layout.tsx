@@ -10,6 +10,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { exchangeStravaCode } from './services/stravaService';
 import { initialSync } from './services/cloudSync';
 import { supabase } from './lib/supabase';
+import { requestLocationPermission, getLocationPermStatus } from './services/locationService';
+import { runDecayCheck } from './utils/driftEngine';
 
 // Parse query params from a deep-link URL
 function getParam(url: string, key: string): string | null {
@@ -84,6 +86,19 @@ function RootLayoutInner() {
     Linking.getInitialURL().then(handleDeepLink);
     const sub = Linking.addEventListener('url', ({ url }) => handleDeepLink(url));
     return () => sub.remove();
+  }, []);
+
+  // Request location permission on first launch + run DRIFT decay check
+  useEffect(() => {
+    (async () => {
+      const status = await getLocationPermStatus();
+      if (status === 'not_asked') {
+        // Small delay so the app is fully visible before the popup appears
+        setTimeout(() => requestLocationPermission(), 1200);
+      }
+      // Run decay check every app open (fast, local only)
+      runDecayCheck().catch(() => {});
+    })();
   }, []);
 
   if (!loaded) return null;

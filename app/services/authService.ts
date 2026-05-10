@@ -43,7 +43,7 @@ export async function signIn(email: string, password: string): Promise<AuthResul
 export const TERMS_VERSION   = '1.0';
 export const PRIVACY_VERSION = '1.0';
 
-export async function recordConsent(platform: 'ios' | 'android' | 'web' = 'mobile'): Promise<void> {
+export async function recordConsent(platform: 'ios' | 'android' | 'web' = 'web'): Promise<void> {
   const { data } = await supabase.auth.getUser();
   const userId = data.user?.id;
   if (!userId) return;
