@@ -333,6 +333,22 @@ export default function CoachScreen() {
             onClose={() => setShowIntegrations(false)}
           />
 
+          {/* Race Calendar CTA */}
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/race' as any)}
+            style={s.raceCalendarBtn}
+            activeOpacity={0.85}
+          >
+            <View style={s.raceCalendarLeft}>
+              <Text style={s.raceCalendarIcon}>🏁</Text>
+              <View>
+                <Text style={s.raceCalendarTitle}>RACE CALENDAR</Text>
+                <Text style={s.raceCalendarSub}>Track upcoming races · get shoe picks · countdown timer</Text>
+              </View>
+            </View>
+            <Text style={s.raceCalendarArrow}>→</Text>
+          </TouchableOpacity>
+
           {/* Marquee Banner */}
           <View style={s.marqueeBand}>
             <Text style={s.marqueeText} numberOfLines={1}>
@@ -818,6 +834,16 @@ const s = StyleSheet.create({
   coachHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   integrationsBtn: { borderWidth: 2, borderColor: '#0A0A0A', backgroundColor: '#0A0A0A', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 2, marginTop: 4 },
   integrationsBtnText: { fontFamily: 'SpaceMono', fontSize: 9, fontWeight: '700', color: '#F4F1EA', letterSpacing: 1.5 },
+  raceCalendarBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#0A0A0A', borderRadius: 2, padding: 16, marginBottom: 20,
+    borderWidth: 2, borderColor: '#0A0A0A',
+  },
+  raceCalendarLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  raceCalendarIcon: { fontSize: 24 },
+  raceCalendarTitle: { fontFamily: 'SpaceMono', fontSize: 11, fontWeight: '700', color: '#F4F1EA', letterSpacing: 1 },
+  raceCalendarSub: { fontFamily: 'SpaceMono', fontSize: 9, color: 'rgba(244,241,234,0.4)', marginTop: 3, lineHeight: 15 },
+  raceCalendarArrow: { fontFamily: 'SpaceMono', fontSize: 18, color: '#D4FF00', fontWeight: '700' },
 
   // Marquee banner
   marqueeBand: { backgroundColor: '#D4FF00', borderTopWidth: 2, borderBottomWidth: 2, borderColor: '#0A0A0A', paddingVertical: 10, marginHorizontal: -20, marginBottom: 24 },

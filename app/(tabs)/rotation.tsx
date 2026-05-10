@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 // ─── Error boundary ───────────────────────────────────────────────────────────
 
 import { LogRunModal } from '../../components/LogRunModal';
+import { LiveRunModal } from '../../components/LiveRunModal';
 import { GameStatBars } from '../../components/GameStatBars';
 import { AchievementsModal } from '../../components/AchievementsModal';
 import { IntegrationsModal } from '../../components/IntegrationsModal';
@@ -355,6 +356,7 @@ export default function ArsenalScreen() {
 
   const [stravaConnected, setStravaConnected] = useState(false);
   const [showIntegrations, setShowIntegrations] = useState(false);
+  const [showLiveRun, setShowLiveRun] = useState(false);
 
   // Modals
   const [showLogRun, setShowLogRun] = useState(false);
@@ -580,6 +582,17 @@ export default function ArsenalScreen() {
       </TouchableOpacity>
 
       <IntegrationsModal visible={showIntegrations} onClose={() => { setShowIntegrations(false); load(); }} />
+      <LiveRunModal visible={showLiveRun} onClose={() => setShowLiveRun(false)} onSaved={() => load()} />
+
+      {/* ── START RUN button ──────────────────────────────────────── */}
+      <TouchableOpacity
+        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); setShowLiveRun(true); }}
+        style={s.startRunBtn}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="play-circle" size={20} color={INK} />
+        <Text style={s.startRunTxt}>START RUN</Text>
+      </TouchableOpacity>
 
       {/* ── ACTIVE TAB ────────────────────────────────────────────── */}
       {tab === 'active' && (
@@ -823,6 +836,11 @@ const s = StyleSheet.create({
   syncBannerLeft:      { flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 },
   syncDotOnline:       { width: 7, height: 7, borderRadius: 4, backgroundColor: '#16A34A' },
   syncBannerText:      { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.5)', letterSpacing: 0.8 },
+  startRunBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: ACCENT, paddingVertical: 13,
+  },
+  startRunTxt: { fontFamily: MONO, fontSize: 11, fontWeight: '700', color: INK, letterSpacing: 2 },
   scrollContent: { paddingVertical: 20, paddingBottom: 80 },
 
   empty: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 40 },

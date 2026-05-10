@@ -29,6 +29,7 @@ import { getHealthPermStatus } from '../services/healthService';
 import { getWatchStatus, WatchStatus } from '../services/watchService';
 import { IntegrationsModal } from '../../components/IntegrationsModal';
 import { WatchConnectModal } from '../../components/WatchConnectModal';
+import { LiveRunModal } from '../../components/LiveRunModal';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
@@ -61,6 +62,7 @@ export default function HomeScreen() {
   const [watchStatus, setWatchStatus] = React.useState<WatchStatus | null>(null);
   const [showIntegrations, setShowIntegrations] = React.useState(false);
   const [showWatches, setShowWatches] = React.useState(false);
+  const [showLiveRun, setShowLiveRun] = React.useState(false);
 
   useFocusEffect(useCallback(() => {
     (async () => {
@@ -155,6 +157,18 @@ export default function HomeScreen() {
         {/* ── Quick actions ────────────────────────────────────────────── */}
         <Animated.View entering={FadeInDown.delay(100).duration(300)}>
           <Text style={s.sectionTitle}>QUICK ACTIONS</Text>
+
+          {/* START RUN — full-width hero button */}
+          <TouchableOpacity
+            style={s.startRunBtn}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); setShowLiveRun(true); }}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="play-circle" size={22} color={INK} />
+            <Text style={s.startRunTxt}>START RUN</Text>
+            <Text style={s.startRunSub}>GPS · live pace · DRIFT</Text>
+          </TouchableOpacity>
+
           <View style={s.quickRow}>
             <TouchableOpacity style={s.quickCard} onPress={() => navigate('/(tabs)/rotation')} activeOpacity={0.85}>
               <Ionicons name="layers-outline" size={24} color={INK} />
@@ -223,6 +237,13 @@ export default function HomeScreen() {
 
         <WatchConnectModal visible={showWatches} onClose={() => { setShowWatches(false); }} />
         <IntegrationsModal visible={showIntegrations} onClose={() => setShowIntegrations(false)} />
+        <LiveRunModal visible={showLiveRun} onClose={() => setShowLiveRun(false)} onSaved={() => {
+          // Reload runs after a live tracked run is saved
+          (async () => {
+            const allRuns = await (await import('../utils/runStorage')).getRuns();
+            setRuns(allRuns);
+          })();
+        }} />
 
         {/* ── Alert: shoes needing attention ──────────────────────────── */}
         {alertShoes.length > 0 && (
@@ -507,4 +528,12 @@ const s = StyleSheet.create({
   guideText: { flex: 1 },
   guideTab: { fontFamily: MONO, fontSize: 10, fontWeight: '700', color: INK, letterSpacing: 1, marginBottom: 2 },
   guideDesc: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.45)', lineHeight: 14 },
+
+  startRunBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: ACCENT, borderRadius: 2, paddingVertical: 16, paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  startRunTxt: { fontFamily: MONO, fontSize: 14, fontWeight: '900', color: INK, letterSpacing: 2, flex: 1 },
+  startRunSub: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.55)', letterSpacing: 1 },
 });
