@@ -321,7 +321,7 @@ export default function CoachScreen() {
               onPress={() => setShowIntegrations(true)}
               style={s.integrationsBtn}
             >
-              <Text style={s.integrationsBtnText}>SYNC</Text>
+              <Text style={s.integrationsBtnText}>⟳ SYNC RUNS</Text>
             </TouchableOpacity>
           </View>
           <Text style={s.heroSub}>
@@ -816,8 +816,8 @@ const s = StyleSheet.create({
   heroTitle: { fontSize: 48, fontWeight: '900', color: '#0A0A0A', letterSpacing: -2, lineHeight: 46, marginBottom: 14 },
   heroSub: { fontFamily: 'SpaceMono', fontSize: 11, color: 'rgba(10,10,10,0.55)', lineHeight: 18, letterSpacing: 0.2, marginBottom: 20 },
   coachHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  integrationsBtn: { borderWidth: 2, borderColor: '#0A0A0A', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 2, marginTop: 4 },
-  integrationsBtnText: { fontFamily: 'SpaceMono', fontSize: 9, fontWeight: '700', color: '#0A0A0A', letterSpacing: 1.5 },
+  integrationsBtn: { borderWidth: 2, borderColor: '#0A0A0A', backgroundColor: '#0A0A0A', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 2, marginTop: 4 },
+  integrationsBtnText: { fontFamily: 'SpaceMono', fontSize: 9, fontWeight: '700', color: '#F4F1EA', letterSpacing: 1.5 },
 
   // Marquee banner
   marqueeBand: { backgroundColor: '#D4FF00', borderTopWidth: 2, borderBottomWidth: 2, borderColor: '#0A0A0A', paddingVertical: 10, marginHorizontal: -20, marginBottom: 24 },

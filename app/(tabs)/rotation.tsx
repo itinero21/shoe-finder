@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LogRunModal } from '../../components/LogRunModal';
 import { GameStatBars } from '../../components/GameStatBars';
 import { AchievementsModal } from '../../components/AchievementsModal';
+import { IntegrationsModal } from '../../components/IntegrationsModal';
 import { SHOES, Shoe } from '../data/shoes';
 import { getFavorites, removeFromFavorites } from '../utils/storage';
 import { getMileageForShoe } from '../utils/mileage';
@@ -24,6 +25,7 @@ import { getUserProfile, UserProfile, addXP } from '../utils/userProfile';
 import { getGraveyard, addToGraveyard, getGraveyardStats, ShoeObituary } from '../utils/obituaryStorage';
 import { computeAchievementProgress, AchievementProgress } from '../utils/achievementEngine';
 import { getDetailedRotationScore, RotationBreakdown } from '../utils/rotationScore';
+import { getStravaTokens } from '../services/stravaService';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
@@ -351,6 +353,9 @@ export default function ArsenalScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [stravaConnected, setStravaConnected] = useState(false);
+  const [showIntegrations, setShowIntegrations] = useState(false);
+
   // Modals
   const [showLogRun, setShowLogRun] = useState(false);
   const [logRunShoe, setLogRunShoe] = useState<Shoe | null>(null);
@@ -362,16 +367,18 @@ export default function ArsenalScreen() {
   const [rotationBreakdown, setRotationBreakdown] = useState<RotationBreakdown | null>(null);
 
   const load = async () => {
-    const [favs, allRuns, grave, prof] = await Promise.all([
+    const [favs, allRuns, grave, prof, stravaTokens] = await Promise.all([
       getFavorites(),
       getRuns(),
       getGraveyard(),
       getUserProfile(),
+      getStravaTokens(),
     ]);
     setFavoriteIds(favs);
     setRuns(allRuns);
     setGraveyard(grave);
     setProfile(prof);
+    setStravaConnected(!!stravaTokens?.access_token);
     setAchievementProgress(computeAchievementProgress(prof, allRuns, grave, favs.length));
     const favoriteShoeObjects = SHOES.filter(s => favs.includes(s.id));
     setRotationBreakdown(getDetailedRotationScore(favoriteShoeObjects, allRuns));
@@ -549,6 +556,30 @@ export default function ArsenalScreen() {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* ── Sync banner ──────────────────────────────────────────── */}
+      <TouchableOpacity
+        style={[s.syncBanner, stravaConnected && s.syncBannerConnected]}
+        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowIntegrations(true); }}
+        activeOpacity={0.85}
+      >
+        <View style={s.syncBannerLeft}>
+          {stravaConnected ? (
+            <>
+              <View style={s.syncDotOnline} />
+              <Text style={s.syncBannerText}>STRAVA CONNECTED — TAP TO SYNC</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="link-outline" size={14} color={ACCENT} />
+              <Text style={[s.syncBannerText, { color: ACCENT }]}>CONNECT STRAVA · APPLE HEALTH · GARMIN</Text>
+            </>
+          )}
+        </View>
+        <Ionicons name="chevron-forward" size={14} color={stravaConnected ? 'rgba(10,10,10,0.35)' : ACCENT} />
+      </TouchableOpacity>
+
+      <IntegrationsModal visible={showIntegrations} onClose={() => { setShowIntegrations(false); load(); }} />
 
       {/* ── ACTIVE TAB ────────────────────────────────────────────── */}
       {tab === 'active' && (
@@ -786,6 +817,12 @@ const s = StyleSheet.create({
   tabBtnActive: { backgroundColor: INK },
   tabText: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', letterSpacing: 1 },
   tabTextActive: { color: PAPER, fontWeight: '700' },
+
+  syncBanner:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(10,10,10,0.08)', backgroundColor: PAPER },
+  syncBannerConnected: { backgroundColor: 'rgba(22,163,74,0.07)' },
+  syncBannerLeft:      { flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 },
+  syncDotOnline:       { width: 7, height: 7, borderRadius: 4, backgroundColor: '#16A34A' },
+  syncBannerText:      { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.5)', letterSpacing: 0.8 },
   scrollContent: { paddingVertical: 20, paddingBottom: 80 },
 
   empty: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 40 },

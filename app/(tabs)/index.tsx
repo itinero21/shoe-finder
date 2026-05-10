@@ -24,6 +24,9 @@ import { getDetailedRotationScore } from '../utils/rotationScore';
 import { Run } from '../types/run';
 import { getTerritorySnapshot } from '../utils/driftEngine';
 import { HEAT_COLOR, HeatLevel } from '../types/territory';
+import { getStravaTokens } from '../services/stravaService';
+import { getHealthPermStatus } from '../services/healthService';
+import { IntegrationsModal } from '../../components/IntegrationsModal';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
@@ -51,19 +54,26 @@ export default function HomeScreen() {
   const [runs, setRuns] = React.useState<Run[]>([]);
   const [favoriteIds, setFavoriteIds] = React.useState<string[]>([]);
   const [territory, setTerritory] = React.useState<{ total: number; legendary: number; yours: number; hot: number; warm: number; cold: number } | null>(null);
+  const [stravaConnected, setStravaConnected] = React.useState(false);
+  const [healthConnected, setHealthConnected] = React.useState(false);
+  const [showIntegrations, setShowIntegrations] = React.useState(false);
 
   useFocusEffect(useCallback(() => {
     (async () => {
-      const [prof, allRuns, favs, snap] = await Promise.all([
+      const [prof, allRuns, favs, snap, stravaTokens, healthStatus] = await Promise.all([
         getUserProfile(),
         getRuns(),
         getFavorites(),
         getTerritorySnapshot(),
+        getStravaTokens(),
+        getHealthPermStatus(),
       ]);
       setProfile(prof);
       setRuns(allRuns);
       setFavoriteIds(favs);
       setTerritory(snap);
+      setStravaConnected(!!stravaTokens?.access_token);
+      setHealthConnected(healthStatus === 'authorized');
     })();
   }, []));
 
@@ -157,6 +167,53 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </Animated.View>
+
+        {/* ── Integrations sync card ──────────────────────────────────── */}
+        <Animated.View entering={FadeInDown.delay(110).duration(300)}>
+          <TouchableOpacity
+            style={[s.syncCard, (!stravaConnected && !healthConnected) && s.syncCardCTA]}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowIntegrations(true); }}
+            activeOpacity={0.85}
+          >
+            <View style={s.syncCardLeft}>
+              {(!stravaConnected && !healthConnected) ? (
+                <>
+                  <Text style={s.syncCardTitle}>CONNECT YOUR WATCH</Text>
+                  <Text style={s.syncCardSub}>Strava · Apple Health · Garmin — auto-import every run</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[s.syncCardTitle, { color: INK }]}>SYNC RUNS</Text>
+                  <View style={s.syncDots}>
+                    {stravaConnected && (
+                      <View style={s.syncDot}>
+                        <View style={[s.syncDotDot, { backgroundColor: '#FC4C02' }]} />
+                        <Text style={s.syncDotLabel}>STRAVA</Text>
+                      </View>
+                    )}
+                    {healthConnected && (
+                      <View style={s.syncDot}>
+                        <View style={[s.syncDotDot, { backgroundColor: '#FF2D55' }]} />
+                        <Text style={s.syncDotLabel}>HEALTH</Text>
+                      </View>
+                    )}
+                    <View style={s.syncDot}>
+                      <View style={[s.syncDotDot, { backgroundColor: '#007CC3' }]} />
+                      <Text style={s.syncDotLabel}>GARMIN</Text>
+                    </View>
+                  </View>
+                </>
+              )}
+            </View>
+            <Ionicons
+              name={(!stravaConnected && !healthConnected) ? 'link-outline' : 'sync-outline'}
+              size={22}
+              color={(!stravaConnected && !healthConnected) ? PAPER : INK}
+            />
+          </TouchableOpacity>
+        </Animated.View>
+
+        <IntegrationsModal visible={showIntegrations} onClose={() => setShowIntegrations(false)} />
 
         {/* ── Alert: shoes needing attention ──────────────────────────── */}
         {alertShoes.length > 0 && (
@@ -424,6 +481,16 @@ const s = StyleSheet.create({
   driftTierCount: { fontFamily: MONO, fontSize: 16, fontWeight: '700' },
   driftTierLabel: { fontFamily: MONO, fontSize: 7, letterSpacing: 1, marginTop: 2 },
   driftCta: { fontFamily: MONO, fontSize: 9, color: 'rgba(244,241,234,0.3)', letterSpacing: 1 },
+
+  syncCard:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 2, borderColor: INK, borderRadius: 2, padding: 14, marginBottom: 20, backgroundColor: PAPER },
+  syncCardCTA:     { backgroundColor: INK },
+  syncCardLeft:    { flex: 1, marginRight: 12 },
+  syncCardTitle:   { fontFamily: MONO, fontSize: 11, fontWeight: '700', color: PAPER, letterSpacing: 1.5, marginBottom: 4 },
+  syncCardSub:     { fontFamily: MONO, fontSize: 9, color: 'rgba(244,241,234,0.5)', lineHeight: 14 },
+  syncDots:        { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  syncDot:         { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  syncDotDot:      { width: 8, height: 8, borderRadius: 4 },
+  syncDotLabel:    { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.5)', letterSpacing: 0.5 },
 
   guideList: { gap: 0, borderWidth: 2, borderColor: INK, borderRadius: 2, overflow: 'hidden', marginBottom: 20 },
   guideRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(10,10,10,0.08)' },
