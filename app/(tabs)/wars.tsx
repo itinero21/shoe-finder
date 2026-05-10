@@ -22,6 +22,7 @@ import {
   ShoeGameStats, LEVELS,
 } from '../utils/gameEngine';
 import { GameStatBars } from '../../components/GameStatBars';
+import { LeaderboardModal } from '../../components/LeaderboardModal';
 import { Run } from '../types/run';
 
 const INK    = '#0A0A0A';
@@ -212,6 +213,7 @@ export default function ShoeWarsScreen() {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   useFocusEffect(useCallback(() => {
     (async () => {
@@ -256,6 +258,14 @@ export default function ShoeWarsScreen() {
           <Text style={s.eyebrow}>// STRIDE PROTOCOL</Text>
           <Text style={s.title}>SHOE WARS.</Text>
         </View>
+        <View style={{ alignItems: 'flex-end', gap: 6 }}>
+          <TouchableOpacity
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowLeaderboard(true); }}
+            style={s.leaderboardBtn}
+          >
+            <Ionicons name="trophy-outline" size={13} color={LIME} />
+            <Text style={s.leaderboardBtnTxt}>LEADERBOARD</Text>
+          </TouchableOpacity>
         {levelInfo && (
           <View style={s.levelBox}>
             <Text style={s.levelNum}>LV.{levelInfo.current.level}</Text>
@@ -266,6 +276,7 @@ export default function ShoeWarsScreen() {
             <Text style={s.totalXP}>{profile!.total_xp.toLocaleString()} XP</Text>
           </View>
         )}
+        </View>
       </View>
 
       {/* Beginner mode banner */}
@@ -274,6 +285,8 @@ export default function ShoeWarsScreen() {
           <Text style={s.beginnerText}>BEGINNER MODE — No penalties // Double XP cap on achievements // Protected leaderboard bracket</Text>
         </View>
       )}
+
+      <LeaderboardModal visible={showLeaderboard} onClose={() => setShowLeaderboard(false)} />
 
       {/* ── Tab bar ─────────────────────────────────────────────────────── */}
       <View style={s.tabBar}>
@@ -658,6 +671,8 @@ const s = StyleSheet.create({
   xpBarFill: { height: '100%', backgroundColor: ACCENT, borderRadius: 2 },
   totalXP: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.35)' },
 
+  leaderboardBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: INK, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 2, borderWidth: 1, borderColor: LIME },
+  leaderboardBtnTxt: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: LIME, letterSpacing: 1.5 },
   beginnerBanner: { backgroundColor: LIME, paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: INK },
   beginnerText: { fontFamily: MONO, fontSize: 9, color: INK, letterSpacing: 0.3, lineHeight: 14 },
 

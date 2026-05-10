@@ -168,6 +168,36 @@ export async function pushMileage(shoeId: string, totalKm: number, runCount: num
   }, { onConflict: 'user_id,shoe_id' });
 }
 
+// ── Shoe choices (leaderboard data) ──────────────────────────────────────────
+
+/**
+ * Record that this user has chosen a shoe for their arsenal.
+ * Called when a shoe is added to favourites.
+ * Table is public/aggregate — only shoe_id and an anonymous user count matter.
+ */
+export async function recordShoeChoice(shoeId: string): Promise<void> {
+  const userId = await uid();
+  if (!userId) return;
+  await supabase.from('shoe_choices').upsert(
+    { user_id: userId, shoe_id: shoeId },
+    { onConflict: 'user_id,shoe_id' }
+  );
+}
+
+/**
+ * Fetch aggregated shoe choice counts for the leaderboard.
+ * Returns top 20 shoes by unique user count.
+ */
+export async function fetchShoeChoiceCounts(): Promise<{ shoe_id: string; user_count: number }[]> {
+  const { data, error } = await supabase
+    .from('shoe_choices_aggregate')  // materialised view — see schema below
+    .select('shoe_id, user_count')
+    .order('user_count', { ascending: false })
+    .limit(20);
+  if (error || !data) return [];
+  return data as { shoe_id: string; user_count: number }[];
+}
+
 // ── Full initial sync (call once after login) ─────────────────────────────────
 /**
  * Merges cloud data into local storage after sign-in.

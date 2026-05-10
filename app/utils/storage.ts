@@ -38,6 +38,13 @@ async function syncArsenalToCloud(ids: string[]) {
   } catch { /* offline */ }
 }
 
+async function recordChoiceToCloud(shoeId: string) {
+  try {
+    const { recordShoeChoice } = await import('../services/cloudSync');
+    await recordShoeChoice(shoeId);
+  } catch { /* offline */ }
+}
+
 export const addToFavorites = async (shoeId: string): Promise<void> => {
   try {
     const favorites = await getFavorites();
@@ -45,6 +52,7 @@ export const addToFavorites = async (shoeId: string): Promise<void> => {
       const updatedFavorites = [...favorites, shoeId];
       await AsyncStorage.setItem('favorites', JSON.stringify(updatedFavorites));
       syncArsenalToCloud(updatedFavorites); // fire-and-forget
+      recordChoiceToCloud(shoeId);          // leaderboard tracking — fire-and-forget
     }
   } catch (error) {
     console.error('Error adding to favorites:', error);

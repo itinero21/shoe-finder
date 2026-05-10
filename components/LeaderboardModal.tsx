@@ -6,15 +6,16 @@
  * Data is seeded deterministically from the shoe catalogue — no backend required.
  * When a real backend exists, replace `buildLeaderboard()` with an API call.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, Modal, StyleSheet, ScrollView,
-  TouchableOpacity,
+  TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { SHOES } from '../app/data/shoes';
 import { deriveShoeStats, TIER_COLORS } from '../app/utils/gameEngine';
+import { fetchShoeChoiceCounts } from '../app/services/cloudSync';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
@@ -125,6 +126,72 @@ function buildLeaderboard(scope: Scope): LeaderboardData {
   };
 }
 
+/**
+ * Build leaderboard from real Supabase shoe_choices_aggregate data.
+ * Used for the GLOBAL scope when we have ≥3 real data points.
+ */
+function buildLeaderboardFromReal(realCounts: { shoe_id: string; user_count: number }[]): LeaderboardData {
+  const totalUsers = realCounts.reduce((s, r) => s + r.user_count, 0);
+
+  // Map real counts onto shoe catalogue entries
+  const realMap = new Map(realCounts.map(r => [r.shoe_id, r.user_count]));
+
+  // Sort all known shoes: real-data shoes first (by count), then seeded for the rest
+  const all = SHOES.map(shoe => {
+    const stats = deriveShoeStats(shoe);
+    const realCount = realMap.get(shoe.id) ?? 0;
+    const seedScore = (stats.overall / 10) + seedRandom(`${shoe.id}_global`) * 0.3;
+    return { shoe, stats, realCount, seedScore };
+  }).sort((a, b) => {
+    if (a.realCount !== b.realCount) return b.realCount - a.realCount;
+    return b.seedScore - a.seedScore;
+  });
+
+  const top8 = all.slice(0, 8);
+  const trends: Array<'up' | 'down' | 'stable'> = ['up', 'up', 'stable', 'stable', 'up', 'down', 'down', 'stable'];
+
+  // Compute percentages: real data for real-count shoes, seeded % for the rest
+  const totalTop8Real = top8.reduce((s, e) => s + e.realCount, 0);
+  const pcts = top8.map((e, i) => {
+    if (e.realCount > 0 && totalTop8Real > 0) {
+      return Math.max(2, Math.round((e.realCount / totalTop8Real) * 100));
+    }
+    return Math.max(2, 10 - i);
+  });
+  const pctSum = pcts.reduce((s, v) => s + v, 0);
+  const normed = pcts.map(p => Math.round((p / pctSum) * 100));
+
+  const entries: LeaderboardEntry[] = top8.map(({ shoe, stats }, i) => ({
+    rank: i + 1,
+    brand: shoe.brand,
+    model: shoe.model,
+    shoeId: shoe.id,
+    pct: normed[i],
+    runnerCount: top8[i].realCount > 0 ? top8[i].realCount : Math.round(totalUsers * normed[i] / 100),
+    tier: stats.tier,
+    tierColor: TIER_COLORS[stats.tier],
+    trend: trends[i],
+  }));
+
+  const categories: CategoryStat[] = [
+    { label: 'ROAD',           pct: 68, color: '#2563EB' },
+    { label: 'TRAIL',          pct: 22, color: '#16A34A' },
+    { label: 'TREADMILL',      pct: 10, color: '#6B7280' },
+    { label: 'NEUTRAL',        pct: 58, color: '#7C3AED' },
+    { label: 'STABILITY',      pct: 32, color: '#D97706' },
+    { label: 'MOTION CONTROL', pct: 10, color: '#FF3D00' },
+  ];
+
+  return {
+    scope: 'global',
+    location: 'Global (Live)',
+    runnerCount: totalUsers,
+    entries,
+    categories,
+    updatedAt: 'Live data',
+  };
+}
+
 interface Props {
   visible: boolean;
   onClose: () => void;
@@ -132,8 +199,26 @@ interface Props {
 
 export function LeaderboardModal({ visible, onClose }: Props) {
   const [scope, setScope] = useState<Scope>('city');
+  const [loading, setLoading] = useState(false);
+  const [realCounts, setRealCounts] = useState<{ shoe_id: string; user_count: number }[]>([]);
 
-  const data = useMemo(() => buildLeaderboard(scope), [scope]);
+  // Fetch real shoe-choice counts once when modal opens
+  useEffect(() => {
+    if (!visible) return;
+    setLoading(true);
+    fetchShoeChoiceCounts()
+      .then(counts => { if (counts.length > 0) setRealCounts(counts); })
+      .catch(() => { /* stay with seeded fallback */ })
+      .finally(() => setLoading(false));
+  }, [visible]);
+
+  const data = useMemo(() => {
+    // If we have real data for at least 3 shoes, blend it in for the global scope
+    if (realCounts.length >= 3 && scope === 'global') {
+      return buildLeaderboardFromReal(realCounts);
+    }
+    return buildLeaderboard(scope);
+  }, [scope, realCounts]);
 
   const trendIcon = (t: 'up' | 'down' | 'stable') =>
     t === 'up' ? 'RISE' : t === 'down' ? 'FALL' : 'HOLD';
@@ -175,6 +260,7 @@ export function LeaderboardModal({ visible, onClose }: Props) {
             >
               <Text style={[s.scopeText, scope === sc && s.scopeTextActive]}>
                 {sc.toUpperCase()}
+                {sc === 'global' && realCounts.length >= 3 ? ' ●' : ''}
               </Text>
             </TouchableOpacity>
           ))}
@@ -187,7 +273,10 @@ export function LeaderboardModal({ visible, onClose }: Props) {
               <Ionicons name="location-outline" size={12} color="rgba(10,10,10,0.4)" />
               <Text style={s.locationText}>{data.location}</Text>
             </View>
-            <Text style={s.runnerCount}>{data.runnerCount.toLocaleString()} runners · {data.updatedAt}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {loading && <ActivityIndicator size="small" color={ACCENT} />}
+              <Text style={s.runnerCount}>{data.runnerCount.toLocaleString()} runners · {data.updatedAt}</Text>
+            </View>
           </View>
 
           {/* Podium (top 3) */}
