@@ -585,9 +585,9 @@ const SplashView: React.FC<{ onBegin: () => void }> = ({ onBegin }) => {
 
   // Shoe brand names used as decorative background wallpaper — pure typography
   const BRANDS = [
-    'BROOKS', 'NIKE', 'ASICS', 'HOKA', 'SAUCONY',
-    'NEW BALANCE', 'MIZUNO', 'ON', 'ADIDAS', 'SALOMON',
-    'ALTRA', 'PUMA', 'MERRELL', 'BROOKS', 'NIKE',
+    'BROOKS', 'ASICS', 'HOKA', 'SAUCONY', 'NEW BALANCE',
+    'MIZUNO', 'ON', 'SALOMON', 'ALTRA', 'PUMA',
+    'TOPO', 'BROOKS', 'ASICS', 'HOKA', 'SAUCONY',
   ];
 
   return (
