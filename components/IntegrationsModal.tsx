@@ -200,22 +200,15 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
 
           {/* ── Strava ─────────────────────────────────────────────────────── */}
           <View style={s.section}>
-            {/* Brand card header */}
-            <View style={[s.brandHeader, { backgroundColor: '#FC4C02' }]}>
-              <View style={s.brandHeaderLeft}>
-                <StravaLogo size={44} />
-                <View>
-                  <Text style={s.brandName}>Strava</Text>
-                  <Text style={s.brandTagline}>Run tracking & social fitness</Text>
-                </View>
+            <View style={s.sectionHeader}>
+              <StravaLogo size={40} />
+              <View style={s.sectionMeta}>
+                <Text style={s.sectionTitle}>STRAVA</Text>
+                <Text style={s.sectionSub}>Run tracking & social fitness</Text>
               </View>
-              <View style={[s.statusPill, { backgroundColor: stravaTokens ? '#16A34A' : 'rgba(255,255,255,0.2)' }]}>
-                <View style={[s.statusPillDot, { backgroundColor: stravaTokens ? '#86efac' : 'rgba(255,255,255,0.5)' }]} />
-                <Text style={s.statusPillTxt}>{stravaTokens ? 'CONNECTED' : 'NOT CONNECTED'}</Text>
-              </View>
+              <View style={[s.statusDot, { backgroundColor: stravaTokens ? '#16A34A' : 'rgba(10,10,10,0.15)' }]} />
             </View>
 
-            <View style={s.sectionBody}>
             {stravaTokens ? (
               <>
                 <View style={s.connectedCard}>
@@ -283,7 +276,6 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
                 </TouchableOpacity>
               </>
             )}
-            </View>
           </View>
 
           <View style={s.divider} />
@@ -292,21 +284,15 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
           {Platform.OS === 'ios' && (
             <>
               <View style={s.section}>
-                <View style={[s.brandHeader, { backgroundColor: '#1C1C1E' }]}>
-                  <View style={s.brandHeaderLeft}>
-                    <AppleHealthLogo size={44} />
-                    <View>
-                      <Text style={s.brandName}>Apple Health</Text>
-                      <Text style={s.brandTagline}>Import workouts from Health app</Text>
-                    </View>
+                <View style={s.sectionHeader}>
+                  <AppleHealthLogo size={40} />
+                  <View style={s.sectionMeta}>
+                    <Text style={s.sectionTitle}>APPLE HEALTH</Text>
+                    <Text style={s.sectionSub}>Import workouts from Health app</Text>
                   </View>
-                  <View style={[s.statusPill, { backgroundColor: healthStatus === 'authorized' ? '#16A34A' : 'rgba(255,255,255,0.15)' }]}>
-                    <View style={[s.statusPillDot, { backgroundColor: healthStatus === 'authorized' ? '#86efac' : 'rgba(255,255,255,0.4)' }]} />
-                    <Text style={s.statusPillTxt}>{healthStatus === 'authorized' ? 'AUTHORIZED' : 'NOT ENABLED'}</Text>
-                  </View>
+                  <View style={[s.statusDot, { backgroundColor: healthStatus === 'authorized' ? '#16A34A' : 'rgba(10,10,10,0.15)' }]} />
                 </View>
 
-                <View style={s.sectionBody}>
                 {healthStatus === 'authorized' ? (
                   <>
                     <View style={s.connectedCard}>
@@ -334,7 +320,6 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
                     </TouchableOpacity>
                   </>
                 )}
-                </View>
               </View>
 
               <View style={s.divider} />
@@ -345,20 +330,15 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
           {Platform.OS === 'ios' && (
             <>
               <View style={s.section}>
-                <View style={[s.brandHeader, { backgroundColor: '#2C2C2E' }]}>
-                  <View style={s.brandHeaderLeft}>
-                    <AppleWatchLogo size={44} />
-                    <View>
-                      <Text style={s.brandName}>Apple Watch</Text>
-                      <Text style={s.brandTagline}>Auto-syncs via Apple Health</Text>
-                    </View>
+                <View style={s.sectionHeader}>
+                  <AppleWatchLogo size={40} />
+                  <View style={s.sectionMeta}>
+                    <Text style={s.sectionTitle}>APPLE WATCH</Text>
+                    <Text style={s.sectionSub}>Auto-syncs via Apple Health</Text>
                   </View>
-                  <View style={[s.statusPill, { backgroundColor: healthStatus === 'authorized' ? '#16A34A' : 'rgba(255,255,255,0.12)' }]}>
-                    <View style={[s.statusPillDot, { backgroundColor: healthStatus === 'authorized' ? '#86efac' : 'rgba(255,255,255,0.4)' }]} />
-                    <Text style={s.statusPillTxt}>{healthStatus === 'authorized' ? 'SYNCING' : 'NOT LINKED'}</Text>
-                  </View>
+                  <View style={[s.statusDot, { backgroundColor: healthStatus === 'authorized' ? '#16A34A' : 'rgba(10,10,10,0.15)' }]} />
                 </View>
-                <View style={[s.sectionBody]}>
+
                 <View style={s.wizardCard}>
                   <Text style={s.wizardTitle}>HOW IT WORKS</Text>
                   {[
@@ -376,7 +356,6 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
                     <Text style={[s.garminNoteText, { color: '#16A34A' }]}>{APPLE_WATCH_NOTE}</Text>
                   </View>
                 </View>
-                </View>
               </View>
               <View style={s.divider} />
             </>
@@ -384,17 +363,15 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
 
           {/* ── Garmin ─────────────────────────────────────────────────────── */}
           <View style={s.section}>
-            <View style={[s.brandHeader, { backgroundColor: '#005C8E' }]}>
-              <View style={s.brandHeaderLeft}>
-                <GarminLogo size={44} />
-                <View>
-                  <Text style={s.brandName}>Garmin</Text>
-                  <Text style={s.brandTagline}>Connect via Strava in 3 steps</Text>
-                </View>
+            <View style={s.sectionHeader}>
+              <GarminLogo size={40} />
+              <View style={s.sectionMeta}>
+                <Text style={s.sectionTitle}>GARMIN</Text>
+                <Text style={s.sectionSub}>Connect via Strava in 3 steps</Text>
               </View>
+              <View style={[s.statusDot, { backgroundColor: stravaTokens ? '#16A34A' : 'rgba(10,10,10,0.15)' }]} />
             </View>
 
-            <View style={s.sectionBody}>
             <View style={s.wizardCard}>
               <Text style={s.wizardTitle}>GARMIN SETUP (ONE TIME)</Text>
               {[
@@ -426,7 +403,6 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
                   </Text>
                 </View>
               )}
-            </View>
             </View>
           </View>
 
@@ -537,23 +513,8 @@ const s = StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: 20, paddingBottom: 60 },
 
-  section: { paddingVertical: 0, overflow: 'hidden', borderRadius: 4, borderWidth: 2, borderColor: INK },
+  section: { paddingVertical: 4 },
 
-  // Brand card header — full-width colored strip
-  brandHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 14, gap: 12,
-  },
-  brandHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  brandName: { fontSize: 18, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
-  brandTagline: { fontFamily: MONO, fontSize: 9, color: 'rgba(255,255,255,0.55)', marginTop: 2, letterSpacing: 0.3 },
-
-  // Status pill
-  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  statusPillDot: { width: 6, height: 6, borderRadius: 3 },
-  statusPillTxt: { fontFamily: MONO, fontSize: 8, color: '#fff', fontWeight: '700', letterSpacing: 0.8 },
-
-  // Legacy (kept for anything still referencing)
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   iconBox: { width: 40, height: 40, borderRadius: 2, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: INK },
   iconText: { fontSize: 18, fontWeight: '900', color: '#fff' },
@@ -561,8 +522,6 @@ const s = StyleSheet.create({
   sectionTitle: { fontFamily: MONO, fontSize: 12, fontWeight: '700', color: INK, letterSpacing: 1.5 },
   sectionSub: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', marginTop: 2 },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
-
-  sectionBody: { padding: 16, backgroundColor: PAPER },
   connectedCard: { backgroundColor: 'rgba(10,10,10,0.05)', padding: 12, borderRadius: 2, borderWidth: 1, borderColor: 'rgba(10,10,10,0.1)', marginBottom: 12 },
   connectedLabel: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginBottom: 4 },
   connectedName: { fontSize: 15, fontWeight: '800', color: INK },

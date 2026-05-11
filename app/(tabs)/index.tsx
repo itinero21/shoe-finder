@@ -253,21 +253,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </Animated.View>
 
-        <WatchConnectModal visible={showWatches} onClose={() => { setShowWatches(false); }} />
-        <IntegrationsModal visible={showIntegrations} onClose={() => setShowIntegrations(false)} />
-        {showOnboarding && (
-          <View style={StyleSheet.absoluteFillObject}>
-            <Onboarding onComplete={handleOnboardingComplete} />
-          </View>
-        )}
-        <LiveRunModal visible={showLiveRun} onClose={() => setShowLiveRun(false)} onSaved={() => {
-          // Reload runs after a live tracked run is saved
-          (async () => {
-            const allRuns = await (await import('../utils/runStorage')).getRuns();
-            setRuns(allRuns);
-          })();
-        }} />
-
         {/* ── Alert: shoes needing attention ──────────────────────────── */}
         {alertShoes.length > 0 && (
           <Animated.View entering={FadeInDown.delay(130).duration(300)}>
@@ -444,6 +429,21 @@ export default function HomeScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Modals outside ScrollView — cover full screen correctly */}
+      <WatchConnectModal visible={showWatches} onClose={() => setShowWatches(false)} />
+      <IntegrationsModal visible={showIntegrations} onClose={() => setShowIntegrations(false)} />
+      <LiveRunModal visible={showLiveRun} onClose={() => setShowLiveRun(false)} onSaved={() => {
+        (async () => {
+          const allRuns = await (await import('../utils/runStorage')).getRuns();
+          setRuns(allRuns);
+        })();
+      }} />
+      {showOnboarding && (
+        <View style={StyleSheet.absoluteFillObject}>
+          <Onboarding onComplete={handleOnboardingComplete} />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
