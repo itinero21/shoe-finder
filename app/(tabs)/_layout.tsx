@@ -1,42 +1,9 @@
-/**
- * Tab layout with layered UX.
- * Beginner (< 50 mi, < 28 days):   HOME, MY SHOES, FIND
- * Intermediate (50+ mi, 28+ days): + COACH
- * Advanced (level 5+):             + DRIFT, GAMES
- *
- * Phase H of v8 intelligence spec.
- */
 import { Tabs } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getUserProfile } from '../utils/userProfile';
-
-type Layer = 'beginner' | 'intermediate' | 'advanced';
-
-function computeLayer(lifetimeMiles: number, createdAt: string, level: number): Layer {
-  const daysSince = (Date.now() - new Date(createdAt).getTime()) / 86400000;
-  if (level >= 5) return 'advanced';
-  if (lifetimeMiles >= 50 && daysSince >= 28) return 'intermediate';
-  return 'beginner';
-}
 
 export default function TabLayout() {
-  const [layer, setLayer] = useState<Layer>('beginner');
-
-  useEffect(() => {
-    getUserProfile().then(p => {
-      setLayer(computeLayer(p.lifetime_miles, p.created_at, p.current_level));
-    }).catch(() => {});
-  }, []);
-
-  const hide = (tab: 'drift' | 'games' | 'coach'): object => {
-    if (tab === 'drift'  && layer !== 'advanced')                   return { display: 'none' };
-    if (tab === 'games'  && layer !== 'advanced')                   return { display: 'none' };
-    if (tab === 'coach'  && layer === 'beginner')                   return { display: 'none' };
-    return {};
-  };
-
   return (
     <Tabs
       screenOptions={{
@@ -88,7 +55,6 @@ export default function TabLayout() {
         options={{
           title: 'DRIFT',
           tabBarIcon: ({ color }) => <Ionicons name="map-outline" size={22} color={color} />,
-          tabBarItemStyle: hide('drift'),
         }}
       />
 
@@ -97,7 +63,6 @@ export default function TabLayout() {
         options={{
           title: 'GAMES',
           tabBarIcon: ({ color }) => <Ionicons name="flash-outline" size={22} color={color} />,
-          tabBarItemStyle: hide('games'),
         }}
       />
 
@@ -106,7 +71,6 @@ export default function TabLayout() {
         options={{
           title: 'COACH',
           tabBarIcon: ({ color }) => <Ionicons name="pulse-outline" size={22} color={color} />,
-          tabBarItemStyle: hide('coach'),
         }}
       />
 
