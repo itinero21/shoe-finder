@@ -201,9 +201,6 @@ export default function DailyFeedScreen() {
   });
 
   const isAdvanced = (profile?.current_level ?? 1) >= 5;
-  const isIntermediate = (profile?.lifetime_miles ?? 0) >= 50 && (
-    (Date.now() - new Date(profile?.created_at ?? Date.now()).getTime()) / 86400000 >= 28
-  );
 
   const navigate = (path: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

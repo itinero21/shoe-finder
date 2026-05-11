@@ -27,7 +27,7 @@ export default function TabLayout() {
   useEffect(() => {
     getUserProfile().then(p => {
       setLayer(computeLayer(p.lifetime_miles, p.created_at, p.current_level));
-    });
+    }).catch(() => {});
   }, []);
 
   const hide = (tab: 'drift' | 'games' | 'coach'): object => {

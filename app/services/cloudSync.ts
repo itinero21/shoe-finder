@@ -42,6 +42,8 @@ export async function pushProfile(profile: UserProfile): Promise<void> {
     weekly_roster_locked:  profile.weekly_roster_locked,
     week_starting:         profile.week_starting,
     graveyard_count:       profile.graveyard_count,
+    weight_lbs:            profile.weight_lbs,
+    arch_type:             profile.arch_type,
   }, { onConflict: 'id' });
 }
 
@@ -70,6 +72,8 @@ export async function pullProfile(): Promise<Partial<UserProfile> | null> {
     week_starting:         data.week_starting,
     graveyard_count:       data.graveyard_count ?? 0,
     created_at:            data.created_at,
+    weight_lbs:            data.weight_lbs ?? 160,
+    arch_type:             data.arch_type ?? null,
   };
 }
 
@@ -118,6 +122,7 @@ export async function pushRun(run: Run): Promise<void> {
     source:           run.source ?? 'manual',
     external_id:      run.external_id,
     route_hash:       run.route_hash,
+    strava_gear_id:   run.strava_gear_id,
   }, { onConflict: 'id' });
 }
 
@@ -146,6 +151,7 @@ export async function pullRuns(): Promise<Run[]> {
     source:          r.source,
     external_id:     r.external_id,
     route_hash:      r.route_hash,
+    strava_gear_id:  r.strava_gear_id,
   }));
 }
 

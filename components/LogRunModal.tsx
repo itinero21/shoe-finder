@@ -18,6 +18,8 @@ import { SHOES, Shoe } from '../app/data/shoes';
 import { getLocationPermStatus, getCurrentCoordinate, requestLocationPermission } from '../app/services/locationService';
 import { updateTerritoryAfterRun } from '../app/utils/driftEngine';
 import { Coordinate } from '../app/types/territory';
+import { detectAbuse, saveVerdict } from '../app/utils/abuseDetector';
+import { refreshRunnerDNA } from '../app/utils/runnerDNA';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
@@ -158,6 +160,18 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
       // DRIFT territory — only fires when GPS trace has enough points (Strava runs)
       // For manual logs, single coord is stored but path detection skipped gracefully
       updateTerritoryAfterRun(run).catch(() => {});
+
+      // Post-run intelligence hooks (fire-and-forget, non-blocking)
+      const profile = await getUserProfile();
+      if (shoe) {
+        const verdict = detectAbuse(run, shoe, allRuns, profile.weight_lbs ?? 160);
+        if (verdict) saveVerdict(run.id, verdict).catch(() => {});
+      }
+      refreshRunnerDNA({
+        runs: allRuns,
+        archType: profile.arch_type ?? null,
+        weightLbs: profile.weight_lbs ?? 160,
+      }).catch(() => {});
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
