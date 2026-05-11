@@ -53,6 +53,9 @@ export interface UserProfile {
   weekly_roster_locked: boolean;
   week_starting: string; // ISO date Sunday
   graveyard_count: number;
+  // Runner profile (used by fatigue model + DNA)
+  weight_lbs: number;      // default 160; used by shoe fatigue model
+  arch_type: 'flat' | 'normal' | 'high' | null;
   // DRIFT territory stats
   territory: TerritoryStats;
 }
@@ -75,6 +78,8 @@ const DEFAULT_PROFILE: UserProfile = {
   graduated_at: null,
   created_at: new Date().toISOString(),
   quiz_completed_at: null,
+  weight_lbs: 160,
+  arch_type: null,
   streak_states: {
     variety:         { weeks_active: 0, best_weeks: 0 },
     exploration:     { weeks_active: 0, best_weeks: 0 },

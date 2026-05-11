@@ -13,6 +13,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { Shoe } from '../app/data/shoes';
 import { Ionicons } from '@expo/vector-icons';
+import { deriveShoeTag, TAG_COLORS } from '../app/utils/shoeTags';
 
 interface ShoeCardProps {
   shoe: Shoe & { reasons?: string[] };
@@ -133,8 +134,18 @@ export const ShoeCard: React.FC<ShoeCardProps> = ({
         {/* Brand */}
         <Text style={styles.brand}>{shoe.brand.toUpperCase()}</Text>
 
-        {/* Model */}
-        <Text style={styles.model}>{shoe.model}</Text>
+        {/* Model + derived tag */}
+        <View style={styles.modelRow}>
+          <Text style={styles.model}>{shoe.model}</Text>
+          {(() => {
+            const t = deriveShoeTag(shoe);
+            return (
+              <View style={[styles.shoeTag, { backgroundColor: TAG_COLORS[t.tag] }]}>
+                <Text style={styles.shoeTagText}>{t.tag}</Text>
+              </View>
+            );
+          })()}
+        </View>
 
         {/* Spec row */}
         <View style={styles.specRow}>
@@ -283,12 +294,30 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     marginBottom: 4,
   },
+  modelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+    flexWrap: 'wrap',
+  },
   model: {
     fontSize: 22,
     fontWeight: '900',
     color: '#0A0A0A',
     letterSpacing: -0.5,
-    marginBottom: 16,
+  },
+  shoeTag: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 2,
+  },
+  shoeTagText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 7,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 1,
   },
   specRow: {
     flexDirection: 'row',

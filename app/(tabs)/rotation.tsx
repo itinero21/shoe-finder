@@ -20,7 +20,9 @@ import { getFavorites, removeFromFavorites } from '../utils/storage';
 import { getMileageForShoe } from '../utils/mileage';
 import { getRuns } from '../utils/runStorage';
 import { Run } from '../types/run';
-import { deriveShoeStats, getExpectedLifespan, getLifecycleStatus, getUserLevel, TIER_COLORS } from '../utils/gameEngine';
+import { deriveShoeStats, getUserLevel, TIER_COLORS } from '../utils/gameEngine';
+import { computeShoeHealth } from '../utils/shoeFatigue';
+import { deriveShoeTag, TAG_COLORS } from '../utils/shoeTags';
 import { getUserProfile, UserProfile, addXP } from '../utils/userProfile';
 import { getGraveyard, addToGraveyard, getGraveyardStats, ShoeObituary } from '../utils/obituaryStorage';
 import { computeAchievementProgress, AchievementProgress } from '../utils/achievementEngine';
@@ -594,9 +596,10 @@ export default function ArsenalScreen() {
             favoriteShoes.map((shoe, index) => {
               const miles = getMileageForShoe(shoe.id, runs);
               const stats = deriveShoeStats(shoe);
-              const lifespan = getExpectedLifespan(shoe);
-              const lifecycle = getLifecycleStatus(miles, lifespan);
               const tierColor = TIER_COLORS[stats.tier];
+              const weightLbs = profile?.weight_lbs ?? 160;
+              const health = computeShoeHealth(shoe, runs, weightLbs);
+              const shoeTag = deriveShoeTag(shoe);
 
               return (
                 <Animated.View key={shoe.id} entering={FadeInDown.delay(index * 80).springify()}>
@@ -608,7 +611,12 @@ export default function ArsenalScreen() {
                         <View style={[s.tierTag, { backgroundColor: tierColor }]}>
                           <Text style={s.tierTagText}>{stats.tier.toUpperCase()}</Text>
                         </View>
-                        <Text style={[s.lifecycleTag, { color: lifecycle.color }]}>{lifecycle.label}</Text>
+                        <View style={s.cardTopRight}>
+                          <View style={[s.shoeTagBadge, { backgroundColor: TAG_COLORS[shoeTag.tag] }]}>
+                            <Text style={s.shoeTagText}>{shoeTag.tag}</Text>
+                          </View>
+                          <Text style={[s.lifecycleTag, { color: health.labelColor }]}>{health.label}</Text>
+                        </View>
                       </View>
 
                       {/* Brand + model */}
@@ -618,23 +626,24 @@ export default function ArsenalScreen() {
                       {/* Game stats */}
                       <GameStatBars stats={stats} />
 
-                      {/* Lifecycle bar */}
+                      {/* Fatigue health bar */}
                       <View style={s.lifebar}>
                         <View style={s.lifebarHeader}>
-                          <Text style={s.lifebarLabel}>MILEAGE</Text>
-                          <Text style={[s.lifebarVal, { color: lifecycle.color }]}>
-                            {miles.toFixed(0)} / {lifespan} mi
+                          <Text style={s.lifebarLabel}>SHOE HEALTH</Text>
+                          <Text style={[s.lifebarVal, { color: health.labelColor }]}>
+                            {Math.max(0, health.healthPct)}%
+                            {health.estimatedRunsRemaining != null ? `  ·  ~${health.estimatedRunsRemaining} RUNS LEFT` : ''}
                           </Text>
                         </View>
                         <View style={s.lifebarTrack}>
                           <View style={[s.lifebarFill, {
-                            width: `${Math.min(lifecycle.pct, 1) * 100}%` as any,
-                            backgroundColor: lifecycle.color,
+                            width: `${Math.max(0, Math.min(health.healthPct, 100))}%` as any,
+                            backgroundColor: health.labelColor,
                           }]} />
                         </View>
-                        {lifecycle.alert && (
-                          <Text style={[s.lifeAlert, { color: lifecycle.color }]}>{lifecycle.alert}</Text>
-                        )}
+                        <Text style={s.lifebarSub}>
+                          {miles.toFixed(0)} RAW MI · {health.foamLabel} FOAM · WEIGHTED LOAD {health.wearLoad.toFixed(0)}
+                        </Text>
                       </View>
 
                       {/* Spec row */}
@@ -836,6 +845,10 @@ const s = StyleSheet.create({
   tierTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 2 },
   tierTagText: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: PAPER, letterSpacing: 1.5 },
   lifecycleTag: { fontFamily: MONO, fontSize: 9, fontWeight: '700', letterSpacing: 1.5 },
+  cardTopRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  shoeTagBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 2 },
+  shoeTagText: { fontFamily: MONO, fontSize: 7, fontWeight: '700', color: '#fff', letterSpacing: 1 },
+  lifebarSub: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.35)', marginTop: 5, letterSpacing: 0.3 },
   brand: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginBottom: 2 },
   model: { fontSize: 20, fontWeight: '900', color: INK, letterSpacing: -0.5, marginBottom: 14 },
 
