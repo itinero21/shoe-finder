@@ -30,8 +30,9 @@ const CLIENT_ID     = process.env.EXPO_PUBLIC_STRAVA_CLIENT_ID ?? '';
 const CLIENT_SECRET = process.env.EXPO_PUBLIC_STRAVA_CLIENT_SECRET ?? '';
 const REDIRECT_URI  = 'shoefinder://strava-callback';
 
-const TOKEN_KEY   = 'stride_strava_tokens_v1';
-const LAST_SYNC   = 'stride_strava_last_sync_v1';
+const TOKEN_KEY    = 'stride_strava_tokens_v1';
+const LAST_SYNC    = 'stride_strava_last_sync_v1';
+const GEAR_MAP_KEY = 'stride_strava_gear_map_v1'; // { stravaGearId: arsenalShoeId }
 
 export interface StravaTokens {
   access_token: string;
@@ -54,6 +55,27 @@ export async function saveStravaTokens(tokens: StravaTokens): Promise<void> {
 export async function disconnectStrava(): Promise<void> {
   await AsyncStorage.removeItem(TOKEN_KEY);
   await AsyncStorage.removeItem(LAST_SYNC);
+  await AsyncStorage.removeItem(GEAR_MAP_KEY);
+}
+
+// ── Gear map (Strava gear ID ↔ Arsenal shoe ID) ───────────────────────────────
+export async function saveGearMap(map: Record<string, string>): Promise<void> {
+  await AsyncStorage.setItem(GEAR_MAP_KEY, JSON.stringify(map));
+}
+
+export async function getGearMap(): Promise<Record<string, string>> {
+  const raw = await AsyncStorage.getItem(GEAR_MAP_KEY);
+  return raw ? JSON.parse(raw) : {};
+}
+
+/**
+ * Given an Arsenal shoe ID, returns the Strava gear ID it maps to (if any).
+ * Used when uploading a run to attach the right shoe on Strava.
+ */
+export async function getStravaGearIdForShoe(shoeId: string): Promise<string | undefined> {
+  const map = await getGearMap();
+  // map is { stravaGearId: arsenalShoeId } — we need the reverse
+  return Object.keys(map).find(gearId => map[gearId] === shoeId);
 }
 
 export function isStravaConnected(tokens: StravaTokens | null): boolean {
@@ -308,8 +330,12 @@ export async function uploadRunToStrava(
 
     if (durationSecs < 1) return { success: false, error: 'Run duration too short' };
 
+    // Look up the Strava gear ID for the shoe used in this run
+    const stravaGearId = run.strava_gear_id
+      ?? (run.shoeId ? await getStravaGearIdForShoe(run.shoeId) : undefined);
+
     const dateLabel = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const body = {
+    const body: Record<string, unknown> = {
       name:             `Stride Run · ${dateLabel}`,
       type:             sportType,
       sport_type:       sportType,
@@ -319,6 +345,9 @@ export async function uploadRunToStrava(
       description:      run.notes ?? '',
       trainer:          run.terrain === 'treadmill' ? 1 : 0,
     };
+
+    // Include gear_id so Strava attributes mileage to the correct shoe
+    if (stravaGearId) body.gear_id = stravaGearId;
 
     const res = await fetch('https://www.strava.com/api/v3/activities', {
       method:  'POST',

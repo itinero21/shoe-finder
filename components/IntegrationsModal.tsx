@@ -11,7 +11,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
   getStravaTokens, disconnectStrava, syncStravaActivities,
-  connectStrava, getStravaGear, StravaGear, StravaTokens,
+  connectStrava, getStravaGear, getGearMap, saveGearMap,
+  StravaGear, StravaTokens,
 } from '../app/services/stravaService';
 import {
   getHealthPermStatus, requestHealthPermission,
@@ -63,14 +64,16 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
   }, [visible]);
 
   const load = async () => {
-    const [tokens, status, favs] = await Promise.all([
+    const [tokens, status, favs, savedMap] = await Promise.all([
       getStravaTokens(),
       getHealthPermStatus(),
       getFavorites(),
+      getGearMap(),
     ]);
     setStravaTokens(tokens);
     setHealthStatus(status);
     setArsenalIds(favs);
+    setGearMap(savedMap);
     if (tokens) {
       const gear = await getStravaGear();
       setStravaGear(gear);
@@ -105,7 +108,7 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
 
   const handleStravaSync = async () => {
     setStravaSync('syncing');
-    const result = await syncStravaActivities(gearMap);
+    const result = await syncStravaActivities(gearMap); // gearMap is already loaded from storage
     if (result.error) {
       setStravaSync('error');
       setStravaSyncResult(result.error);
@@ -117,7 +120,9 @@ export function IntegrationsModal({ visible, onClose }: IntegrationsModalProps) 
   };
 
   const handleGearMap = (stravaGearId: string, shoeId: string) => {
-    setGearMap(prev => ({ ...prev, [stravaGearId]: shoeId }));
+    const updated = { ...gearMap, [stravaGearId]: shoeId };
+    setGearMap(updated);
+    saveGearMap(updated); // persist so uploadRunToStrava can read it
   };
 
   // ── Apple Health ──────────────────────────────────────────────────────────

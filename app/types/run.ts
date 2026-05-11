@@ -21,6 +21,7 @@ export type Run = {
   source?: RunSource;
   route_hash?: string;          // for exploration tracking
   external_id?: string;         // Strava activity ID etc
+  strava_gear_id?: string;      // Strava gear (shoe) ID linked to this run
   // DRIFT territory fields
   coordinates?: Coordinate[];   // GPS trace from Strava/Garmin
   path_id?: string;             // matched RunPath ID after detection
