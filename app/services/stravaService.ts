@@ -283,6 +283,64 @@ export async function syncStravaActivitiesWithGPS(
   return result;
 }
 
+// ── Upload a run TO Strava ────────────────────────────────────────────────────
+
+/**
+ * Creates a manual activity on Strava from a saved Stride run.
+ * Called after the user saves a live GPS run and opts in to upload.
+ *
+ * Note: This creates a "manual" activity (no GPS polyline on Strava side).
+ * The GPS trace is stored in Stride/Supabase. Strava shows distance + time.
+ *
+ * Returns the new Strava activity ID so we can store it as external_id
+ * to prevent re-import on next sync.
+ */
+export async function uploadRunToStrava(
+  run: Run
+): Promise<{ success: boolean; stravaId?: number; error?: string }> {
+  const accessToken = await getValidAccessToken();
+  if (!accessToken) return { success: false, error: 'Not connected to Strava' };
+
+  try {
+    const startDate = new Date(run.date);
+    const sportType = run.terrain === 'trail' ? 'TrailRun' : 'Run';
+    const durationSecs = Math.round((run.durationMinutes ?? 0) * 60);
+
+    if (durationSecs < 1) return { success: false, error: 'Run duration too short' };
+
+    const dateLabel = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const body = {
+      name:             `Stride Run · ${dateLabel}`,
+      type:             sportType,
+      sport_type:       sportType,
+      start_date_local: startDate.toISOString(),
+      elapsed_time:     durationSecs,
+      distance:         Math.round(run.distanceKm * 1000), // Strava expects metres
+      description:      run.notes ?? '',
+      trainer:          run.terrain === 'treadmill' ? 1 : 0,
+    };
+
+    const res = await fetch('https://www.strava.com/api/v3/activities', {
+      method:  'POST',
+      headers: {
+        Authorization:  `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      return { success: false, error: `Strava ${res.status}: ${errText.slice(0, 120)}` };
+    }
+
+    const data = await res.json();
+    return { success: true, stravaId: data.id };
+  } catch (e: any) {
+    return { success: false, error: e?.message ?? 'Upload failed' };
+  }
+}
+
 // ── Strava gear list (to build the gearMap) ───────────────────────────────────
 export interface StravaGear {
   id: string;
