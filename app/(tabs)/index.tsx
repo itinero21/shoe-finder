@@ -30,6 +30,8 @@ import { getWatchStatus, WatchStatus } from '../services/watchService';
 import { IntegrationsModal } from '../../components/IntegrationsModal';
 import { WatchConnectModal } from '../../components/WatchConnectModal';
 import { LiveRunModal } from '../../components/LiveRunModal';
+import { Onboarding } from '../../components/Onboarding';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
@@ -63,6 +65,22 @@ export default function HomeScreen() {
   const [showIntegrations, setShowIntegrations] = React.useState(false);
   const [showWatches, setShowWatches] = React.useState(false);
   const [showLiveRun, setShowLiveRun] = React.useState(false);
+  const [showOnboarding, setShowOnboarding] = React.useState(false);
+
+  // Check first launch on mount (not on every focus — only once)
+  React.useEffect(() => {
+    AsyncStorage.getItem('stride_onboarding_done').then(val => {
+      if (!val) setShowOnboarding(true);
+    });
+  }, []);
+
+  const handleOnboardingComplete = async () => {
+    await AsyncStorage.setItem('stride_onboarding_done', '1');
+    setShowOnboarding(false);
+    // Reload favorites in case user added shoes during onboarding
+    const favs = await getFavorites();
+    setFavoriteIds(favs);
+  };
 
   useFocusEffect(useCallback(() => {
     (async () => {
@@ -237,6 +255,11 @@ export default function HomeScreen() {
 
         <WatchConnectModal visible={showWatches} onClose={() => { setShowWatches(false); }} />
         <IntegrationsModal visible={showIntegrations} onClose={() => setShowIntegrations(false)} />
+        {showOnboarding && (
+          <View style={StyleSheet.absoluteFillObject}>
+            <Onboarding onComplete={handleOnboardingComplete} />
+          </View>
+        )}
         <LiveRunModal visible={showLiveRun} onClose={() => setShowLiveRun(false)} onSaved={() => {
           // Reload runs after a live tracked run is saved
           (async () => {
