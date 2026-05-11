@@ -583,8 +583,36 @@ const SplashView: React.FC<{ onBegin: () => void }> = ({ onBegin }) => {
     }, 900);
   }, []);
 
+  // Shoe brand names used as decorative background wallpaper — pure typography
+  const BRANDS = [
+    'BROOKS', 'NIKE', 'ASICS', 'HOKA', 'SAUCONY',
+    'NEW BALANCE', 'MIZUNO', 'ON', 'ADIDAS', 'SALOMON',
+    'ALTRA', 'PUMA', 'MERRELL', 'BROOKS', 'NIKE',
+  ];
+
   return (
     <View style={[s.splashBg, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+
+      {/* ── Brand name wallpaper grid ──────────────────────────────────── */}
+      <View style={s.brandGrid} pointerEvents="none">
+        {BRANDS.map((brand, i) => (
+          <Text
+            key={i}
+            style={[
+              s.brandGridItem,
+              {
+                // Alternate opacity and slight rotation for editorial feel
+                opacity: i % 3 === 0 ? 0.055 : i % 3 === 1 ? 0.035 : 0.02,
+                transform: [{ rotate: i % 2 === 0 ? '-8deg' : '4deg' }],
+              },
+            ]}
+            numberOfLines={1}
+          >
+            {brand}
+          </Text>
+        ))}
+      </View>
+
       {/* Corner meta */}
       <View style={[s.cornerTL]}>
         <Text style={s.cornerText}>V.1.0.0 / 2026</Text>
@@ -705,6 +733,23 @@ const s = StyleSheet.create({
   splashBg: {
     flex: 1,
     backgroundColor: INK,
+  },
+
+  // Brand wallpaper grid
+  brandGrid: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    flexDirection: 'row', flexWrap: 'wrap',
+    alignContent: 'flex-start', gap: 0,
+    overflow: 'hidden',
+  },
+  brandGridItem: {
+    fontWeight: '900',
+    fontSize: 52,
+    color: PAPER,
+    letterSpacing: -2,
+    lineHeight: 56,
+    width: '100%',
+    paddingLeft: 12,
   },
   cornerTL: { position: 'absolute', top: 48, left: 16, zIndex: 10 },
   cornerTR: { position: 'absolute', top: 48, right: 16, zIndex: 10 },
