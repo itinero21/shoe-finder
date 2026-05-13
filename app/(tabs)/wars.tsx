@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -88,7 +88,7 @@ const CharacterCard: React.FC<{
   const tierColor = TIER_COLORS[stats.tier];
 
   return (
-    <Animated.View entering={FadeInDown.delay(index * 70).springify()}>
+    <Animated.View>
       <View style={cc.wrap}>
         <View style={[cc.shadow, { backgroundColor: tierColor }]} />
         <View style={cc.card}>
@@ -166,7 +166,7 @@ const BattleRow: React.FC<{ run: Run; shoe: Shoe | undefined; index: number }> =
   const miles = kmToMi(run.distanceKm);
 
   return (
-    <Animated.View entering={FadeInRight.delay(index * 50).springify()}>
+    <Animated.View>
       <View style={bl.row}>
         {/* Left: date + shoe */}
         <View style={bl.left}>

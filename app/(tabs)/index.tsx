@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -246,7 +246,7 @@ export default function DailyFeedScreen() {
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* ── Header ──────────────────────────────────────────────────── */}
-        <Animated.View entering={FadeInDown.duration(300)} style={s.header}>
+        <Animated.View style={s.header}>
           <View>
             <Text style={s.greeting}>{dayGreeting()}</Text>
             <Text style={s.brand}>// STRIDE PROTOCOL</Text>
@@ -260,7 +260,7 @@ export default function DailyFeedScreen() {
 
         {/* ── XP Bar ──────────────────────────────────────────────────── */}
         {levelInfo && profile && (
-          <Animated.View entering={FadeInDown.delay(40).duration(300)} style={s.xpCard}>
+          <Animated.View style={s.xpCard}>
             <View style={s.xpRow}>
               <Text style={s.xpLabel}>XP PROGRESS</Text>
               <Text style={s.xpVal}>{profile.total_xp.toLocaleString()} XP</Text>
@@ -277,7 +277,7 @@ export default function DailyFeedScreen() {
         )}
 
         {/* ── START RUN ────────────────────────────────────────────────── */}
-        <Animated.View entering={FadeInDown.delay(60).duration(300)}>
+        <Animated.View>
           <TouchableOpacity
             style={s.startRunBtn}
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); setShowLiveRun(true); }}
@@ -290,7 +290,7 @@ export default function DailyFeedScreen() {
         </Animated.View>
 
         {/* ── Quick actions ────────────────────────────────────────────── */}
-        <Animated.View entering={FadeInDown.delay(80).duration(300)} style={s.quickRow}>
+        <Animated.View style={s.quickRow}>
           <TouchableOpacity style={s.quickCard} onPress={() => navigate('/(tabs)/rotation')} activeOpacity={0.85}>
             <Ionicons name="layers-outline" size={22} color={INK} />
             <Text style={s.quickLabel}>MY SHOES</Text>
@@ -311,7 +311,7 @@ export default function DailyFeedScreen() {
         </Animated.View>
 
         {/* ── Watch connect card ───────────────────────────────────────── */}
-        <Animated.View entering={FadeInDown.delay(100).duration(300)}>
+        <Animated.View>
           <TouchableOpacity
             style={[s.syncCard, (!stravaConnected && !healthConnected) && s.syncCardCTA]}
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowWatches(true); }}
@@ -352,7 +352,7 @@ export default function DailyFeedScreen() {
 
         {/* ── Empty state ──────────────────────────────────────────────── */}
         {noCards && (
-          <Animated.View entering={FadeInDown.delay(120).duration(300)} style={s.emptyFeed}>
+          <Animated.View style={s.emptyFeed}>
             <Text style={s.emptyFeedTitle}>NOTHING URGENT TODAY.</Text>
             <Text style={s.emptyFeedSub}>GO RUN OR REST.</Text>
           </Animated.View>
@@ -360,7 +360,7 @@ export default function DailyFeedScreen() {
 
         {/* ── Card 1: READINESS ────────────────────────────────────────── */}
         {shown.readiness && readiness && (
-          <Animated.View entering={FadeInDown.delay(120).duration(300)} style={s.feedCard}>
+          <Animated.View style={s.feedCard}>
             <Text style={s.feedCardLabel}>READINESS</Text>
             <View style={s.readinessRow}>
               <Text style={s.readinessScore}>{readiness.score}</Text>
@@ -373,7 +373,7 @@ export default function DailyFeedScreen() {
 
         {/* ── Card 2: TODAY'S SHOE ─────────────────────────────────────── */}
         {shown.todaysShoe && todaysShoe && (
-          <Animated.View entering={FadeInDown.delay(140).duration(300)}>
+          <Animated.View>
             <TouchableOpacity style={s.feedCard} onPress={() => navigate('/(tabs)/rotation')} activeOpacity={0.9}>
               <Text style={s.feedCardLabel}>TODAY</Text>
               <View style={s.todaysShoeRow}>
@@ -389,7 +389,7 @@ export default function DailyFeedScreen() {
 
         {/* ── Card 3: LOAD SIGNAL ──────────────────────────────────────── */}
         {shown.loadSignal && signals[0] && (
-          <Animated.View entering={FadeInDown.delay(160).duration(300)} style={s.feedCard}>
+          <Animated.View style={s.feedCard}>
             <Text style={s.feedCardLabel}>{signals[0].label}</Text>
             <Text style={s.feedCardBody}>{signals[0].copy}</Text>
             <TouchableOpacity onPress={() => { dismissSignal(signals[0].type); setSignals(sigs => sigs.slice(1)); }}>
@@ -401,7 +401,7 @@ export default function DailyFeedScreen() {
 
         {/* ── Card 4: ABUSE VERDICT ────────────────────────────────────── */}
         {shown.abuseVerdict && unseenVerdict && (
-          <Animated.View entering={FadeInDown.delay(170).duration(300)}>
+          <Animated.View>
             <TouchableOpacity
               style={[s.feedCard, unseenVerdict.verdict.severity === 'positive' && s.feedCardPositive]}
               onPress={() => { markVerdictSeen(unseenVerdict.runId); setUnseenVerdict(null); }}
@@ -416,10 +416,10 @@ export default function DailyFeedScreen() {
         )}
 
         {/* ── Card 5: LIFECYCLE ALERT ──────────────────────────────────── */}
-        {shown.lifecycle && lifecycleAlerts.map((shoe, i) => {
+        {shown.lifecycle && lifecycleAlerts.map((shoe) => {
           const h = computeShoeHealth(shoe, runs, weightLbs);
           return (
-            <Animated.View key={shoe.id} entering={FadeInDown.delay(180 + i * 10).duration(300)}>
+            <Animated.View key={shoe.id}>
               <TouchableOpacity style={s.feedCard} onPress={() => navigate('/(tabs)/rotation')} activeOpacity={0.9}>
                 <Text style={s.feedCardLabel}>SHOE HEALTH</Text>
                 <Text style={s.feedCardBody}>{shoe.model.toUpperCase()}: {h.label}</Text>
@@ -435,7 +435,7 @@ export default function DailyFeedScreen() {
 
         {/* ── Card 6: ROTATION SUGGESTION ──────────────────────────────── */}
         {shown.rotation && rotation && (
-          <Animated.View entering={FadeInDown.delay(200).duration(300)}>
+          <Animated.View>
             <TouchableOpacity style={s.feedCard} onPress={() => navigate('/(tabs)/rotation')} activeOpacity={0.9}>
               <Text style={s.feedCardLabel}>ROTATION SCORE</Text>
               <View style={s.rotationRow}>
@@ -449,7 +449,7 @@ export default function DailyFeedScreen() {
 
         {/* ── Card 7: DNA SNAPSHOT ─────────────────────────────────────── */}
         {shown.dnaUpdate && dna && (
-          <Animated.View entering={FadeInDown.delay(210).duration(300)}>
+          <Animated.View>
             <TouchableOpacity style={s.feedCard} onPress={() => navigate('/(tabs)/rotation')} activeOpacity={0.9}>
               <Text style={s.feedCardLabel}>RUNNER DNA</Text>
               <View style={s.dnaRow}>
@@ -473,7 +473,7 @@ export default function DailyFeedScreen() {
 
         {/* ── Card 8: LAST RUN ─────────────────────────────────────────── */}
         {shown.lastRun && recentRun && (
-          <Animated.View entering={FadeInDown.delay(220).duration(300)}>
+          <Animated.View>
             <TouchableOpacity style={s.feedCard} onPress={() => navigate('/(tabs)/wars')} activeOpacity={0.9}>
               <Text style={s.feedCardLabel}>LAST RUN</Text>
               <View style={s.lastRunRow}>
@@ -496,7 +496,7 @@ export default function DailyFeedScreen() {
 
         {/* ── Beginner graduation nudge ─────────────────────────────────── */}
         {isBeginner && (profile?.lifetime_miles ?? 0) < 50 && (
-          <Animated.View entering={FadeInDown.delay(240).duration(300)} style={s.progressCard}>
+          <Animated.View style={s.progressCard}>
             <Text style={s.progressLabel}>BEGINNER MODE</Text>
             <View style={s.progressTrack}>
               <View style={[s.progressFill, { width: `${Math.min(100, ((profile?.lifetime_miles ?? 0) / 50) * 100)}%` as any }]} />
@@ -507,7 +507,7 @@ export default function DailyFeedScreen() {
 
         {/* ── Empty arsenal CTA ────────────────────────────────────────── */}
         {favoriteShoes.length === 0 && (
-          <Animated.View entering={FadeInDown.delay(260).duration(300)} style={s.emptyCard}>
+          <Animated.View style={s.emptyCard}>
             <Text style={s.emptyTitle}>START HERE.</Text>
             <Text style={s.emptyBody}>Run the SCOUT to get shoe recommendations. Takes 2 minutes.</Text>
             <TouchableOpacity style={s.emptyBtn} onPress={() => navigate('/(tabs)/scan')}>

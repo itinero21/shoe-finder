@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -602,7 +602,7 @@ export default function ArsenalScreen() {
               const shoeTag = deriveShoeTag(shoe);
 
               return (
-                <Animated.View key={shoe.id} entering={FadeInDown.delay(index * 80).springify()}>
+                <Animated.View key={shoe.id}>
                   <View style={s.shoeCard}>
                     <View style={s.shoeShadow} />
                     <View style={s.shoeInner}>
