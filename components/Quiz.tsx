@@ -42,6 +42,15 @@ type MultiStep = {
   options: { value: string; label: string; sublabel?: string }[];
 };
 
+type ToggleStep = {
+  kind: 'toggle';
+  id: keyof QuizAnswers;
+  question: string;
+  subtext?: string;
+  badge?: string;
+  options: { value: boolean; label: string; sublabel?: string }[];
+};
+
 type BrandStep = {
   kind: 'brand';
   id: 'brand_pref';
@@ -49,67 +58,84 @@ type BrandStep = {
   subtext?: string;
 };
 
-type QuizStep = SingleStep | MultiStep | BrandStep;
+type QuizStep = SingleStep | MultiStep | ToggleStep | BrandStep;
 
 // ─── Step definitions ────────────────────────────────────────────────────────
 
-const SINGLE_STEPS: QuizStep[] = [
-  {
-    kind: 'single',
-    id: 'terrain',
-    question: 'Where will you mainly run?',
-    subtext: 'Surface determines sole construction, grip pattern, and rock protection.',
-    options: [
-      { value: 'road', label: 'Road / Pavement', sublabel: 'Streets, sidewalks, treadmill' },
-      { value: 'trail_groomed', label: 'Groomed Trails', sublabel: 'Packed dirt, light terrain' },
-      { value: 'trail_technical', label: 'Technical Trails', sublabel: 'Rocks, roots, steep terrain' },
-      { value: 'track', label: 'Track / Synthetic', sublabel: 'Oval track, synthetic surface' },
-    ],
-  },
-  {
-    kind: 'single',
-    id: 'goal',
-    question: 'What are you training for?',
-    subtext: 'Your goal determines the right balance of cushion, weight, and energy return.',
-    options: [
-      { value: 'easy_base', label: 'Easy Base Miles', sublabel: 'Recovery runs, daily mileage' },
-      { value: 'tempo', label: 'Speed & Tempo', sublabel: 'Intervals, tempo, threshold runs' },
-      { value: 'race', label: 'Race Day', sublabel: '5K, half marathon, marathon PR' },
-      { value: 'walking', label: 'Walking / Casual', sublabel: 'All-day comfort, light activity' },
-    ],
-  },
-  {
-    kind: 'single',
-    id: 'comfort_pref',
-    question: 'How should your shoes feel underfoot?',
-    subtext: 'Comfort preference is the strongest predictor of which shoe works for you.',
-    badge: '// #1 PREDICTOR',
-    options: [
-      { value: 'soft', label: 'Soft & Plush', sublabel: 'Cloud-like, lots of cushion' },
-      { value: 'medium', label: 'Balanced Feel', sublabel: 'Not too soft, not too hard' },
-      { value: 'firm', label: 'Firm & Responsive', sublabel: 'Snappy, ground connection' },
-    ],
-  },
-  {
-    kind: 'single',
-    id: 'body_weight',
-    question: 'What is your weight range?',
-    subtext: 'Body weight directly affects which cushioning density and midsole is safest.',
-    badge: '// MIDSOLE MATCH',
-    options: [
-      { value: 'light', label: 'Under 60 kg', sublabel: '132 lbs and under' },
-      { value: 'medium', label: '60 – 80 kg', sublabel: '132 – 176 lbs' },
-      { value: 'heavy', label: '80 – 100 kg', sublabel: '176 – 220 lbs' },
-      { value: 'very_heavy', label: 'Over 100 kg', sublabel: '220 lbs and over' },
-    ],
-  },
-];
+const STEP_TERRAIN: SingleStep = {
+  kind: 'single',
+  id: 'terrain',
+  question: 'Where will you mainly run?',
+  subtext: 'Surface determines sole construction, grip pattern, and rock protection.',
+  options: [
+    { value: 'road', label: 'Road / Pavement', sublabel: 'Streets, sidewalks, treadmill' },
+    { value: 'trail_groomed', label: 'Groomed Trails', sublabel: 'Packed dirt, light terrain' },
+    { value: 'trail_technical', label: 'Technical Trails', sublabel: 'Rocks, roots, steep terrain' },
+    { value: 'track', label: 'Track / Synthetic', sublabel: 'Oval track, synthetic surface' },
+  ],
+};
 
-const INJURY_CURRENT_STEP: MultiStep = {
+const STEP_GOAL: SingleStep = {
+  kind: 'single',
+  id: 'goal',
+  question: 'What are you training for?',
+  subtext: 'Your goal determines the right balance of cushion, weight, and energy return.',
+  options: [
+    { value: 'easy_base', label: 'Easy Base Miles', sublabel: 'Recovery runs, daily mileage' },
+    { value: 'tempo', label: 'Speed & Tempo', sublabel: 'Intervals, tempo, threshold runs' },
+    { value: 'race', label: 'Race Day', sublabel: '5K, half marathon, marathon PR' },
+    { value: 'walking', label: 'Walking / Casual', sublabel: 'All-day comfort, light activity' },
+  ],
+};
+
+const STEP_COMFORT: SingleStep = {
+  kind: 'single',
+  id: 'comfort_pref',
+  question: 'How should your shoes feel underfoot?',
+  subtext: 'Comfort preference is the strongest predictor of which shoe works for you (Nigg, 2015).',
+  badge: '// #1 PREDICTOR',
+  options: [
+    { value: 'soft', label: 'Soft & Plush', sublabel: 'Cloud-like, lots of cushion' },
+    { value: 'medium', label: 'Balanced Feel', sublabel: 'Not too soft, not too hard' },
+    { value: 'firm', label: 'Firm & Responsive', sublabel: 'Snappy, ground connection' },
+  ],
+};
+
+const STEP_WEIGHT: SingleStep = {
+  kind: 'single',
+  id: 'body_weight',
+  question: 'What is your weight range?',
+  subtext: 'Body weight directly affects which cushioning density and midsole is safest.',
+  badge: '// MIDSOLE MATCH',
+  options: [
+    { value: 'light', label: 'Under 60 kg', sublabel: '132 lbs and under' },
+    { value: 'medium', label: '60 – 80 kg', sublabel: '132 – 176 lbs' },
+    { value: 'heavy', label: '80 – 100 kg', sublabel: '176 – 220 lbs' },
+    { value: 'very_heavy', label: 'Over 100 kg', sublabel: '220 lbs and over' },
+  ],
+};
+
+// NEW v10 — Pronation question (was missing in v6)
+const STEP_PRONATION: SingleStep = {
+  kind: 'single',
+  id: 'pronation',
+  question: 'How does your foot roll when you run?',
+  subtext: 'Pronation determines whether you need stability features. Check the wear pattern on old shoes: inside-heel wear = overpronation, outside-heel wear = supination.',
+  badge: '// STABILITY MATCH',
+  options: [
+    { value: 'overpronate_severe', label: 'Rolls In a Lot', sublabel: 'Severe overpronation, ankle clearly collapses inward' },
+    { value: 'overpronate_mild', label: 'Rolls In Slightly', sublabel: 'Mild overpronation, common pattern' },
+    { value: 'neutral', label: 'Stays Neutral', sublabel: 'Foot lands and rolls straight forward' },
+    { value: 'supinate', label: 'Rolls Out', sublabel: 'Supination / underpronation, common with high arches' },
+    { value: 'unsure', label: "I'm Not Sure", sublabel: "We'll infer from your other answers" },
+  ],
+};
+
+const STEP_INJURY_CURRENT: MultiStep = {
   kind: 'multi',
   id: 'injury_current',
   question: 'Any current pain or injury?',
-  subtext: 'Select all that apply. We\'ll target the biomechanics for each issue.',
+  subtext: "Select all that apply. We'll target the biomechanics for each issue.",
   noneValue: 'none',
   options: [
     { value: 'none', label: 'No Issues', sublabel: 'Feeling healthy and strong' },
@@ -119,15 +145,17 @@ const INJURY_CURRENT_STEP: MultiStep = {
     { value: 'shin', label: 'Shin Pain', sublabel: 'Shin splints, lower leg stress' },
     { value: 'itband', label: 'IT Band / Hip', sublabel: 'Outer knee, lateral hip' },
     { value: 'metatarsalgia', label: 'Ball of Foot Pain', sublabel: 'Forefoot, metatarsalgia' },
+    { value: 'bunions', label: 'Bunions', sublabel: 'Big toe joint enlargement' },
+    { value: 'morton_neuroma', label: "Morton's Neuroma", sublabel: 'Between-toe nerve pain' },
     { value: 'other', label: 'Other Issue', sublabel: 'General discomfort' },
   ],
 };
 
-const INJURY_HISTORY_STEP: MultiStep = {
+const STEP_INJURY_HISTORY: MultiStep = {
   kind: 'multi',
   id: 'injury_history',
   question: 'Any injury in the last 12 months?',
-  subtext: 'Past injury is the #1 predictor of future injury — we\'ll build in prevention.',
+  subtext: "Past injury is the #1 predictor of future injury — we'll build in prevention.",
   badge: '// #1 RISK FACTOR',
   noneValue: 'none',
   options: [
@@ -142,68 +170,104 @@ const INJURY_HISTORY_STEP: MultiStep = {
   ],
 };
 
-const TRAILING_STEPS: QuizStep[] = [
-  {
-    kind: 'single',
-    id: 'experience',
-    question: 'How long have you been running?',
-    subtext: 'Experience level determines safe shoe types — some require adaptation first.',
-    options: [
-      { value: 'beginner', label: 'Just Starting', sublabel: 'Under 6 months' },
-      { value: 'intermediate', label: 'Building Up', sublabel: '6 months – 2 years' },
-      { value: 'experienced', label: 'Regular Runner', sublabel: '2 – 5 years' },
-      { value: 'advanced', label: 'Veteran', sublabel: '5+ years, high mileage' },
-    ],
-  },
-  {
-    kind: 'single',
-    id: 'foot_width',
-    question: 'How wide is your foot?',
-    subtext: 'Width fit is critical for long-run comfort — affects blisters and fatigue.',
-    badge: '// 95% OF EXPERTS RATE CRITICAL',
-    options: [
-      { value: 'narrow', label: 'Narrow', sublabel: 'Slim, tapered fit' },
-      { value: 'regular', label: 'Regular / Medium', sublabel: 'Standard width' },
-      { value: 'wide', label: 'Wide', sublabel: 'Broader foot, wide toe box' },
-      { value: 'extra_wide', label: 'Extra Wide', sublabel: 'Very wide foot or bunions' },
-    ],
-  },
-  {
-    kind: 'single',
-    id: 'arch_type',
-    question: 'What is your arch type?',
-    subtext: 'Arch height influences motion control needs — combined with your other answers.',
-    options: [
-      { value: 'flat', label: 'Flat / Low Arch', sublabel: 'Whole sole contacts the ground' },
-      { value: 'normal', label: 'Normal Arch', sublabel: 'Natural curve, moderate contact' },
-      { value: 'high', label: 'High Arch', sublabel: 'Pronounced curve, minimal contact' },
-    ],
-  },
-  {
-    kind: 'brand',
-    id: 'brand_pref',
-    question: 'Any preferred brands?',
-    subtext: 'We\'ll recommend only from your chosen brands — or pick "Any" for the full database.',
-  },
-];
+const STEP_EXPERIENCE: SingleStep = {
+  kind: 'single',
+  id: 'experience',
+  question: 'How long have you been running?',
+  subtext: 'Experience level determines safe shoe types — some require adaptation first.',
+  options: [
+    { value: 'beginner', label: 'Just Starting', sublabel: 'Under 6 months' },
+    { value: 'intermediate', label: 'Building Up', sublabel: '6 months – 2 years' },
+    { value: 'experienced', label: 'Regular Runner', sublabel: '2 – 5 years' },
+    { value: 'advanced', label: 'Veteran', sublabel: '5+ years, high mileage' },
+  ],
+};
 
-// 4-question beginner track: terrain + comfort + weight + injury + brand
-const BEGINNER_STEPS: QuizStep[] = [
-  SINGLE_STEPS[0], // terrain
-  SINGLE_STEPS[2], // comfort_pref
-  SINGLE_STEPS[3], // body_weight
-  INJURY_CURRENT_STEP,
-  TRAILING_STEPS[3], // brand_pref
-];
+const STEP_FOOT_WIDTH: SingleStep = {
+  kind: 'single',
+  id: 'foot_width',
+  question: 'How wide is your foot?',
+  subtext: 'Width fit is critical for long-run comfort — affects blisters and fatigue.',
+  badge: '// 95% OF EXPERTS RATE CRITICAL',
+  options: [
+    { value: 'narrow', label: 'Narrow', sublabel: 'Slim, tapered fit' },
+    { value: 'regular', label: 'Regular / Medium', sublabel: 'Standard width' },
+    { value: 'wide', label: 'Wide', sublabel: 'Broader foot, wide toe box' },
+    { value: 'extra_wide', label: 'Extra Wide', sublabel: 'Very wide foot or bunions' },
+  ],
+};
 
+const STEP_ARCH: SingleStep = {
+  kind: 'single',
+  id: 'arch_type',
+  question: 'What is your arch type?',
+  subtext: "Arch height alone doesn't determine pronation, but it helps refine our pick when combined with your pronation answer.",
+  options: [
+    { value: 'flat', label: 'Flat / Low Arch', sublabel: 'Whole sole contacts the ground' },
+    { value: 'normal', label: 'Normal Arch', sublabel: 'Natural curve, moderate contact' },
+    { value: 'high', label: 'High Arch', sublabel: 'Pronounced curve, minimal contact' },
+    { value: 'unsure', label: "I'm Not Sure", sublabel: "We'll work without this signal" },
+  ],
+};
+
+// NEW v10 — Drop preference (was missing in v6)
+const STEP_DROP: SingleStep = {
+  kind: 'single',
+  id: 'drop_pref',
+  question: 'Heel-to-toe drop preference?',
+  subtext: 'Drop is the height difference between heel and forefoot. Higher drop = more familiar/cushioned heel; lower drop = more natural feel. Skip if unsure.',
+  options: [
+    { value: 'low', label: 'Low Drop (0–5mm)', sublabel: 'Zero-drop or near, natural-feel' },
+    { value: 'medium', label: 'Medium Drop (6–8mm)', sublabel: 'Modern sweet spot' },
+    { value: 'high', label: 'High Drop (9–12mm)', sublabel: 'Traditional, Achilles-friendly' },
+    { value: 'no_pref', label: 'No Preference', sublabel: "I haven't thought about it" },
+  ],
+};
+
+const STEP_ORTHOTICS: ToggleStep = {
+  kind: 'toggle',
+  id: 'wears_orthotics',
+  question: 'Do you wear custom orthotics?',
+  subtext: "We'll only recommend shoes with removable insoles that fit orthotics.",
+  options: [
+    { value: false, label: 'No, just regular shoes', sublabel: 'No custom inserts' },
+    { value: true, label: 'Yes, I use orthotics', sublabel: 'Need removable insole + roomy fit' },
+  ],
+};
+
+const STEP_BRAND: BrandStep = {
+  kind: 'brand',
+  id: 'brand_pref',
+  question: 'Any preferred brands?',
+  subtext: "We'll recommend only from your chosen brands — or pick \"Any\" for the full database.",
+};
+
+// Full diagnostic (12 questions, longer track)
 const ALL_STEPS: QuizStep[] = [
-  ...SINGLE_STEPS,
-  INJURY_CURRENT_STEP,
-  INJURY_HISTORY_STEP,
-  ...TRAILING_STEPS,
+  STEP_TERRAIN,
+  STEP_GOAL,
+  STEP_COMFORT,
+  STEP_WEIGHT,
+  STEP_PRONATION,
+  STEP_INJURY_CURRENT,
+  STEP_INJURY_HISTORY,
+  STEP_EXPERIENCE,
+  STEP_FOOT_WIDTH,
+  STEP_ARCH,
+  STEP_DROP,
+  STEP_ORTHOTICS,
+  STEP_BRAND,
 ];
 
-const TOTAL_STEPS = ALL_STEPS.length;
+// Quick scan (6 questions, fast track) — keeps the most critical signals
+const BEGINNER_STEPS: QuizStep[] = [
+  STEP_TERRAIN,
+  STEP_COMFORT,
+  STEP_WEIGHT,
+  STEP_PRONATION,
+  STEP_INJURY_CURRENT,
+  STEP_BRAND,
+];
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -231,6 +295,18 @@ const HardShadowCard: React.FC<{
     </TouchableOpacity>
   </View>
 );
+
+// ─── Defaults for fields the quick scan doesn't ask ──────────────────────────
+
+const QUICK_SCAN_DEFAULTS: Partial<QuizAnswers> = {
+  goal: 'easy_base',
+  experience: 'intermediate',
+  foot_width: 'regular',
+  arch_type: 'unsure',
+  injury_history: ['none'],
+  drop_pref: 'no_pref',
+  wears_orthotics: false,
+};
 
 // ─── Main Quiz component ──────────────────────────────────────────────────────
 
@@ -275,13 +351,17 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
     });
   };
 
+  // Apply defaults for any unanswered fields in quick scan mode
+  const finalizeAnswers = (raw: Partial<QuizAnswers>): QuizAnswers => {
+    return { ...QUICK_SCAN_DEFAULTS, ...raw } as QuizAnswers;
+  };
+
   const advance = (newAnswers: Partial<QuizAnswers>) => {
     if (currentStep < STEPS.length - 1) {
       const next = currentStep + 1;
       const nextStep = STEPS[next];
       animateForward(() => {
         setCurrentStep(next);
-        // Pre-fill multi-selection state for multi steps
         if (nextStep.kind === 'multi') {
           const existing = newAnswers[nextStep.id] as string[] | undefined;
           setMultiSelection(existing ?? []);
@@ -291,11 +371,10 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
         }
       });
     } else {
-      animateForward(() => runOnJS(onComplete)(newAnswers as QuizAnswers));
+      animateForward(() => runOnJS(onComplete)(finalizeAnswers(newAnswers)));
     }
   };
 
-  // Single-select answer
   const handleSingleAnswer = (value: any) => {
     const step = STEPS[currentStep] as SingleStep;
     const newAnswers = { ...answers, [step.id]: value };
@@ -304,21 +383,24 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
     advance(newAnswers);
   };
 
-  // Multi-select toggle
+  const handleToggleAnswer = (value: boolean) => {
+    const step = STEPS[currentStep] as ToggleStep;
+    const newAnswers = { ...answers, [step.id]: value };
+    setAnswers(newAnswers);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    advance(newAnswers);
+  };
+
   const handleMultiToggle = (value: string) => {
     const step = STEPS[currentStep] as MultiStep;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     setMultiSelection(prev => {
       if (value === step.noneValue) {
-        // "None" clears everything else and selects itself
         return prev.includes(value) ? [] : [value];
       }
-      // Any other option deselects "none"
       const withoutNone = prev.filter(v => v !== step.noneValue);
-      if (withoutNone.includes(value)) {
-        return withoutNone.filter(v => v !== value);
-      }
+      if (withoutNone.includes(value)) return withoutNone.filter(v => v !== value);
       return [...withoutNone, value];
     });
   };
@@ -332,7 +414,6 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
     advance(newAnswers);
   };
 
-  // Brand selection
   const handleBrandToggle = (brand: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setBrandSelection(prev =>
@@ -345,7 +426,7 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
     const newAnswers = { ...answers, brand_pref: selection };
     setAnswers(newAnswers);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    animateForward(() => runOnJS(onComplete)(newAnswers as QuizAnswers));
+    animateForward(() => runOnJS(onComplete)(finalizeAnswers(newAnswers)));
   };
 
   const handleBack = () => {
@@ -371,7 +452,6 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Top nav */}
       <View style={styles.nav}>
         <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
           <Text style={styles.backBtnText}>BACK</Text>
@@ -380,7 +460,6 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
         <Text style={styles.navCounter}>{currentStep + 1}/{STEPS.length}</Text>
       </View>
 
-      {/* Progress bar */}
       <View style={styles.progressRow}>
         {STEPS.map((_, i) => (
           <View
@@ -434,6 +513,31 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
             </View>
           )}
 
+          {/* ── TOGGLE (boolean single-select) ────────────────── */}
+          {step.kind === 'toggle' && (
+            <View>
+              {step.options.map((opt, i) => (
+                <View key={i} style={styles.optionWrap}>
+                  <View style={styles.optionShadow} />
+                  <TouchableOpacity
+                    onPress={() => handleToggleAnswer(opt.value)}
+                    activeOpacity={0.85}
+                    style={styles.optionCard}
+                  >
+                    <View style={styles.optionInner}>
+                      <Text style={styles.optionIndex}>{String(i + 1).padStart(2, '0')}</Text>
+                      <View style={styles.optionTextBlock}>
+                        <Text style={styles.optionLabel}>{opt.label}</Text>
+                        {opt.sublabel && <Text style={styles.optionSublabel}>{opt.sublabel}</Text>}
+                      </View>
+                      <Text style={styles.optionArrow}>//</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
           {/* ── MULTI SELECT ──────────────────────────────────── */}
           {step.kind === 'multi' && (
             <View>
@@ -460,7 +564,6 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
                 );
               })}
 
-              {/* Confirm button */}
               <View style={styles.confirmWrap}>
                 <View style={styles.confirmShadow} />
                 <TouchableOpacity onPress={handleMultiConfirm} style={styles.confirmBtn}>
@@ -477,7 +580,6 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
           {/* ── BRAND SELECT ──────────────────────────────────── */}
           {step.kind === 'brand' && (
             <View>
-              {/* "Any brand" quick pick */}
               <View style={styles.anyBrandWrap}>
                 <View style={styles.confirmShadow} />
                 <TouchableOpacity onPress={() => handleBrandConfirm(true)} style={styles.anyBrandBtn}>
@@ -487,7 +589,6 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
 
               <Text style={styles.brandOrDivider}>— or pick your brands —</Text>
 
-              {/* Brand chips */}
               <View style={styles.brandGrid}>
                 {ALL_BRANDS.map(brand => {
                   const selected = brandSelection.includes(brand);
@@ -505,7 +606,6 @@ export const Quiz: React.FC<QuizProps> = ({ onComplete, onBack, beginnerMode = f
                 })}
               </View>
 
-              {/* Confirm selected brands */}
               {brandSelection.length > 0 && (
                 <View style={[styles.confirmWrap, { marginTop: 20 }]}>
                   <View style={styles.confirmShadow} />
@@ -539,237 +639,111 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: '#0A0A0A',
   },
-  backBtn: {
-    paddingVertical: 6,
-  },
+  backBtn: { paddingVertical: 6 },
   backBtnText: {
-    fontFamily: 'SpaceMono',
-    fontSize: 11,
-    color: '#0A0A0A',
-    letterSpacing: 1,
+    fontFamily: 'SpaceMono', fontSize: 11, color: '#0A0A0A', letterSpacing: 1,
   },
   navLabel: {
-    fontFamily: 'SpaceMono',
-    fontSize: 11,
-    color: '#0A0A0A',
-    letterSpacing: 2,
+    fontFamily: 'SpaceMono', fontSize: 11, color: '#0A0A0A', letterSpacing: 2,
   },
   navCounter: {
-    fontFamily: 'SpaceMono',
-    fontSize: 11,
-    color: 'rgba(10,10,10,0.4)',
-    letterSpacing: 1,
+    fontFamily: 'SpaceMono', fontSize: 11, color: 'rgba(10,10,10,0.4)', letterSpacing: 1,
   },
   progressRow: {
-    flexDirection: 'row',
-    gap: 3,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: '#0A0A0A',
+    flexDirection: 'row', gap: 3, paddingHorizontal: 20, paddingVertical: 12,
+    borderBottomWidth: 2, borderBottomColor: '#0A0A0A',
   },
-  progressSegment: {
-    flex: 1,
-    height: 3,
-    backgroundColor: 'rgba(10,10,10,0.15)',
-  },
-  progressSegmentActive: {
-    backgroundColor: '#FF3D00',
-  },
+  progressSegment: { flex: 1, height: 3, backgroundColor: 'rgba(10,10,10,0.15)' },
+  progressSegmentActive: { backgroundColor: '#FF3D00' },
   scroll: { flex: 1 },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 28,
-    paddingBottom: 60,
-  },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 28, paddingBottom: 60 },
   stepNumber: {
-    fontFamily: 'SpaceMono',
-    fontSize: 64,
-    fontWeight: '700',
-    color: 'rgba(10,10,10,0.07)',
-    lineHeight: 64,
-    marginBottom: 6,
+    fontFamily: 'SpaceMono', fontSize: 64, fontWeight: '700',
+    color: 'rgba(10,10,10,0.07)', lineHeight: 64, marginBottom: 6,
   },
   badgeRow: { marginBottom: 8 },
   badge: {
-    fontFamily: 'SpaceMono',
-    fontSize: 9,
-    color: '#FF3D00',
-    letterSpacing: 2,
-    fontWeight: '700',
+    fontFamily: 'SpaceMono', fontSize: 9, color: '#FF3D00',
+    letterSpacing: 2, fontWeight: '700',
   },
   question: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#0A0A0A',
-    lineHeight: 34,
-    marginBottom: 10,
-    letterSpacing: -0.5,
+    fontSize: 28, fontWeight: '900', color: '#0A0A0A',
+    lineHeight: 34, marginBottom: 10, letterSpacing: -0.5,
   },
   subtext: {
-    fontFamily: 'SpaceMono',
-    fontSize: 10,
-    color: 'rgba(10,10,10,0.5)',
-    lineHeight: 17,
-    letterSpacing: 0.2,
+    fontFamily: 'SpaceMono', fontSize: 10, color: 'rgba(10,10,10,0.5)',
+    lineHeight: 17, letterSpacing: 0.2,
   },
-  divider: {
-    height: 2,
-    backgroundColor: '#0A0A0A',
-    marginVertical: 24,
-  },
-  // ── Options (single) ──
-  optionWrap: {
-    marginBottom: 14,
-    position: 'relative',
-  },
+  divider: { height: 2, backgroundColor: '#0A0A0A', marginVertical: 24 },
+  optionWrap: { marginBottom: 14, position: 'relative' },
   optionShadow: {
-    position: 'absolute',
-    top: 5, left: 5, right: -5, bottom: -5,
-    backgroundColor: '#0A0A0A',
-    borderRadius: 2,
+    position: 'absolute', top: 5, left: 5, right: -5, bottom: -5,
+    backgroundColor: '#0A0A0A', borderRadius: 2,
   },
   optionCard: {
-    backgroundColor: '#F4F1EA',
-    borderWidth: 2,
-    borderColor: '#0A0A0A',
-    borderRadius: 2,
-    padding: 18,
+    backgroundColor: '#F4F1EA', borderWidth: 2, borderColor: '#0A0A0A',
+    borderRadius: 2, padding: 18,
   },
-  optionCardSelected: {
-    backgroundColor: '#0A0A0A',
-  },
-  optionInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
+  optionCardSelected: { backgroundColor: '#0A0A0A' },
+  optionInner: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   optionIndex: {
-    fontFamily: 'SpaceMono',
-    fontSize: 12,
-    color: 'rgba(10,10,10,0.3)',
-    letterSpacing: 1,
-    width: 24,
+    fontFamily: 'SpaceMono', fontSize: 12, color: 'rgba(10,10,10,0.3)',
+    letterSpacing: 1, width: 24,
   },
   optionTextBlock: { flex: 1 },
   optionLabel: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0A0A0A',
-    letterSpacing: -0.3,
-    marginBottom: 2,
+    fontSize: 16, fontWeight: '800', color: '#0A0A0A',
+    letterSpacing: -0.3, marginBottom: 2,
   },
   optionLabelSelected: { color: '#F4F1EA' },
   optionSublabel: {
-    fontFamily: 'SpaceMono',
-    fontSize: 10,
-    color: 'rgba(10,10,10,0.5)',
+    fontFamily: 'SpaceMono', fontSize: 10, color: 'rgba(10,10,10,0.5)',
     letterSpacing: 0.2,
   },
   optionSublabelSelected: { color: 'rgba(244,241,234,0.6)' },
-  optionArrow: {
-    fontSize: 18,
-    color: '#0A0A0A',
-    fontWeight: '700',
-  },
-  // ── Multi-select check ──
+  optionArrow: { fontSize: 18, color: '#0A0A0A', fontWeight: '700' },
   multiCheck: {
-    width: 22,
-    height: 22,
-    borderWidth: 2,
-    borderColor: '#0A0A0A',
-    borderRadius: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 22, height: 22, borderWidth: 2, borderColor: '#0A0A0A',
+    borderRadius: 2, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'transparent',
   },
-  multiCheckSelected: {
-    backgroundColor: '#FF3D00',
-    borderColor: '#FF3D00',
-  },
-  multiCheckMark: {
-    color: '#F4F1EA',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  // ── Confirm button ──
-  confirmWrap: {
-    marginTop: 8,
-    position: 'relative',
-  },
+  multiCheckSelected: { backgroundColor: '#FF3D00', borderColor: '#FF3D00' },
+  multiCheckMark: { color: '#F4F1EA', fontSize: 13, fontWeight: '700' },
+  confirmWrap: { marginTop: 8, position: 'relative' },
   confirmShadow: {
-    position: 'absolute',
-    top: 5, left: 5, right: -5, bottom: -5,
-    backgroundColor: '#0A0A0A',
-    borderRadius: 2,
+    position: 'absolute', top: 5, left: 5, right: -5, bottom: -5,
+    backgroundColor: '#0A0A0A', borderRadius: 2,
   },
   confirmBtn: {
-    backgroundColor: '#0A0A0A',
-    borderWidth: 2,
-    borderColor: '#0A0A0A',
-    borderRadius: 2,
-    paddingVertical: 16,
-    alignItems: 'center',
+    backgroundColor: '#0A0A0A', borderWidth: 2, borderColor: '#0A0A0A',
+    borderRadius: 2, paddingVertical: 16, alignItems: 'center',
   },
   confirmText: {
-    fontFamily: 'SpaceMono',
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#F4F1EA',
-    letterSpacing: 1.5,
+    fontFamily: 'SpaceMono', fontSize: 12, fontWeight: '700',
+    color: '#F4F1EA', letterSpacing: 1.5,
   },
-  // ── Brand select ──
-  anyBrandWrap: {
-    position: 'relative',
-    marginBottom: 24,
-  },
+  anyBrandWrap: { position: 'relative', marginBottom: 24 },
   anyBrandBtn: {
-    backgroundColor: '#D4FF00',
-    borderWidth: 2,
-    borderColor: '#0A0A0A',
-    borderRadius: 2,
-    paddingVertical: 18,
-    alignItems: 'center',
+    backgroundColor: '#D4FF00', borderWidth: 2, borderColor: '#0A0A0A',
+    borderRadius: 2, paddingVertical: 18, alignItems: 'center',
   },
   anyBrandText: {
-    fontFamily: 'SpaceMono',
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0A0A0A',
-    letterSpacing: 1.5,
+    fontFamily: 'SpaceMono', fontSize: 13, fontWeight: '700',
+    color: '#0A0A0A', letterSpacing: 1.5,
   },
   brandOrDivider: {
-    fontFamily: 'SpaceMono',
-    fontSize: 10,
-    color: 'rgba(10,10,10,0.4)',
-    textAlign: 'center',
-    letterSpacing: 1,
-    marginBottom: 16,
+    fontFamily: 'SpaceMono', fontSize: 10, color: 'rgba(10,10,10,0.4)',
+    textAlign: 'center', letterSpacing: 1, marginBottom: 16,
   },
-  brandGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
+  brandGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   brandChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderWidth: 2,
-    borderColor: '#0A0A0A',
-    borderRadius: 2,
-    backgroundColor: '#F4F1EA',
+    paddingHorizontal: 14, paddingVertical: 9, borderWidth: 2,
+    borderColor: '#0A0A0A', borderRadius: 2, backgroundColor: '#F4F1EA',
   },
-  brandChipSelected: {
-    backgroundColor: '#0A0A0A',
-  },
+  brandChipSelected: { backgroundColor: '#0A0A0A' },
   brandChipText: {
-    fontFamily: 'SpaceMono',
-    fontSize: 11,
-    color: '#0A0A0A',
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontFamily: 'SpaceMono', fontSize: 11, color: '#0A0A0A',
+    fontWeight: '700', letterSpacing: 0.5,
   },
-  brandChipTextSelected: {
-    color: '#F4F1EA',
-  },
+  brandChipTextSelected: { color: '#F4F1EA' },
 });

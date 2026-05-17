@@ -232,7 +232,7 @@ export async function syncStravaActivities(
         id: `run_strava_${act.id}`,
         shoeId,
         distanceKm: distKm,
-        date: act.start_date,
+        date: act.start_date_local ?? act.start_date,
         terrain,
         purpose,
         durationMinutes: durationMin,
@@ -240,6 +240,7 @@ export async function syncStravaActivities(
         xp_earned: 0,
         source: 'strava',
         external_id: externalId,
+        strava_gear_id: act.gear_id ?? undefined,
       };
 
       // Base XP: 10 per km (capped at 20 km per run to prevent abuse)

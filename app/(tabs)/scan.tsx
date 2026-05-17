@@ -331,7 +331,7 @@ export default function ScanScreen() {
 
   // ── Splash ──────────────────────────────────────────────
   return (
-    <View style={[s.fill, { backgroundColor: INK }]}>
+    <View style={[s.fill, { backgroundColor: PAPER }]}>
       <View style={[s.splashSafe, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 100 }]}>
         <View style={s.splashTop}>
           <Text style={s.splashEyebrow}>// SHOE SCOUT</Text>
@@ -387,22 +387,22 @@ const s = StyleSheet.create({
     fontSize: SCREEN_W < 380 ? 60 : 72,
     lineHeight: SCREEN_W < 380 ? 56 : 68,
     letterSpacing: -3,
-    color: PAPER,
+    color: INK,
     marginBottom: 20,
   },
   splashSub: {
-    fontFamily: MONO, fontSize: 12, color: 'rgba(244,241,234,0.5)',
+    fontFamily: MONO, fontSize: 12, color: 'rgba(10,10,10,0.5)',
     lineHeight: 20, maxWidth: 280,
   },
   splashActions: { gap: 12 },
-  ctaShadow: { position: 'absolute', top: 5, left: 5, right: -5, bottom: -5, backgroundColor: PAPER },
+  ctaShadow: { position: 'absolute', top: 5, left: 5, right: -5, bottom: -5, backgroundColor: INK },
   ctaInner: {
     backgroundColor: ACCENT, paddingHorizontal: 32, paddingVertical: 18,
-    borderWidth: 2, borderColor: PAPER, alignItems: 'center',
+    borderWidth: 2, borderColor: INK, alignItems: 'center',
   },
   ctaText: { fontFamily: MONO, fontSize: 14, fontWeight: '700', letterSpacing: 2, color: PAPER },
-  browseBtn: { paddingVertical: 14, alignItems: 'center', borderWidth: 2, borderColor: 'rgba(244,241,234,0.2)' },
-  browseBtnText: { fontFamily: MONO, fontSize: 10, color: 'rgba(244,241,234,0.5)', letterSpacing: 2 },
+  browseBtn: { paddingVertical: 14, alignItems: 'center', borderWidth: 2, borderColor: 'rgba(10,10,10,0.15)' },
+  browseBtnText: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.5)', letterSpacing: 2 },
 
   // Results
   resultsHeader: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 20 },

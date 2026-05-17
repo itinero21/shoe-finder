@@ -21,7 +21,7 @@ import { SHOES } from '../data/shoes';
 import { getUserLevel } from '../utils/gameEngine';
 import { getDetailedRotationScore } from '../utils/rotationScore';
 import { Run } from '../types/run';
-import { getStravaTokens } from '../services/stravaService';
+import { getStravaTokens, connectStrava, syncStravaActivities } from '../services/stravaService';
 import { getHealthPermStatus } from '../services/healthService';
 import { computeShoeHealth } from '../utils/shoeFatigue';
 import { deriveShoeTag } from '../utils/shoeTags';
@@ -107,6 +107,8 @@ export default function DailyFeedScreen() {
   const [runs, setRuns]                     = useState<Run[]>([]);
   const [favoriteIds, setFavoriteIds]       = useState<string[]>([]);
   const [stravaConnected, setStravaConnected] = useState(false);
+  const [stravaAthleteName, setStravaAthleteName] = useState<string | null>(null);
+  const [stravasSyncing, setStravasSyncing] = useState(false);
   const [healthConnected, setHealthConnected] = useState(false);
   const [signals, setSignals]               = useState<LoadSignal[]>([]);
   const [unseenVerdict, setUnseenVerdict]   = useState<StoredVerdict | null>(null);
@@ -148,6 +150,7 @@ export default function DailyFeedScreen() {
       setRuns(sorted);
       setFavoriteIds(favs);
       setStravaConnected(!!stravaTokens?.access_token);
+      setStravaAthleteName(stravaTokens?.athlete_name ?? null);
       setHealthConnected(healthStatus === 'authorized');
       setDna(dnaSnap);
 
@@ -310,40 +313,74 @@ export default function DailyFeedScreen() {
           )}
         </Animated.View>
 
-        {/* ── Watch connect card ───────────────────────────────────────── */}
+        {/* ── Strava card ──────────────────────────────────────────────── */}
         <Animated.View>
           <TouchableOpacity
-            style={[s.syncCard, (!stravaConnected && !healthConnected) && s.syncCardCTA]}
+            style={[s.syncCard, !stravaConnected && s.syncCardCTA]}
+            onPress={async () => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              if (stravaConnected) {
+                setStravasSyncing(true);
+                await syncStravaActivities({}).catch(() => {});
+                setStravasSyncing(false);
+              } else {
+                const tokens = await connectStrava();
+                if (tokens) {
+                  setStravaConnected(true);
+                  setStravaAthleteName(tokens.athlete_name ?? null);
+                }
+              }
+            }}
+            activeOpacity={0.85}
+          >
+            <View style={s.syncCardLeft}>
+              {stravaConnected ? (
+                <>
+                  <Text style={[s.syncCardTitle, { color: INK }]}>STRAVA</Text>
+                  <View style={s.syncDots}>
+                    <View style={s.syncDot}>
+                      <View style={[s.syncDotDot, { backgroundColor: '#FC4C02' }]} />
+                      <Text style={s.syncDotLabel}>{stravasSyncing ? 'SYNCING…' : (stravaAthleteName ?? 'CONNECTED')}</Text>
+                    </View>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Text style={s.syncCardTitle}>CONNECT STRAVA</Text>
+                  <Text style={s.syncCardSub}>Import runs automatically</Text>
+                </>
+              )}
+            </View>
+            <Ionicons name={stravaConnected ? 'sync-outline' : 'trending-up-outline'} size={20} color={stravaConnected ? INK : PAPER} />
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* ── Apple Watch / Garmin card ─────────────────────────────────── */}
+        <Animated.View>
+          <TouchableOpacity
+            style={[s.syncCard, !healthConnected && s.syncCardCTA]}
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowWatches(true); }}
             activeOpacity={0.85}
           >
             <View style={s.syncCardLeft}>
-              {(!stravaConnected && !healthConnected) ? (
+              {!healthConnected ? (
                 <>
-                  <Text style={s.syncCardTitle}>CONNECT YOUR WATCHES</Text>
-                  <Text style={s.syncCardSub}>Apple Watch · Garmin · Strava</Text>
+                  <Text style={s.syncCardTitle}>APPLE WATCH / GARMIN</Text>
+                  <Text style={s.syncCardSub}>Sync workouts automatically</Text>
                 </>
               ) : (
                 <>
-                  <Text style={[s.syncCardTitle, { color: INK }]}>YOUR WATCHES</Text>
+                  <Text style={[s.syncCardTitle, { color: INK }]}>APPLE WATCH / GARMIN</Text>
                   <View style={s.syncDots}>
-                    {healthConnected && (
-                      <View style={s.syncDot}>
-                        <View style={[s.syncDotDot, { backgroundColor: '#FF2D55' }]} />
-                        <Text style={s.syncDotLabel}>HEALTH</Text>
-                      </View>
-                    )}
-                    {stravaConnected && (
-                      <View style={s.syncDot}>
-                        <View style={[s.syncDotDot, { backgroundColor: '#FC4C02' }]} />
-                        <Text style={s.syncDotLabel}>STRAVA</Text>
-                      </View>
-                    )}
+                    <View style={s.syncDot}>
+                      <View style={[s.syncDotDot, { backgroundColor: '#FF2D55' }]} />
+                      <Text style={s.syncDotLabel}>HEALTH</Text>
+                    </View>
                   </View>
                 </>
               )}
             </View>
-            <Ionicons name={(!stravaConnected && !healthConnected) ? 'watch-outline' : 'sync-outline'} size={20} color={(!stravaConnected && !healthConnected) ? PAPER : INK} />
+            <Ionicons name={!healthConnected ? 'watch-outline' : 'sync-outline'} size={20} color={!healthConnected ? PAPER : INK} />
           </TouchableOpacity>
         </Animated.View>
 
