@@ -1,11 +1,12 @@
 -- ============================================================
 -- STRIDE — Schema v3: Complete Data Coverage
--- Run this in the Supabase SQL Editor AFTER schema_v2.sql
---
--- Safe to re-run: uses IF NOT EXISTS / exception handlers.
+-- Run each numbered section separately in the Supabase SQL Editor.
 -- ============================================================
 
--- ── 1. user_profiles — add missing columns ───────────────────
+
+-- ████ SECTION 1: Add missing columns ████
+-- Run this first.
+
 do $$ begin
   begin alter table public.user_profiles add column weight_lbs numeric not null default 160;
   exception when duplicate_column then null; end;
@@ -13,7 +14,6 @@ do $$ begin
   exception when duplicate_column then null; end;
 end $$;
 
--- ── 2. runs — add missing columns ───────────────────────────
 do $$ begin
   begin alter table public.runs add column strava_gear_id text;
   exception when duplicate_column then null; end;
@@ -23,7 +23,6 @@ do $$ begin
   exception when duplicate_column then null; end;
 end $$;
 
--- ── 3. obituaries — expand to full ShoeObituary fields ──────
 do $$ begin
   begin alter table public.obituaries add column brand text;
   exception when duplicate_column then null; end;
@@ -51,12 +50,14 @@ do $$ begin
   alter table public.obituaries add constraint obituaries_user_shoe unique (user_id, shoe_id);
 exception when duplicate_object then null; end $$;
 
--- Drop + recreate policies (idempotent)
-drop policy if exists "Users update own obituaries" on public.obituaries;
-create policy "Users update own obituaries"
-  on public.obituaries for update using (auth.uid() = user_id);
+create index if not exists runs_external_id on public.runs(external_id) where external_id is not null;
+create index if not exists runs_coordinates on public.runs(user_id) where coordinates is not null;
+create index if not exists obituaries_user_id on public.obituaries(user_id);
 
--- ── 4. shoe_choices — leaderboard / popularity tracking ──────
+
+-- ████ SECTION 2: shoe_choices table ████
+-- Run this second.
+
 create table if not exists public.shoe_choices (
   user_id    uuid   not null references auth.users(id) on delete cascade,
   shoe_id    text   not null,
@@ -67,6 +68,12 @@ create table if not exists public.shoe_choices (
 alter table public.shoe_choices enable row level security;
 alter table public.shoe_choices force row level security;
 
+create index if not exists shoe_choices_shoe on public.shoe_choices(shoe_id);
+
+
+-- ████ SECTION 3: shoe_choices policies ████
+-- Run this third.
+
 drop policy if exists "Users read all shoe choices" on public.shoe_choices;
 create policy "Users read all shoe choices"
   on public.shoe_choices for select using (true);
@@ -75,11 +82,14 @@ drop policy if exists "Users insert own shoe choices" on public.shoe_choices;
 create policy "Users insert own shoe choices"
   on public.shoe_choices for insert with check (auth.uid() = user_id);
 
--- Aggregate view for leaderboard counts
--- Drop whichever type exists (could be a regular view from a prior migration)
-drop view if exists public.shoe_choices_aggregate;
-drop materialized view if exists public.shoe_choices_aggregate;
-create materialized view public.shoe_choices_aggregate as
+
+-- ████ SECTION 4: shoe_choices_aggregate view ████
+-- Run this fourth.
+
+drop view if exists public.shoe_choices_aggregate cascade;
+drop materialized view if exists public.shoe_choices_aggregate cascade;
+
+create view public.shoe_choices_aggregate as
   select shoe_id, count(distinct user_id)::integer as user_count
   from public.shoe_choices
   group by shoe_id
@@ -87,7 +97,10 @@ create materialized view public.shoe_choices_aggregate as
 
 grant select on public.shoe_choices_aggregate to authenticated;
 
--- ── 5. run_paths — DRIFT territory GPS traces ───────────────
+
+-- ████ SECTION 5: run_paths table ████
+-- Run this fifth.
+
 create table if not exists public.run_paths (
   id           text        primary key,
   user_id      uuid        not null references auth.users(id) on delete cascade,
@@ -104,6 +117,12 @@ create table if not exists public.run_paths (
 alter table public.run_paths enable row level security;
 alter table public.run_paths force row level security;
 
+create index if not exists paths_user_id on public.run_paths(user_id);
+
+
+-- ████ SECTION 6: run_paths policies ████
+-- Run this sixth.
+
 drop policy if exists "Users read own paths" on public.run_paths;
 create policy "Users read own paths"
   on public.run_paths for select using (auth.uid() = user_id);
@@ -116,7 +135,10 @@ drop policy if exists "Users update own paths" on public.run_paths;
 create policy "Users update own paths"
   on public.run_paths for update using (auth.uid() = user_id);
 
--- ── 6. territory_cities — DRIFT city data ───────────────────
+
+-- ████ SECTION 7: territory_cities table ████
+-- Run this seventh.
+
 create table if not exists public.territory_cities (
   id                  text primary key,
   name                text not null,
@@ -132,6 +154,10 @@ create table if not exists public.territory_cities (
 alter table public.territory_cities enable row level security;
 alter table public.territory_cities force row level security;
 
+
+-- ████ SECTION 8: territory_cities policies ████
+-- Run this eighth.
+
 drop policy if exists "Anyone can read cities" on public.territory_cities;
 create policy "Anyone can read cities"
   on public.territory_cities for select using (true);
@@ -144,19 +170,10 @@ drop policy if exists "Authenticated users can update cities" on public.territor
 create policy "Authenticated users can update cities"
   on public.territory_cities for update using (auth.uid() is not null);
 
--- ── 7. Indexes for performance ───────────────────────────────
-create index if not exists runs_external_id on public.runs(external_id) where external_id is not null;
-create index if not exists runs_coordinates on public.runs(user_id) where coordinates is not null;
-create index if not exists paths_user_id on public.run_paths(user_id);
-create index if not exists obituaries_user_id on public.obituaries(user_id);
-create index if not exists shoe_choices_shoe on public.shoe_choices(shoe_id);
 
--- ── 8. Refresh function for materialized view ───────────────
-create or replace function public.refresh_shoe_choices_aggregate()
-returns void language plpgsql security definer as $$
-begin
-  refresh materialized view concurrently public.shoe_choices_aggregate;
-exception when others then
-  refresh materialized view public.shoe_choices_aggregate;
-end;
-$$;
+-- ████ SECTION 9: obituaries update policy ████
+-- Run this last.
+
+drop policy if exists "Users update own obituaries" on public.obituaries;
+create policy "Users update own obituaries"
+  on public.obituaries for update using (auth.uid() = user_id);
