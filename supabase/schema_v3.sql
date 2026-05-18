@@ -61,8 +61,8 @@ exception when duplicate_object then null; end $$;
 
 -- Allow users to update their own obituaries (for editing epitaphs)
 do $$ begin
-  create policy "Users update own obituaries"
-    on public.obituaries for update using (auth.uid() = user_id);
+  execute 'create policy "Users update own obituaries"
+    on public.obituaries for update using (auth.uid() = user_id)';
 exception when duplicate_object then null; end $$;
 
 -- ── 4. shoe_choices — leaderboard / popularity tracking ──────
@@ -77,13 +77,13 @@ alter table public.shoe_choices enable row level security;
 alter table public.shoe_choices force row level security;
 
 do $$ begin
-  create policy "Users read all shoe choices"
-    on public.shoe_choices for select using (true);
+  execute 'create policy "Users read all shoe choices"
+    on public.shoe_choices for select using (true)';
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create policy "Users insert own shoe choices"
-    on public.shoe_choices for insert with check (auth.uid() = user_id);
+  execute 'create policy "Users insert own shoe choices"
+    on public.shoe_choices for insert with check (auth.uid() = user_id)';
 exception when duplicate_object then null; end $$;
 
 -- Materialized view for aggregate counts (used by leaderboard)
@@ -114,18 +114,18 @@ alter table public.run_paths enable row level security;
 alter table public.run_paths force row level security;
 
 do $$ begin
-  create policy "Users read own paths"
-    on public.run_paths for select using (auth.uid() = user_id);
+  execute 'create policy "Users read own paths"
+    on public.run_paths for select using (auth.uid() = user_id)';
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create policy "Users insert own paths"
-    on public.run_paths for insert with check (auth.uid() = user_id);
+  execute 'create policy "Users insert own paths"
+    on public.run_paths for insert with check (auth.uid() = user_id)';
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create policy "Users update own paths"
-    on public.run_paths for update using (auth.uid() = user_id);
+  execute 'create policy "Users update own paths"
+    on public.run_paths for update using (auth.uid() = user_id)';
 exception when duplicate_object then null; end $$;
 
 -- ── 6. territory_cities — DRIFT city data ───────────────────
@@ -146,18 +146,18 @@ alter table public.territory_cities force row level security;
 
 -- Cities are publicly readable (for map display) but only insertable/updatable by authenticated
 do $$ begin
-  create policy "Anyone can read cities"
-    on public.territory_cities for select using (true);
+  execute 'create policy "Anyone can read cities"
+    on public.territory_cities for select using (true)';
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create policy "Authenticated users can insert cities"
-    on public.territory_cities for insert with check (auth.uid() is not null);
+  execute 'create policy "Authenticated users can insert cities"
+    on public.territory_cities for insert with check (auth.uid() is not null)';
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create policy "Authenticated users can update cities"
-    on public.territory_cities for update using (auth.uid() is not null);
+  execute 'create policy "Authenticated users can update cities"
+    on public.territory_cities for update using (auth.uid() is not null)';
 exception when duplicate_object then null; end $$;
 
 -- ── 7. Indexes for performance ───────────────────────────────
