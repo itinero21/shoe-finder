@@ -28,9 +28,10 @@ import MapView, { Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import {
   startRunTracking, stopRunTracking, traceDistanceKm,
   getLocationPermStatus, requestLocationPermission, getCurrentCoordinate,
+  hasBackgroundPermission, requestBackgroundPermission, getTrackingSnapshot,
 } from '../app/services/locationService';
 import { saveRun } from '../app/utils/runStorage';
-import { addMiles, addXP } from '../app/utils/userProfile';
+import { addMiles, addXP, getUserProfile } from '../app/utils/userProfile';
 import { updateTerritoryAfterRun } from '../app/utils/driftEngine';
 import { getFavorites } from '../app/utils/storage';
 import { getStravaTokens, uploadRunToStrava, StravaTokens } from '../app/services/stravaService';
@@ -39,6 +40,7 @@ import { getWatchStatus } from '../app/services/watchService';
 import { SHOES } from '../app/data/shoes';
 import { Run, RunTerrain, RunPurpose } from '../app/types/run';
 import { Coordinate } from '../app/types/territory';
+import { calcMatchQuality, calcXP } from '../app/utils/matchQuality';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -285,14 +287,12 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
       elapsedRef.current += 1;
       setElapsed(elapsedRef.current);
 
-      // Flush GPS buffer every 5 seconds
+      // Update map from GPS buffer every 5 seconds (non-destructive read)
       if (elapsedRef.current % 5 === 0) {
-        const chunk = await stopRunTracking();
-        await startRunTracking();
+        const snapshot = await getTrackingSnapshot();
 
-        setTrace(prev => {
-          const merged = [...prev, ...chunk];
-          const km = traceDistanceKm(merged);
+        setTrace(() => {
+          const km = traceDistanceKm(snapshot);
           setDistanceKm(km);
 
           // Mile split detection
@@ -307,7 +307,7 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
             prevSecsRef.current  = elapsedRef.current;
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
-          return merged;
+          return snapshot;
         });
       }
     }, 1000);
@@ -328,6 +328,13 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
         return;
       }
       setGpsGranted(true);
+    }
+
+    // Request background permission so GPS works when phone is locked
+    const hasBg = await hasBackgroundPermission();
+    if (!hasBg) {
+      await requestBackgroundPermission();
+      // If denied, we still continue — foreground tracking will be used as fallback
     }
 
     // Get starting location for map center
@@ -390,8 +397,20 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
     setSaving(true);
 
     try {
-      const xpEarned   = Math.round(Math.min(distanceKm, 20) * 10);
-      const runId      = `run_live_${Date.now()}`;
+      // Calculate real match quality + XP with multiplier
+      const shoe = SHOES.find(s => s.id === selectedShoe);
+      const profile = await getUserProfile();
+      const isBeginnerMode = profile.is_beginner_mode ?? false;
+      const mq = shoe ? calcMatchQuality(shoe, terrain, purpose, distanceKm) : 'neutral';
+      const xpEarned = calcXP(distanceKm, mq, isBeginnerMode);
+
+      // Roster bonus: non-roster shoes earn 50% XP
+      const inRoster = profile.weekly_roster?.includes(selectedShoe);
+      const finalXP = inRoster || profile.weekly_roster.length === 0
+        ? xpEarned
+        : Math.floor(xpEarned * 0.5);
+
+      const runId = `run_live_${Date.now()}`;
       const run: Run = {
         id:              runId,
         shoeId:          selectedShoe,
@@ -402,8 +421,8 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
         feel,
         notes:           notes.trim() || undefined,
         durationMinutes: Math.round(elapsed / 60),
-        match_quality:   'neutral',
-        xp_earned:       xpEarned,
+        match_quality:   mq,
+        xp_earned:       finalXP,
         source:          'manual',
         coordinates:     trace.length >= 5 ? trace : undefined,
       };
@@ -411,7 +430,7 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
       // 1. Save locally + to Supabase
       await saveRun(run);
       await addMiles(distanceKm * 0.621371);
-      await addXP(xpEarned);
+      await addXP(finalXP);
 
       // 2. DRIFT territory update (fire-and-forget)
       if (trace.length >= 5) {

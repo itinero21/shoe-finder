@@ -210,7 +210,7 @@ export async function unlockAchievement(id: string): Promise<boolean> {
 
 export async function setWeeklyRoster(shoeIds: string[]): Promise<void> {
   const profile = await getUserProfile();
-  // Check if new week
+  // Check if new week — reset lock
   const thisSunday = getThisSunday();
   if (profile.week_starting !== thisSunday) {
     profile.week_starting = thisSunday;
@@ -218,6 +218,10 @@ export async function setWeeklyRoster(shoeIds: string[]): Promise<void> {
   }
   if (!profile.weekly_roster_locked) {
     profile.weekly_roster = shoeIds.slice(0, 3);
+    // Lock the roster once 3 shoes are selected
+    if (shoeIds.length === 3) {
+      profile.weekly_roster_locked = true;
+    }
     await saveUserProfile(profile);
   }
 }

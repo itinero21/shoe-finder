@@ -111,17 +111,18 @@ const CharacterCard: React.FC<{
           {/* Big stat grid */}
           <View style={cc.statGrid}>
             {[
-              { label: 'SPEED',     val: stats.speed,     color: '#FF3D00' },
-              { label: 'ENDURANCE', val: stats.endurance, color: '#2563EB' },
-              { label: 'GRIP',      val: stats.grip,      color: '#16A34A' },
-              { label: 'COMFORT',   val: stats.comfort,   color: '#7C3AED' },
-            ].map(({ label, val, color }) => (
+              { label: 'SPEED',     val: stats.speed,     color: '#FF3D00', desc: 'Fast & energy return' },
+              { label: 'ENDURANCE', val: stats.endurance, color: '#2563EB', desc: 'Cushion for long runs' },
+              { label: 'GRIP',      val: stats.grip,      color: '#16A34A', desc: 'Traction & stability' },
+              { label: 'COMFORT',   val: stats.comfort,   color: '#7C3AED', desc: 'Softness & fit' },
+            ].map(({ label, val, color, desc }) => (
               <View key={label} style={cc.statCell}>
                 <Text style={[cc.statNum, { color }]}>{val}</Text>
                 <Text style={cc.statLabel}>{label}</Text>
                 <View style={cc.miniBar}>
                   <View style={[cc.miniBarFill, { width: `${val * 10}%` as any, backgroundColor: color }]} />
                 </View>
+                <Text style={cc.statDesc}>{desc}</Text>
               </View>
             ))}
           </View>
@@ -151,10 +152,11 @@ const cc = StyleSheet.create({
   model: { fontSize: 20, fontWeight: '900', color: INK, letterSpacing: -0.5, marginBottom: 16 },
   statGrid: { flexDirection: 'row', gap: 8 },
   statCell: { flex: 1, alignItems: 'center', gap: 4 },
-  statNum: { fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
+  statNum: { fontSize: 30, fontWeight: '900', letterSpacing: -0.5 },
   statLabel: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.4)', letterSpacing: 1 },
   miniBar: { width: '100%', height: 4, backgroundColor: 'rgba(10,10,10,0.08)', borderRadius: 1, overflow: 'hidden' },
   miniBarFill: { height: '100%', borderRadius: 1 },
+  statDesc: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.35)', letterSpacing: 0.5, textAlign: 'center', marginTop: 1 },
   weekXP: { marginTop: 14, backgroundColor: LIME, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 2, alignSelf: 'flex-start' },
   weekXPText: { fontFamily: MONO, fontSize: 9, fontWeight: '700', color: INK, letterSpacing: 1.5 },
 });
@@ -312,11 +314,32 @@ export default function ShoeWarsScreen() {
 
           {/* Intro */}
           <View style={g.introCard}>
-            <Text style={g.introEyebrow}>// SHOE WARS</Text>
-            <Text style={g.introTitle}>Your shoes are{'\n'}characters.</Text>
+            <Text style={g.introEyebrow}>// SHOE WARS — THE GAME</Text>
+            <Text style={g.introTitle}>Your shoes are{'\n'}characters.{'\n'}Running is the game.</Text>
             <Text style={g.introBody}>
-              Every shoe in your Arsenal has stats derived from its real biomechanics. Log runs. Earn XP. Level up. The better you match shoe to run, the more XP you earn.
+              Every shoe in your Arsenal has stats based on its real specs — not made up. Log runs, match shoe to terrain, and earn XP. The better the match, the bigger the multiplier.
             </Text>
+            {/* Game loop visual */}
+            <View style={g.loopRow}>
+              {[
+                { emoji: '👟', label: 'ADD\nSHOES' },
+                { emoji: '→', label: '', arrow: true },
+                { emoji: '🏃', label: 'LOG\nRUNS' },
+                { emoji: '→', label: '', arrow: true },
+                { emoji: '⚡', label: 'EARN\nXP' },
+                { emoji: '→', label: '', arrow: true },
+                { emoji: '👑', label: 'LEVEL\nUP' },
+              ].map((item, i) =>
+                (item as any).arrow ? (
+                  <Text key={i} style={g.loopArrow}>→</Text>
+                ) : (
+                  <View key={i} style={g.loopStep}>
+                    <Text style={g.loopEmoji}>{item.emoji}</Text>
+                    <Text style={g.loopLabel}>{item.label}</Text>
+                  </View>
+                )
+              )}
+            </View>
           </View>
 
           {/* Step 1 — Build Arsenal */}
@@ -340,18 +363,21 @@ export default function ShoeWarsScreen() {
               <Text style={g.stepTitle}>UNDERSTAND THE STATS</Text>
             </View>
             <Text style={g.stepBody}>Stats are calculated from the shoe's real specs — not made up. A carbon racer will always have high SPEED. A max-cushion shoe will always have high COMFORT.</Text>
-            <View style={g.statTable}>
+            {/* Visual stat grid */}
+            <View style={g.statGrid}>
               {[
-                { stat: 'SPEED',     color: ACCENT,    desc: 'Energy return + low weight + carbon plate. High on racers and speed trainers.' },
-                { stat: 'ENDURANCE', color: '#2563EB', desc: 'Cushioning level + stack height. High on max-cushion and long-run shoes.' },
-                { stat: 'GRIP',      color: '#16A34A', desc: 'Traction + trail use cases. High on trail shoes and stability platforms.' },
-                { stat: 'COMFORT',   color: '#7C3AED', desc: 'Upper softness + rocker + wide base. High on daily trainers and walking shoes.' },
-              ].map(({ stat, color, desc }) => (
-                <View key={stat} style={g.statRow}>
-                  <View style={[g.statTag, { backgroundColor: color }]}>
+                { stat: 'SPEED',     color: ACCENT,    emoji: '⚡', score: '9', example: 'Nike Vaporfly, Adidas Adizero' },
+                { stat: 'ENDURANCE', color: '#2563EB', emoji: '🏔️', score: '9', example: 'Hoka Bondi, ASICS Nimbus' },
+                { stat: 'GRIP',      color: '#16A34A', emoji: '🦎', score: '9', example: 'Salomon Speedcross, Brooks Cascadia' },
+                { stat: 'COMFORT',   color: '#7C3AED', emoji: '☁️', score: '9', example: 'New Balance 1080, Brooks Ghost' },
+              ].map(({ stat, color, emoji, score, example }) => (
+                <View key={stat} style={[g.statCard, { borderTopColor: color }]}>
+                  <Text style={g.statCardEmoji}>{emoji}</Text>
+                  <View style={[g.statCardTag, { backgroundColor: color }]}>
                     <Text style={g.statTagText}>{stat}</Text>
                   </View>
-                  <Text style={g.statDesc}>{desc}</Text>
+                  <Text style={[g.statCardScore, { color }]}>{score}/10</Text>
+                  <Text style={g.statCardEx}>{example}</Text>
                 </View>
               ))}
             </View>
@@ -363,23 +389,38 @@ export default function ShoeWarsScreen() {
               <View style={g.stepNum}><Text style={g.stepNumText}>03</Text></View>
               <Text style={g.stepTitle}>TIERS EXPLAINED</Text>
             </View>
-            <Text style={g.stepBody}>Every shoe is ranked by its overall score (average of all 4 stats). Higher tier = rarer and more powerful character.</Text>
+            <Text style={g.stepBody}>Every shoe is ranked by its overall score — average of all 4 stats. Higher tier = rarer and more powerful character.</Text>
+
+            {/* Visual tier progression */}
+            <View style={g.tierVisualRow}>
+              {[
+                { tier: 'COMMON',    color: '#6B7280', score: '0–4', emoji: '⬜' },
+                { tier: 'UNCOMMON',  color: '#16A34A', score: '5',   emoji: '🟩' },
+                { tier: 'RARE',      color: '#2563EB', score: '6–7', emoji: '🟦' },
+                { tier: 'EPIC',      color: '#7C3AED', score: '8',   emoji: '🟣' },
+                { tier: 'LEGENDARY', color: ACCENT,    score: '9–10',emoji: '🔴' },
+              ].map(({ tier, color, score, emoji }, i, arr) => (
+                <View key={tier} style={[g.tierBlock, { backgroundColor: color, flex: i === 4 ? 1.4 : 1 }]}>
+                  <Text style={g.tierBlockEmoji}>{emoji}</Text>
+                  <Text style={g.tierBlockName}>{tier}</Text>
+                  <Text style={g.tierBlockScore}>{score}/10</Text>
+                </View>
+              ))}
+            </View>
+
             <View style={g.tierTable}>
               {[
-                { tier: 'COMMON',    color: '#6B7280', range: '0–4',  desc: 'Entry-level trainers. Forgiving and reliable.' },
-                { tier: 'UNCOMMON',  color: '#16A34A', range: '5',    desc: 'Solid daily shoes. Good all-round stats.' },
-                { tier: 'RARE',      color: '#2563EB', range: '6–7',  desc: 'Performance trainers. Specialist stats.' },
-                { tier: 'EPIC',      color: '#7C3AED', range: '8',    desc: 'Super trainers and max-cushion kings.' },
-                { tier: 'LEGENDARY', color: ACCENT,    range: '9–10', desc: 'Carbon racers. High SPEED, low ENDURANCE.' },
-              ].map(({ tier, color, range, desc }) => (
+                { tier: 'COMMON',    color: '#6B7280', desc: 'Entry-level daily trainers. Forgiving, reliable.' },
+                { tier: 'UNCOMMON',  color: '#16A34A', desc: 'Solid all-rounders. Good across all stats.' },
+                { tier: 'RARE',      color: '#2563EB', desc: 'Performance trainers. Specialist high stats.' },
+                { tier: 'EPIC',      color: '#7C3AED', desc: 'Super trainers and max-cushion kings.' },
+                { tier: 'LEGENDARY', color: ACCENT,    desc: 'Carbon racers. Extreme SPEED. Handle with care.' },
+              ].map(({ tier, color, desc }) => (
                 <View key={tier} style={g.tierRow}>
                   <View style={[g.tierBadge, { backgroundColor: color }]}>
                     <Text style={g.tierBadgeText}>{tier}</Text>
                   </View>
-                  <View style={g.tierRight}>
-                    <Text style={g.tierRange}>OVERALL {range}/10</Text>
-                    <Text style={g.tierDesc}>{desc}</Text>
-                  </View>
+                  <Text style={g.tierDesc}>{desc}</Text>
                 </View>
               ))}
             </View>
@@ -412,18 +453,24 @@ export default function ShoeWarsScreen() {
             </Text>
             <View style={g.mqTable}>
               {[
-                { mq: 'PERFECT',  color: '#16A34A', mult: '×2.0', example: 'Carbon racer on a race day road run' },
-                { mq: 'GOOD',     color: '#2563EB', mult: '×1.5', example: 'Daily trainer on an easy trail' },
-                { mq: 'NEUTRAL',  color: '#6B7280', mult: '×1.0', example: 'Stability shoe on a tempo run' },
-                { mq: 'POOR',     color: '#D97706', mult: '×0.5', example: 'Trail shoe used on a track session' },
-                { mq: 'ABUSE',    color: ACCENT,    mult: '×0.25', example: 'Racing flat used for a recovery jog' },
-              ].map(({ mq, color, mult, example }) => (
-                <View key={mq} style={g.mqRow}>
-                  <View style={[g.mqBadge, { borderColor: color }]}>
-                    <Text style={[g.mqBadgeText, { color }]}>{mq}</Text>
+                { mq: 'PERFECT',  color: '#16A34A', mult: '×2.0', example: 'Right shoe, right terrain, right distance', icon: '🟢' },
+                { mq: 'GOOD',     color: '#2563EB', mult: '×1.5', example: 'Close match — minor mismatch only', icon: '🔵' },
+                { mq: 'NEUTRAL',  color: '#6B7280', mult: '×1.0', example: 'Acceptable but not ideal pairing', icon: '⚪' },
+                { mq: 'POOR',     color: '#D97706', mult: '×0.5', example: 'Wrong shoe type for this run', icon: '🟡' },
+                { mq: 'ABUSE',    color: ACCENT,    mult: '×0.25', example: 'Racing flat on a recovery jog', icon: '🔴' },
+              ].map(({ mq, color, mult, example, icon }) => (
+                <View key={mq} style={[g.mqCard, { borderLeftColor: color }]}>
+                  <View style={g.mqCardLeft}>
+                    <Text style={[g.mqMultBig, { color }]}>{mult}</Text>
+                    <Text style={g.mqMultLabel}>XP MULT</Text>
                   </View>
-                  <View style={g.mqRight}>
-                    <Text style={[g.mqMult, { color }]}>{mult} XP</Text>
+                  <View style={g.mqCardRight}>
+                    <View style={g.mqCardHeader}>
+                      <Text style={g.mqCardIcon}>{icon}</Text>
+                      <View style={[g.mqBadge, { borderColor: color }]}>
+                        <Text style={[g.mqBadgeText, { color }]}>{mq}</Text>
+                      </View>
+                    </View>
                     <Text style={g.mqExample}>{example}</Text>
                   </View>
                 </View>
@@ -714,41 +761,64 @@ const s = StyleSheet.create({
 const g = StyleSheet.create({
   introCard: { marginHorizontal: 16, marginBottom: 20, backgroundColor: INK, padding: 20, borderRadius: 2 },
   introEyebrow: { fontFamily: MONO, fontSize: 9, color: ACCENT, letterSpacing: 2, marginBottom: 8 },
-  introTitle: { fontSize: 28, fontWeight: '900', color: PAPER, letterSpacing: -1, lineHeight: 30, marginBottom: 12 },
-  introBody: { fontFamily: MONO, fontSize: 11, color: 'rgba(244,241,234,0.65)', lineHeight: 19 },
+  introTitle: { fontSize: 32, fontWeight: '900', color: PAPER, letterSpacing: -1, lineHeight: 34, marginBottom: 12 },
+  introBody: { fontFamily: MONO, fontSize: 11, color: 'rgba(244,241,234,0.65)', lineHeight: 19, marginBottom: 20 },
+  loopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(244,241,234,0.06)', borderRadius: 2, padding: 12 },
+  loopStep: { alignItems: 'center', gap: 4 },
+  loopEmoji: { fontSize: 22 },
+  loopLabel: { fontFamily: MONO, fontSize: 7, color: 'rgba(244,241,234,0.55)', letterSpacing: 0.5, textAlign: 'center', lineHeight: 11 },
+  loopArrow: { fontSize: 14, color: 'rgba(244,241,234,0.25)', marginBottom: 14 },
 
   stepCard: { marginHorizontal: 16, marginBottom: 16, borderWidth: 2, borderColor: INK, borderRadius: 2, padding: 18 },
-  stepHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  stepNum: { width: 32, height: 32, backgroundColor: INK, borderRadius: 2, alignItems: 'center', justifyContent: 'center' },
-  stepNumText: { fontFamily: MONO, fontSize: 11, fontWeight: '700', color: LIME },
-  stepTitle: { fontFamily: MONO, fontSize: 11, fontWeight: '700', color: INK, letterSpacing: 1, flex: 1 },
-  stepBody: { fontSize: 13, color: 'rgba(10,10,10,0.7)', lineHeight: 21, marginBottom: 14 },
+  stepHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  stepNum: { width: 38, height: 38, backgroundColor: INK, borderRadius: 2, alignItems: 'center', justifyContent: 'center' },
+  stepNumText: { fontFamily: MONO, fontSize: 13, fontWeight: '700', color: LIME },
+  stepTitle: { fontSize: 16, fontWeight: '900', color: INK, letterSpacing: -0.3, flex: 1 },
+  stepBody: { fontSize: 14, color: 'rgba(10,10,10,0.7)', lineHeight: 22, marginBottom: 14 },
 
   callout: { backgroundColor: 'rgba(10,10,10,0.06)', padding: 12, borderRadius: 2, borderLeftWidth: 3, borderLeftColor: ACCENT },
   calloutText: { fontFamily: MONO, fontSize: 9, color: INK, lineHeight: 15, letterSpacing: 0.3 },
 
+  statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  statCard: { width: '47%', borderWidth: 1.5, borderColor: 'rgba(10,10,10,0.12)', borderTopWidth: 4, borderRadius: 2, padding: 10, gap: 5 },
+  statCardEmoji: { fontSize: 22 },
+  statCardTag: { paddingHorizontal: 6, paddingVertical: 3, borderRadius: 2, alignSelf: 'flex-start' },
+  statTagText: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: PAPER, letterSpacing: 1.5 },
+  statCardScore: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+  statCardEx: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.45)', lineHeight: 13 },
   statTable: { gap: 10 },
   statRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   statTag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 2, minWidth: 80, alignItems: 'center' },
-  statTagText: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: PAPER, letterSpacing: 1.5 },
   statDesc: { flex: 1, fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.6)', lineHeight: 15 },
 
-  tierTable: { gap: 10 },
+  tierVisualRow: { flexDirection: 'row', gap: 4, marginBottom: 16, height: 72 },
+  tierBlock: { borderRadius: 3, alignItems: 'center', justifyContent: 'center', gap: 2, padding: 4 },
+  tierBlockEmoji: { fontSize: 14 },
+  tierBlockName: { fontFamily: MONO, fontSize: 6, fontWeight: '700', color: 'rgba(255,255,255,0.9)', letterSpacing: 0.5, textAlign: 'center' },
+  tierBlockScore: { fontFamily: MONO, fontSize: 9, fontWeight: '900', color: '#fff', textAlign: 'center' },
+  tierTable: { gap: 8 },
   tierRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  tierBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 2, minWidth: 80, alignItems: 'center' },
-  tierBadgeText: { fontFamily: MONO, fontSize: 7, fontWeight: '700', color: PAPER, letterSpacing: 1.5 },
+  tierBadge: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 2, minWidth: 82, alignItems: 'center' },
+  tierBadgeText: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: PAPER, letterSpacing: 1.5 },
   tierRight: { flex: 1 },
   tierRange: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.4)', letterSpacing: 1, marginBottom: 2 },
-  tierDesc: { fontFamily: MONO, fontSize: 9, color: INK, lineHeight: 14 },
+  tierDesc: { flex: 1, fontFamily: MONO, fontSize: 9, color: INK, lineHeight: 14 },
 
   ruleList: { gap: 8 },
   ruleItem: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   ruleDot: { fontFamily: MONO, fontSize: 11, color: 'rgba(10,10,10,0.35)', marginTop: 1 },
   ruleText: { flex: 1, fontFamily: MONO, fontSize: 10, color: INK, lineHeight: 16 },
 
-  mqTable: { gap: 10, marginBottom: 14 },
+  mqTable: { gap: 8, marginBottom: 14 },
   mqRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  mqBadge: { borderWidth: 1.5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 2, minWidth: 68, alignItems: 'center' },
+  mqCard: { flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1.5, borderColor: 'rgba(10,10,10,0.1)', borderLeftWidth: 4, borderRadius: 2, padding: 12, backgroundColor: 'rgba(10,10,10,0.02)' },
+  mqCardLeft: { alignItems: 'center', minWidth: 52 },
+  mqMultBig: { fontSize: 28, fontWeight: '900', letterSpacing: -1, lineHeight: 30 },
+  mqMultLabel: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.4)', letterSpacing: 1 },
+  mqCardRight: { flex: 1, gap: 5 },
+  mqCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  mqCardIcon: { fontSize: 14 },
+  mqBadge: { borderWidth: 1.5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 2 },
   mqBadgeText: { fontFamily: MONO, fontSize: 8, fontWeight: '700', letterSpacing: 1 },
   mqRight: { flex: 1 },
   mqMult: { fontFamily: MONO, fontSize: 11, fontWeight: '700', marginBottom: 2 },

@@ -130,6 +130,13 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
     setIsSaving(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+    // Roster bonus: non-roster shoes earn 50% XP
+    const profileNow = await getUserProfile();
+    const inRoster = profileNow.weekly_roster?.includes(shoeId);
+    const rosterXP = inRoster || profileNow.weekly_roster.length === 0
+      ? xpPreview
+      : Math.floor(xpPreview * 0.5);
+
     const run: Run = {
       id: `run_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       shoeId,
@@ -141,7 +148,7 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
       purpose,
       durationMinutes: parseFloat(duration) || undefined,
       match_quality: matchQuality ?? 'neutral',
-      xp_earned: xpPreview,
+      xp_earned: rosterXP,
       source: 'manual',
       // Attach current GPS position if available
       coordinates: capturedCoord ? [capturedCoord] : undefined,
@@ -151,7 +158,7 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
       await saveRun(run);
       const miles = distNum * 0.621371;
       await addMiles(miles);
-      if (xpPreview > 0) await addXP(xpPreview);
+      if (rosterXP > 0) await addXP(rosterXP);
       // Streak recalc + season bonus XP
       const allRuns = await getRuns();
       const { seasonBonusXP } = await updateStreaksAfterRun(allRuns);

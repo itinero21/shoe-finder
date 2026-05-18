@@ -586,6 +586,54 @@ export default function ArsenalScreen() {
       {/* ── ACTIVE TAB ────────────────────────────────────────────── */}
       {tab === 'active' && (
         <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+
+          {/* ARSENAL EXPLAINER */}
+          <View style={ex.card}>
+            <View style={ex.titleRow}>
+              <Text style={ex.title}>WHAT IS ARSENAL?</Text>
+              <Text style={ex.subtitle}>Your shoe collection — but gamified.</Text>
+            </View>
+            <View style={ex.grid}>
+              <View style={ex.cell}>
+                <Text style={ex.cellEmoji}>👟</Text>
+                <Text style={ex.cellLabel}>SAVE SHOES</Text>
+                <Text style={ex.cellBody}>Use FIND tab to scout shoes. Save them here as your characters.</Text>
+              </View>
+              <View style={ex.cell}>
+                <Text style={ex.cellEmoji}>📍</Text>
+                <Text style={ex.cellLabel}>LOG RUN</Text>
+                <Text style={ex.cellBody}>After a run, tap LOG RUN on the shoe you wore. Match shoe to terrain for bonus XP.</Text>
+              </View>
+              <View style={ex.cell}>
+                <Text style={ex.cellEmoji}>❤️</Text>
+                <Text style={ex.cellLabel}>HEALTH BAR</Text>
+                <Text style={ex.cellBody}>Shows how worn the shoe is. Below 20% = time to retire it.</Text>
+              </View>
+              <View style={ex.cell}>
+                <Text style={ex.cellEmoji}>⚡</Text>
+                <Text style={ex.cellLabel}>GAMES TAB</Text>
+                <Text style={ex.cellBody}>Pick 3 shoes as your weekly roster. Runs with roster shoes earn full XP.</Text>
+              </View>
+            </View>
+            <View style={ex.healthScale}>
+              <Text style={ex.healthScaleLabel}>HEALTH SCALE</Text>
+              <View style={ex.healthBarRow}>
+                {[
+                  { pct: '100%', color: '#16A34A', label: 'FRESH' },
+                  { pct: '70%',  color: '#2563EB', label: 'GOOD' },
+                  { pct: '40%',  color: '#D97706', label: 'TIRED' },
+                  { pct: '15%',  color: ACCENT,    label: 'RETIRE' },
+                ].map(({ pct, color, label }) => (
+                  <View key={label} style={ex.healthScaleItem}>
+                    <View style={[ex.healthDot, { backgroundColor: color }]} />
+                    <Text style={[ex.healthPct, { color }]}>{pct}</Text>
+                    <Text style={ex.healthLabel}>{label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+
           {favoriteShoes.length === 0 ? (
             <View style={s.empty}>
               <Ionicons name="layers-outline" size={48} color="rgba(10,10,10,0.2)" />
@@ -687,6 +735,19 @@ export default function ArsenalScreen() {
       {/* ── ROSTER TAB ────────────────────────────────────────────── */}
       {tab === 'roster' && (
         <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Roster explainer */}
+          <View style={rox.card}>
+            <Text style={rox.title}>HOW THE ROSTER WORKS</Text>
+            <View style={rox.steps}>
+              <View style={rox.step}><Text style={rox.stepNum}>1</Text><Text style={rox.stepText}>Pick up to 3 shoes below as your active roster for the week.</Text></View>
+              <View style={rox.step}><Text style={rox.stepNum}>2</Text><Text style={rox.stepText}>Log runs with those shoes in the ACTIVE tab.</Text></View>
+              <View style={rox.step}><Text style={rox.stepNum}>3</Text><Text style={rox.stepText}>Roster shoes earn full XP. Non-roster shoes earn reduced XP.</Text></View>
+              <View style={rox.step}><Text style={rox.stepNum}>4</Text><Text style={rox.stepText}>Track your weekly XP and battle log in the GAMES tab.</Text></View>
+            </View>
+            <View style={rox.tip}>
+              <Text style={rox.tipText}>TIP — Pick shoes that match your planned runs this week for max XP multipliers.</Text>
+            </View>
+          </View>
           <RosterPicker
             favoriteShoes={favoriteShoes}
             roster={profile?.weekly_roster ?? []}
@@ -879,4 +940,34 @@ const s = StyleSheet.create({
   graveyardStatVal: { fontSize: 22, fontWeight: '900', color: INK, letterSpacing: -0.5 },
   graveyardStatLabel: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.4)', letterSpacing: 1.5, marginTop: 2 },
   graveyardHero: { fontFamily: MONO, fontSize: 9, color: ACCENT, marginTop: 12, letterSpacing: 0.5, textAlign: 'center' },
+});
+
+const ex = StyleSheet.create({
+  card: { marginHorizontal: 16, marginBottom: 20, borderWidth: 2, borderColor: INK, borderRadius: 2, overflow: 'hidden' },
+  titleRow: { backgroundColor: INK, paddingHorizontal: 16, paddingVertical: 14 },
+  title: { fontSize: 18, fontWeight: '900', color: PAPER, letterSpacing: -0.5, marginBottom: 2 },
+  subtitle: { fontFamily: MONO, fontSize: 10, color: 'rgba(244,241,234,0.6)' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', padding: 12, gap: 8 },
+  cell: { width: '47%', backgroundColor: 'rgba(10,10,10,0.03)', borderWidth: 1, borderColor: 'rgba(10,10,10,0.1)', borderRadius: 2, padding: 10, gap: 4 },
+  cellEmoji: { fontSize: 22, marginBottom: 2 },
+  cellLabel: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: INK, letterSpacing: 1.5 },
+  cellBody: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.55)', lineHeight: 14 },
+  healthScale: { borderTopWidth: 1, borderTopColor: 'rgba(10,10,10,0.1)', paddingHorizontal: 14, paddingVertical: 12 },
+  healthScaleLabel: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginBottom: 10 },
+  healthBarRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  healthScaleItem: { alignItems: 'center', gap: 4 },
+  healthDot: { width: 10, height: 10, borderRadius: 5 },
+  healthPct: { fontFamily: MONO, fontSize: 11, fontWeight: '700' },
+  healthLabel: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.4)', letterSpacing: 1 },
+});
+
+const rox = StyleSheet.create({
+  card: { marginHorizontal: 16, marginBottom: 4, borderWidth: 2, borderColor: INK, borderRadius: 2, padding: 16, backgroundColor: 'rgba(10,10,10,0.03)' },
+  title: { fontFamily: MONO, fontSize: 10, fontWeight: '700', color: INK, letterSpacing: 2, marginBottom: 12 },
+  steps: { gap: 8, marginBottom: 12 },
+  step: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  stepNum: { width: 22, height: 22, borderRadius: 11, backgroundColor: INK, textAlign: 'center', lineHeight: 22, fontFamily: MONO, fontSize: 10, fontWeight: '700', color: LIME, overflow: 'hidden' },
+  stepText: { flex: 1, fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.7)', lineHeight: 16 },
+  tip: { backgroundColor: 'rgba(212,255,0,0.18)', borderLeftWidth: 3, borderLeftColor: LIME, padding: 10, borderRadius: 2 },
+  tipText: { fontFamily: MONO, fontSize: 9, color: INK, lineHeight: 14 },
 });

@@ -123,6 +123,8 @@ export async function pushRun(run: Run): Promise<void> {
     external_id:      run.external_id,
     route_hash:       run.route_hash,
     strava_gear_id:   run.strava_gear_id,
+    coordinates:      run.coordinates,
+    path_id:          run.path_id,
   }, { onConflict: 'id' });
 }
 
@@ -152,6 +154,8 @@ export async function pullRuns(): Promise<Run[]> {
     external_id:     r.external_id,
     route_hash:      r.route_hash,
     strava_gear_id:  r.strava_gear_id,
+    coordinates:     r.coordinates,
+    path_id:         r.path_id,
   }));
 }
 

@@ -22,6 +22,8 @@ import { SHOES } from '../data/shoes';
 import { getMileageForShoe } from '../utils/mileage';
 import { getRuns } from '../utils/runStorage';
 import { Coordinate } from '../types/territory';
+import { calcMatchQuality, calcXP } from '../utils/matchQuality';
+import { getUserProfile } from '../utils/userProfile';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -84,7 +86,7 @@ export function isStravaConnected(tokens: StravaTokens | null): boolean {
 
 // ── OAuth URL ─────────────────────────────────────────────────────────────────
 export function getStravaAuthUrl(): string {
-  return `https://www.strava.com/oauth/mobile/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&approval_prompt=auto&scope=activity:read_all`;
+  return `https://www.strava.com/oauth/mobile/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&approval_prompt=auto&scope=activity:read_all,activity:write`;
 }
 
 // ── Full OAuth flow using expo-auth-session ───────────────────────────────────
@@ -216,6 +218,9 @@ export async function syncStravaActivities(
     let totalMilesAdded = 0;
     let totalXPAdded = 0;
 
+    const profile = await getUserProfile();
+    const isBeginnerMode = profile.is_beginner_mode ?? false;
+
     for (const act of activities) {
       if (!['Run', 'TrailRun', 'VirtualRun'].includes(act.type)) continue;
       const externalId = `strava_${act.id}`;
@@ -228,6 +233,24 @@ export async function syncStravaActivities(
       const shoeId = gearMap[act.gear_id] ?? '';
       const durationMin = act.moving_time ? Math.round(act.moving_time / 60) : undefined;
 
+      // Compute real match quality if shoe is in Arsenal
+      const shoe = shoeId ? SHOES.find(s => s.id === shoeId) : undefined;
+      const mq = shoe ? calcMatchQuality(shoe, terrain, purpose, distKm) : 'neutral';
+      const xpForRun = calcXP(distKm, mq, isBeginnerMode);
+
+      // Roster bonus: non-roster shoes earn 50% XP
+      const inRoster = profile.weekly_roster?.includes(shoeId);
+      const finalXP = inRoster || profile.weekly_roster.length === 0
+        ? xpForRun
+        : Math.floor(xpForRun * 0.5);
+
+      // Fetch GPS coordinates for territory/DRIFT mapping
+      let coordinates: Coordinate[] | undefined;
+      try {
+        const gps = await fetchActivityGPS(String(act.id));
+        if (gps.length >= 5) coordinates = gps;
+      } catch { /* non-fatal — run saved without GPS */ }
+
       const run: Run = {
         id: `run_strava_${act.id}`,
         shoeId,
@@ -236,17 +259,15 @@ export async function syncStravaActivities(
         terrain,
         purpose,
         durationMinutes: durationMin,
-        match_quality: 'neutral',
-        xp_earned: 0,
+        match_quality: mq,
+        xp_earned: finalXP,
         source: 'strava',
         external_id: externalId,
         strava_gear_id: act.gear_id ?? undefined,
+        coordinates,
       };
 
-      // Base XP: 10 per km (capped at 20 km per run to prevent abuse)
-      const xpForRun = Math.round(Math.min(distKm, 20) * 10);
-      run.xp_earned = xpForRun;
-      totalXPAdded += xpForRun;
+      totalXPAdded += finalXP;
 
       await saveRun(run);
       const miles = distKm * 0.621371;
