@@ -165,6 +165,11 @@ export default function DailyFeedScreen() {
       // Unseen abuse verdict
       const verdict = await getUnseenVerdict();
       setUnseenVerdict(verdict);
+
+      // Auto-sync watches in background (fire-and-forget, non-blocking)
+      import('../services/watchService').then(({ syncAllWatches }) =>
+        syncAllWatches().catch(() => {})
+      );
     })();
   }, []));
 

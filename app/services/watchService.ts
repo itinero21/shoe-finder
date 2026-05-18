@@ -212,7 +212,22 @@ export async function syncAppleWatch(): Promise<{ imported: number; skipped: num
     if (newPerm !== 'authorized') return { imported: 0, skipped: 0, error: 'HealthKit permission denied' };
   }
 
-  const result = await syncHealthWorkouts();
+  // Build roster-by-date map so workouts get attributed to the right shoe
+  const { getUserProfile } = await import('../utils/userProfile');
+  const profile = await getUserProfile();
+  const rosterByDate: Record<string, string> = {};
+  if (profile.weekly_roster.length > 0) {
+    // Use the first roster shoe as default for the current week
+    const defaultShoe = profile.weekly_roster[0];
+    const now = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      rosterByDate[d.toISOString().slice(0, 10)] = defaultShoe;
+    }
+  }
+
+  const result = await syncHealthWorkouts(rosterByDate);
 
   // Update last sync timestamp
   await AsyncStorage.setItem(WATCH_LAST_SYNC_KEY, String(Date.now()));
