@@ -2,12 +2,7 @@
 -- STRIDE — Schema v3: Complete Data Coverage
 -- Run this in the Supabase SQL Editor AFTER schema_v2.sql
 --
--- Adds:
---   - Missing columns on user_profiles, runs, obituaries
---   - shoe_choices table + aggregate view (leaderboard)
---   - run_paths table (DRIFT territory GPS traces)
---   - territory_cities table (DRIFT city data)
---   - graveyard table (full obituary data)
+-- Safe to re-run: uses IF NOT EXISTS / exception handlers.
 -- ============================================================
 
 -- ── 1. user_profiles — add missing columns ───────────────────
@@ -29,8 +24,6 @@ do $$ begin
 end $$;
 
 -- ── 3. obituaries — expand to full ShoeObituary fields ──────
--- The v1 table only had shoe_id, total_km, eulogy, retired_at.
--- We need all the fields the app actually writes.
 do $$ begin
   begin alter table public.obituaries add column brand text;
   exception when duplicate_column then null; end;
@@ -54,16 +47,14 @@ do $$ begin
   exception when duplicate_column then null; end;
 end $$;
 
--- Unique constraint for upsert support
 do $$ begin
   alter table public.obituaries add constraint obituaries_user_shoe unique (user_id, shoe_id);
 exception when duplicate_object then null; end $$;
 
--- Allow users to update their own obituaries (for editing epitaphs)
-do $$ begin
-  execute 'create policy "Users update own obituaries"
-    on public.obituaries for update using (auth.uid() = user_id)';
-exception when duplicate_object then null; end $$;
+-- Drop + recreate policies (idempotent)
+drop policy if exists "Users update own obituaries" on public.obituaries;
+create policy "Users update own obituaries"
+  on public.obituaries for update using (auth.uid() = user_id);
 
 -- ── 4. shoe_choices — leaderboard / popularity tracking ──────
 create table if not exists public.shoe_choices (
@@ -76,24 +67,22 @@ create table if not exists public.shoe_choices (
 alter table public.shoe_choices enable row level security;
 alter table public.shoe_choices force row level security;
 
-do $$ begin
-  execute 'create policy "Users read all shoe choices"
-    on public.shoe_choices for select using (true)';
-exception when duplicate_object then null; end $$;
+drop policy if exists "Users read all shoe choices" on public.shoe_choices;
+create policy "Users read all shoe choices"
+  on public.shoe_choices for select using (true);
 
-do $$ begin
-  execute 'create policy "Users insert own shoe choices"
-    on public.shoe_choices for insert with check (auth.uid() = user_id)';
-exception when duplicate_object then null; end $$;
+drop policy if exists "Users insert own shoe choices" on public.shoe_choices;
+create policy "Users insert own shoe choices"
+  on public.shoe_choices for insert with check (auth.uid() = user_id);
 
 -- Materialized view for aggregate counts (used by leaderboard)
-create materialized view if not exists public.shoe_choices_aggregate as
+drop materialized view if exists public.shoe_choices_aggregate;
+create materialized view public.shoe_choices_aggregate as
   select shoe_id, count(distinct user_id)::integer as user_count
   from public.shoe_choices
   group by shoe_id
   order by user_count desc;
 
--- Grant read access to authenticated users
 grant select on public.shoe_choices_aggregate to authenticated;
 
 -- ── 5. run_paths — DRIFT territory GPS traces ───────────────
@@ -113,20 +102,17 @@ create table if not exists public.run_paths (
 alter table public.run_paths enable row level security;
 alter table public.run_paths force row level security;
 
-do $$ begin
-  execute 'create policy "Users read own paths"
-    on public.run_paths for select using (auth.uid() = user_id)';
-exception when duplicate_object then null; end $$;
+drop policy if exists "Users read own paths" on public.run_paths;
+create policy "Users read own paths"
+  on public.run_paths for select using (auth.uid() = user_id);
 
-do $$ begin
-  execute 'create policy "Users insert own paths"
-    on public.run_paths for insert with check (auth.uid() = user_id)';
-exception when duplicate_object then null; end $$;
+drop policy if exists "Users insert own paths" on public.run_paths;
+create policy "Users insert own paths"
+  on public.run_paths for insert with check (auth.uid() = user_id);
 
-do $$ begin
-  execute 'create policy "Users update own paths"
-    on public.run_paths for update using (auth.uid() = user_id)';
-exception when duplicate_object then null; end $$;
+drop policy if exists "Users update own paths" on public.run_paths;
+create policy "Users update own paths"
+  on public.run_paths for update using (auth.uid() = user_id);
 
 -- ── 6. territory_cities — DRIFT city data ───────────────────
 create table if not exists public.territory_cities (
@@ -144,21 +130,17 @@ create table if not exists public.territory_cities (
 alter table public.territory_cities enable row level security;
 alter table public.territory_cities force row level security;
 
--- Cities are publicly readable (for map display) but only insertable/updatable by authenticated
-do $$ begin
-  execute 'create policy "Anyone can read cities"
-    on public.territory_cities for select using (true)';
-exception when duplicate_object then null; end $$;
+drop policy if exists "Anyone can read cities" on public.territory_cities;
+create policy "Anyone can read cities"
+  on public.territory_cities for select using (true);
 
-do $$ begin
-  execute 'create policy "Authenticated users can insert cities"
-    on public.territory_cities for insert with check (auth.uid() is not null)';
-exception when duplicate_object then null; end $$;
+drop policy if exists "Authenticated users can insert cities" on public.territory_cities;
+create policy "Authenticated users can insert cities"
+  on public.territory_cities for insert with check (auth.uid() is not null);
 
-do $$ begin
-  execute 'create policy "Authenticated users can update cities"
-    on public.territory_cities for update using (auth.uid() is not null)';
-exception when duplicate_object then null; end $$;
+drop policy if exists "Authenticated users can update cities" on public.territory_cities;
+create policy "Authenticated users can update cities"
+  on public.territory_cities for update using (auth.uid() is not null);
 
 -- ── 7. Indexes for performance ───────────────────────────────
 create index if not exists runs_external_id on public.runs(external_id) where external_id is not null;
@@ -168,7 +150,6 @@ create index if not exists obituaries_user_id on public.obituaries(user_id);
 create index if not exists shoe_choices_shoe on public.shoe_choices(shoe_id);
 
 -- ── 8. Refresh function for materialized view ───────────────
--- Call this periodically (e.g., via cron or after shoe_choices insert)
 create or replace function public.refresh_shoe_choices_aggregate()
 returns void language plpgsql security definer as $$
 begin
