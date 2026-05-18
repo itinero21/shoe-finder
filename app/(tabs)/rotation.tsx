@@ -28,6 +28,7 @@ import { getGraveyard, addToGraveyard, getGraveyardStats, ShoeObituary } from '.
 import { computeAchievementProgress, AchievementProgress } from '../utils/achievementEngine';
 import { getDetailedRotationScore, RotationBreakdown } from '../utils/rotationScore';
 import { getStravaTokens } from '../services/stravaService';
+import { pushObituary } from '../services/cloudSync';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
@@ -420,6 +421,7 @@ export default function ArsenalScreen() {
     };
 
     await addToGraveyard(obit);
+    pushObituary(obit).catch(() => {}); // cloud sync (fire-and-forget)
     await removeFromFavorites(obituaryShoe.id);
     await addXP(100); // FIRST GOODBYE achievement bonus
 

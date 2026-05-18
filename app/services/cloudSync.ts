@@ -13,6 +13,7 @@
 import { supabase } from '../lib/supabase';
 import { Run } from '../types/run';
 import { UserProfile } from '../utils/userProfile';
+import { ShoeObituary } from '../utils/obituaryStorage';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -208,6 +209,53 @@ export async function fetchShoeChoiceCounts(): Promise<{ shoe_id: string; user_c
   return data as { shoe_id: string; user_count: number }[];
 }
 
+// ── Graveyard (retired shoes) ────────────────────────────────────────────────
+
+export async function pushObituary(obit: ShoeObituary): Promise<void> {
+  const userId = await uid();
+  if (!userId) return;
+  await supabase.from('obituaries').upsert({
+    user_id:          userId,
+    shoe_id:          obit.shoe_id,
+    brand:            obit.brand,
+    model:            obit.model,
+    total_miles:      obit.total_miles,
+    days_in_service:  obit.days_in_service,
+    added_date:       obit.added_date,
+    retired_at:       obit.retired_date,
+    memorable_run:    obit.memorable_run,
+    best_moment:      obit.best_moment,
+    rating:           obit.rating,
+    would_buy_again:  obit.would_buy_again,
+    epitaph:          obit.epitaph,
+  }, { onConflict: 'user_id,shoe_id' });
+}
+
+export async function pullObituaries(): Promise<ShoeObituary[]> {
+  const userId = await uid();
+  if (!userId) return [];
+  const { data } = await supabase
+    .from('obituaries')
+    .select('*')
+    .eq('user_id', userId)
+    .order('retired_at', { ascending: false });
+  if (!data) return [];
+  return data.map((r: any): ShoeObituary => ({
+    shoe_id:         r.shoe_id,
+    brand:           r.brand ?? '',
+    model:           r.model ?? '',
+    retired_date:    r.retired_at ? new Date(r.retired_at).toISOString().slice(0, 10) : '',
+    total_miles:     r.total_miles ?? 0,
+    days_in_service: r.days_in_service ?? 0,
+    added_date:      r.added_date ?? '',
+    memorable_run:   r.memorable_run ?? '',
+    best_moment:     r.best_moment ?? '',
+    rating:          r.rating ?? 4,
+    would_buy_again: r.would_buy_again ?? true,
+    epitaph:         r.epitaph ?? '',
+  }));
+}
+
 // ── Full initial sync (call once after login) ─────────────────────────────────
 /**
  * Merges cloud data into local storage after sign-in.
@@ -218,15 +266,17 @@ export async function initialSync(): Promise<void> {
   const userId = await uid();
   if (!userId) return;
 
-  const [cloudProfile, cloudArsenal, cloudRuns] = await Promise.all([
+  const [cloudProfile, cloudArsenal, cloudRuns, cloudObituaries] = await Promise.all([
     pullProfile(),
     pullArsenal(),
     pullRuns(),
+    pullObituaries(),
   ]);
 
   const { getUserProfile, saveUserProfile } = await import('../utils/userProfile');
   const { getFavorites, addToFavorites }    = await import('../utils/storage');
   const { getRuns, saveRun }               = await import('../utils/runStorage');
+  const { getGraveyard, addToGraveyard }   = await import('../utils/obituaryStorage');
 
   // Merge profile — cloud wins
   if (cloudProfile) {
@@ -247,6 +297,15 @@ export async function initialSync(): Promise<void> {
     const localIds  = new Set(localRuns.map(r => r.id));
     for (const run of cloudRuns) {
       if (!localIds.has(run.id)) await saveRun(run);
+    }
+  }
+
+  // Merge graveyard — union by shoe_id
+  if (cloudObituaries.length > 0) {
+    const localGraveyard = await getGraveyard();
+    const localIds = new Set(localGraveyard.map(o => o.shoe_id));
+    for (const obit of cloudObituaries) {
+      if (!localIds.has(obit.shoe_id)) await addToGraveyard(obit);
     }
   }
 }
