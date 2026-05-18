@@ -31,6 +31,8 @@ export async function getRuns(): Promise<Run[]> {
 export async function saveRun(run: Run): Promise<void> {
   try {
     const runs = await getRuns();
+    // Deduplicate: skip if run with same ID already exists
+    if (runs.some(r => r.id === run.id)) return;
     const updatedRuns = [run, ...runs];
     await AsyncStorage.setItem(RUNS_KEY, JSON.stringify(updatedRuns));
     syncRunToCloud(run); // fire-and-forget

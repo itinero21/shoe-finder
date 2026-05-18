@@ -72,12 +72,12 @@ export async function requestHealthPermission(): Promise<HealthPermStatus> {
       return 'authorized';
     }
 
-    // Native module not installed yet — mark as authorized anyway so UI shows synced state
-    await AsyncStorage.setItem(HEALTH_ENABLED, 'authorized');
-    return 'authorized';
+    // Native module not installed — HealthKit unavailable
+    await AsyncStorage.setItem(HEALTH_ENABLED, 'denied');
+    return 'denied';
   } catch {
-    await AsyncStorage.setItem(HEALTH_ENABLED, 'authorized');
-    return 'authorized';
+    await AsyncStorage.setItem(HEALTH_ENABLED, 'denied');
+    return 'denied';
   }
 }
 
@@ -222,6 +222,17 @@ export async function syncHealthWorkouts(
   if (totalMiles > 0) await addMiles(totalMiles);
   if (totalXP    > 0) await addXP(totalXP);
   await AsyncStorage.setItem(HEALTH_LAST_SYNC, String(Date.now()));
+
+  // Post-sync hooks: streaks + achievements (fire-and-forget)
+  if (imported > 0) {
+    try {
+      const allRuns = await getRuns();
+      const { updateStreaksAfterRun } = await import('../utils/streakEngine');
+      await updateStreaksAfterRun(allRuns);
+      const { checkAndUnlockAchievements } = await import('../utils/achievementEngine');
+      await checkAndUnlockAchievements();
+    } catch { /* non-fatal */ }
+  }
 
   return { imported, skipped };
 }

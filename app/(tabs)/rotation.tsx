@@ -61,7 +61,7 @@ const ObituaryForm: React.FC<ObituaryFormProps> = ({ shoe, miles, addedDate, onS
   const [buyAgain, setBuyAgain] = useState(true);
 
   const days = Math.max(1, Math.round((Date.now() - new Date(addedDate).getTime()) / 86400000));
-  const prompt = OBITUARY_PROMPTS[Math.floor(Math.random() * OBITUARY_PROMPTS.length)];
+  const [prompt] = useState(() => OBITUARY_PROMPTS[Math.floor(Math.random() * OBITUARY_PROMPTS.length)]);
 
   return (
     <View style={of.container}>
@@ -402,7 +402,7 @@ export default function ArsenalScreen() {
 
   const handleObituarySubmit = async (partial: Partial<ShoeObituary>) => {
     if (!obituaryShoe) return;
-    const miles = getMileageForShoe(obituaryShoe.id, runs);
+    const miles = getMileageForShoe(obituaryShoe.id, runs) * 0.621371;
     const days = Math.max(1, Math.round((Date.now() - new Date(obituaryAddedDate).getTime()) / 86400000));
 
     const obit: ShoeObituary = {
@@ -644,7 +644,7 @@ export default function ArsenalScreen() {
             </View>
           ) : (
             favoriteShoes.map((shoe, index) => {
-              const miles = getMileageForShoe(shoe.id, runs);
+              const miles = getMileageForShoe(shoe.id, runs) * 0.621371;
               const stats = deriveShoeStats(shoe);
               const tierColor = TIER_COLORS[stats.tier];
               const weightLbs = profile?.weight_lbs ?? 160;
@@ -822,7 +822,7 @@ export default function ArsenalScreen() {
           {obituaryShoe && (
             <ObituaryForm
               shoe={obituaryShoe}
-              miles={getMileageForShoe(obituaryShoe.id, runs)}
+              miles={getMileageForShoe(obituaryShoe.id, runs) * 0.621371}
               addedDate={obituaryAddedDate}
               onSubmit={handleObituarySubmit}
               onCancel={() => { setShowObituaryForm(false); setObituaryShoe(null); }}

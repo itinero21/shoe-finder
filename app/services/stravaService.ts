@@ -279,6 +279,17 @@ export async function syncStravaActivities(
     if (totalXPAdded > 0) await addXP(totalXPAdded);
     await AsyncStorage.setItem(LAST_SYNC, String(Math.floor(Date.now() / 1000)));
 
+    // Post-sync hooks: streaks + achievements (fire-and-forget)
+    if (imported > 0) {
+      try {
+        const allRuns = await getRuns();
+        const { updateStreaksAfterRun } = await import('../utils/streakEngine');
+        await updateStreaksAfterRun(allRuns);
+        const { checkAndUnlockAchievements } = await import('../utils/achievementEngine');
+        await checkAndUnlockAchievements();
+      } catch { /* non-fatal */ }
+    }
+
     return { imported, skipped };
   } catch (e: any) {
     return { imported: 0, skipped: 0, error: e?.message ?? 'Unknown error' };

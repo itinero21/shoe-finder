@@ -278,10 +278,21 @@ export async function initialSync(): Promise<void> {
   const { getRuns, saveRun }               = await import('../utils/runStorage');
   const { getGraveyard, addToGraveyard }   = await import('../utils/obituaryStorage');
 
-  // Merge profile — cloud wins
+  // Merge profile — cloud wins for settings, max wins for additive counters
   if (cloudProfile) {
     const local = await getUserProfile();
-    await saveUserProfile({ ...local, ...cloudProfile });
+    const merged = { ...local, ...cloudProfile };
+    // Additive fields: always keep the higher value to prevent data loss
+    merged.total_xp = Math.max(local.total_xp, cloudProfile.total_xp ?? 0);
+    merged.lifetime_miles = Math.max(local.lifetime_miles, cloudProfile.lifetime_miles ?? 0);
+    merged.graveyard_count = Math.max(local.graveyard_count, cloudProfile.graveyard_count ?? 0);
+    // Achievements: union of both sets
+    const allAchievements = new Set([
+      ...local.achievements_unlocked,
+      ...(cloudProfile.achievements_unlocked ?? []),
+    ]);
+    merged.achievements_unlocked = Array.from(allAchievements);
+    await saveUserProfile(merged);
   }
 
   // Merge arsenal — cloud wins (add any cloud shoe not already local)
