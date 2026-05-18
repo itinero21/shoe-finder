@@ -811,7 +811,6 @@ export default function ArsenalScreen() {
           onSaved={async () => {
             const allRuns = await getRuns();
             setRuns(allRuns);
-            await addXP(10);
           }}
         />
       )}

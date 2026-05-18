@@ -270,6 +270,15 @@ export async function syncStravaActivities(
       totalXPAdded += finalXP;
 
       await saveRun(run);
+
+      // DRIFT territory detection for runs with GPS
+      if (coordinates && coordinates.length >= 5) {
+        try {
+          const { updateTerritoryAfterRun } = await import('../utils/driftEngine');
+          updateTerritoryAfterRun(run).catch(() => {});
+        } catch { /* non-fatal */ }
+      }
+
       const miles = distKm * 0.621371;
       totalMilesAdded += miles;
       imported++;

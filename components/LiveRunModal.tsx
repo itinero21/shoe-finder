@@ -394,6 +394,10 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
       Alert.alert('Too short', 'Run at least 0.1 km before saving.');
       return;
     }
+    if (!selectedShoe) {
+      Alert.alert('No shoe selected', 'Add shoes to your Arsenal in the FIND tab, then select one before saving.');
+      return;
+    }
     setSaving(true);
 
     try {

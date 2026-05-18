@@ -433,11 +433,11 @@ export default function ShoeWarsScreen() {
               <Text style={g.stepTitle}>SET YOUR WEEKLY ROSTER</Text>
             </View>
             <Text style={g.stepBody}>
-              Each week, pick up to 3 shoes as your active roster from the ARSENAL tab. Only runs logged with a roster shoe earn full XP. Roster resets every Monday.
+              Each week, pick up to 3 shoes as your active roster from the ARSENAL tab. Only runs logged with a roster shoe earn full XP. Roster resets every Sunday.
             </Text>
             <View style={g.ruleList}>
               <View style={g.ruleItem}><Text style={g.ruleDot}>—</Text><Text style={g.ruleText}>Max 3 shoes in the active roster at once</Text></View>
-              <View style={g.ruleItem}><Text style={g.ruleDot}>—</Text><Text style={g.ruleText}>Roster refreshes every Monday at midnight</Text></View>
+              <View style={g.ruleItem}><Text style={g.ruleDot}>—</Text><Text style={g.ruleText}>Roster refreshes every Sunday at midnight</Text></View>
               <View style={g.ruleItem}><Text style={g.ruleDot}>—</Text><Text style={g.ruleText}>Non-roster shoes still earn XP, just less</Text></View>
             </View>
           </View>

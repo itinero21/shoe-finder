@@ -68,7 +68,7 @@ function AuthGate() {
     } else if (signedIn && inAuthGroup) {
       // After login, run initial cloud sync then go to app
       initialSync().catch(() => {});
-      router.replace('/(tabs)/scan');
+      router.replace('/(tabs)');
     }
   }, [signedIn, loading, segments]);
 
