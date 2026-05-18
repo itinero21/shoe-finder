@@ -75,7 +75,9 @@ drop policy if exists "Users insert own shoe choices" on public.shoe_choices;
 create policy "Users insert own shoe choices"
   on public.shoe_choices for insert with check (auth.uid() = user_id);
 
--- Materialized view for aggregate counts (used by leaderboard)
+-- Aggregate view for leaderboard counts
+-- Drop whichever type exists (could be a regular view from a prior migration)
+drop view if exists public.shoe_choices_aggregate;
 drop materialized view if exists public.shoe_choices_aggregate;
 create materialized view public.shoe_choices_aggregate as
   select shoe_id, count(distinct user_id)::integer as user_count
@@ -153,6 +155,8 @@ create index if not exists shoe_choices_shoe on public.shoe_choices(shoe_id);
 create or replace function public.refresh_shoe_choices_aggregate()
 returns void language plpgsql security definer as $$
 begin
+  refresh materialized view concurrently public.shoe_choices_aggregate;
+exception when others then
   refresh materialized view public.shoe_choices_aggregate;
 end;
 $$;
