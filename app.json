@@ -16,6 +16,7 @@
       "**/*"
     ],
     "ios": {
+      "bundleIdentifier": "com.hashilvr.stride",
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Stride needs camera access to analyze your feet and provide personalized shoe recommendations.",
@@ -27,6 +28,7 @@
       }
     },
     "android": {
+      "package": "com.hashilvr.stride",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F4F1EA"
