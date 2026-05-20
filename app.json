@@ -5,10 +5,10 @@
     "scheme": "shoefinder",
     "version": "2.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#F4F1EA"
     },
@@ -24,13 +24,14 @@
         "NSLocationWhenInUseUsageDescription": "Stride uses your location to map your runs, build territory in DRIFT, and detect your city automatically.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Stride uses your location to map your runs, build territory in DRIFT, and detect your city automatically.",
         "NSHealthShareUsageDescription": "Stride reads your workouts from Apple Health to automatically log runs and track mileage on your shoes.",
-        "NSHealthUpdateUsageDescription": "Stride writes workout summaries to Apple Health to keep your fitness data in sync."
+        "NSHealthUpdateUsageDescription": "Stride writes workout summaries to Apple Health to keep your fitness data in sync.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.hashilvr.stride",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#F4F1EA"
       },
       "permissions": [
