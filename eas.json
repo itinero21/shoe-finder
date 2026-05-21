@@ -13,6 +13,8 @@
     },
     "preview": {
       "distribution": "store",
+      "autoIncrement": true,
+      "environment": "production",
       "ios": {
         "simulator": false
       }
