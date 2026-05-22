@@ -68,7 +68,9 @@
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true
         }
-      ]
+      ],
+      "expo-font",
+      "expo-web-browser"
     ],
     "extra": {
       "router": {},
