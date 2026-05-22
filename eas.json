@@ -15,6 +15,7 @@
       "distribution": "store",
       "autoIncrement": true,
       "environment": "production",
+      "channel": "main",
       "ios": {
         "simulator": false
       },
@@ -23,7 +24,8 @@
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "channel": "main"
     }
   },
   "submit": {
