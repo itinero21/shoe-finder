@@ -30,6 +30,11 @@
     },
     "android": {
       "package": "com.hashilvr.stride",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBM8AhsAAqocuIY6WMoO3abBwG_5AuAQuo"
+        }
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#F4F1EA"
