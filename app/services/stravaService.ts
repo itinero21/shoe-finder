@@ -15,6 +15,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { saveRun } from '../utils/runStorage';
 import { addMiles, addXP } from '../utils/userProfile';
 import { Run, RunTerrain, RunPurpose } from '../types/run';
@@ -30,7 +31,7 @@ WebBrowser.maybeCompleteAuthSession();
 // ── Config ────────────────────────────────────────────────────────────────────
 const CLIENT_ID     = process.env.EXPO_PUBLIC_STRAVA_CLIENT_ID ?? '';
 const CLIENT_SECRET = process.env.EXPO_PUBLIC_STRAVA_CLIENT_SECRET ?? '';
-const REDIRECT_URI  = 'shoefinder://strava-callback';
+const REDIRECT_URI  = Linking.createURL('strava-callback');
 
 const TOKEN_KEY    = 'stride_strava_tokens_v1';
 const LAST_SYNC    = 'stride_strava_last_sync_v1';
@@ -93,17 +94,26 @@ export function getStravaAuthUrl(): string {
 // Call this from the UI instead of manually opening a URL.
 // Returns tokens on success, null on failure/cancel.
 export async function connectStrava(): Promise<StravaTokens | null> {
-  const authUrl = getStravaAuthUrl();
-  const result = await WebBrowser.openAuthSessionAsync(authUrl, REDIRECT_URI);
+  try {
+    const authUrl = getStravaAuthUrl();
+    const result = await WebBrowser.openAuthSessionAsync(authUrl, REDIRECT_URI);
 
-  if (result.type !== 'success') return null;
+    if (result.type !== 'success') {
+      console.log('[Strava] Auth session result:', result.type);
+      return null;
+    }
 
-  const url = result.url;
-  const code = getParam(url, 'code');
-  const error = getParam(url, 'error');
+    const url = result.url;
+    const code = getParam(url, 'code');
+    const error = getParam(url, 'error');
 
-  if (error || !code) return null;
-  return exchangeStravaCode(code);
+    if (error) { console.log('[Strava] Auth error:', error); return null; }
+    if (!code) { console.log('[Strava] No code in callback URL:', url); return null; }
+    return exchangeStravaCode(code);
+  } catch (e: any) {
+    console.error('[Strava] Connect failed:', e?.message);
+    return null;
+  }
 }
 
 function getParam(url: string, key: string): string | null {
@@ -114,6 +124,10 @@ function getParam(url: string, key: string): string | null {
 // ── Exchange code for tokens ──────────────────────────────────────────────────
 export async function exchangeStravaCode(code: string): Promise<StravaTokens | null> {
   try {
+    if (!CLIENT_ID || !CLIENT_SECRET) {
+      console.error('[Strava] Missing CLIENT_ID or CLIENT_SECRET env vars');
+      return null;
+    }
     const res = await fetch('https://www.strava.com/oauth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -124,7 +138,11 @@ export async function exchangeStravaCode(code: string): Promise<StravaTokens | n
         grant_type: 'authorization_code',
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      console.error('[Strava] Token exchange failed:', res.status, errText.slice(0, 200));
+      return null;
+    }
     const data = await res.json();
     const tokens: StravaTokens = {
       access_token:  data.access_token,

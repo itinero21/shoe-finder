@@ -5,7 +5,7 @@
  */
 import React, { useCallback, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -329,10 +329,16 @@ export default function DailyFeedScreen() {
                 await syncStravaActivities({}).catch(() => {});
                 setStravasSyncing(false);
               } else {
-                const tokens = await connectStrava();
-                if (tokens) {
-                  setStravaConnected(true);
-                  setStravaAthleteName(tokens.athlete_name ?? null);
+                try {
+                  const tokens = await connectStrava();
+                  if (tokens) {
+                    setStravaConnected(true);
+                    setStravaAthleteName(tokens.athlete_name ?? null);
+                  } else {
+                    Alert.alert('Strava', 'Could not connect. Make sure you authorized access and try again.');
+                  }
+                } catch {
+                  Alert.alert('Strava', 'Connection failed. Check your internet and try again.');
                 }
               }
             }}
