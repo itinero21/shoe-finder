@@ -410,7 +410,7 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
 
       // Roster bonus: non-roster shoes earn 50% XP
       const inRoster = profile.weekly_roster?.includes(selectedShoe);
-      const finalXP = inRoster || profile.weekly_roster.length === 0
+      const finalXP = inRoster || (profile.weekly_roster?.length ?? 0) === 0
         ? xpEarned
         : Math.floor(xpEarned * 0.5);
 

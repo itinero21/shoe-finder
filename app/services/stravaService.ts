@@ -10,12 +10,11 @@
  * Requirements (add to app.json / eas.json):
  *   - expo-web-browser  (AuthSession)
  *   - expo-auth-session
- *   - Add URI scheme "stride" to app.json for deep-link redirect
+ *   - Add URI scheme "shoefinder" to app.json for deep-link redirect
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
 import { saveRun } from '../utils/runStorage';
 import { addMiles, addXP } from '../utils/userProfile';
 import { Run, RunTerrain, RunPurpose } from '../types/run';
@@ -31,7 +30,7 @@ WebBrowser.maybeCompleteAuthSession();
 // ── Config ────────────────────────────────────────────────────────────────────
 const CLIENT_ID     = process.env.EXPO_PUBLIC_STRAVA_CLIENT_ID ?? '';
 const CLIENT_SECRET = process.env.EXPO_PUBLIC_STRAVA_CLIENT_SECRET ?? '';
-const REDIRECT_URI  = Linking.createURL('strava-callback');
+const REDIRECT_URI  = 'shoefinder://strava-callback';
 
 const TOKEN_KEY    = 'stride_strava_tokens_v1';
 const LAST_SYNC    = 'stride_strava_last_sync_v1';
@@ -258,7 +257,7 @@ export async function syncStravaActivities(
 
       // Roster bonus: non-roster shoes earn 50% XP
       const inRoster = profile.weekly_roster?.includes(shoeId);
-      const finalXP = inRoster || profile.weekly_roster.length === 0
+      const finalXP = inRoster || (profile.weekly_roster?.length ?? 0) === 0
         ? xpForRun
         : Math.floor(xpForRun * 0.5);
 

@@ -216,7 +216,7 @@ export async function syncAppleWatch(): Promise<{ imported: number; skipped: num
   const { getUserProfile } = await import('../utils/userProfile');
   const profile = await getUserProfile();
   const rosterByDate: Record<string, string> = {};
-  if (profile.weekly_roster.length > 0) {
+  if ((profile.weekly_roster?.length ?? 0) > 0) {
     // Use the first roster shoe as default for the current week
     const defaultShoe = profile.weekly_roster[0];
     const now = new Date();

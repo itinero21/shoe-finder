@@ -89,7 +89,7 @@ export default function AuthScreen() {
       Alert.alert('Sign in failed', friendlyError(error));
       return;
     }
-    router.replace('/(tabs)/scan');
+    // AuthGate in _layout.tsx handles navigation after sign-in
   };
 
   // ── Sign up ────────────────────────────────────────────────
@@ -118,11 +118,7 @@ export default function AuthScreen() {
       await recordConsent(Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web');
     }
     setLoading(false);
-    Alert.alert(
-      'Check your email',
-      `We sent a confirmation link to ${email.trim()}. Tap it to verify your address, then sign in.`,
-      [{ text: 'Got it', onPress: () => go('login') }]
-    );
+    // AuthGate handles navigation — user is auto-confirmed and signed in
   };
 
   // ── Forgot password ────────────────────────────────────────

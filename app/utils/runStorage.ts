@@ -31,9 +31,15 @@ export async function getRuns(): Promise<Run[]> {
 export async function saveRun(run: Run): Promise<void> {
   try {
     const runs = await getRuns();
-    // Deduplicate: skip if run with same ID already exists
-    if (runs.some(r => r.id === run.id)) return;
-    const updatedRuns = [run, ...runs];
+    const idx = runs.findIndex(r => r.id === run.id);
+    let updatedRuns: Run[];
+    if (idx !== -1) {
+      // Update existing run (e.g. path_id added by DRIFT)
+      runs[idx] = { ...runs[idx], ...run };
+      updatedRuns = runs;
+    } else {
+      updatedRuns = [run, ...runs];
+    }
     await AsyncStorage.setItem(RUNS_KEY, JSON.stringify(updatedRuns));
     syncRunToCloud(run); // fire-and-forget
   } catch (error) {

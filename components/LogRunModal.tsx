@@ -133,7 +133,7 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
     // Roster bonus: non-roster shoes earn 50% XP
     const profileNow = await getUserProfile();
     const inRoster = profileNow.weekly_roster?.includes(shoeId);
-    const rosterXP = inRoster || profileNow.weekly_roster.length === 0
+    const rosterXP = inRoster || (profileNow.weekly_roster?.length ?? 0) === 0
       ? xpPreview
       : Math.floor(xpPreview * 0.5);
 

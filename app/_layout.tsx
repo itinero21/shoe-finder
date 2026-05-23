@@ -31,6 +31,15 @@ async function handleDeepLink(url: string | null) {
     return;
   }
 
+  // Password reset deep link
+  if (url.startsWith('shoefinder://reset-password')) {
+    const { error } = await supabase.auth.exchangeCodeForSession(url);
+    if (!error) {
+      Alert.alert('Password Reset', 'You are now signed in. You can change your password in Settings.');
+    }
+    return;
+  }
+
   if (!url.startsWith('shoefinder://strava-callback')) return;
 
   const code  = getParam(url, 'code');

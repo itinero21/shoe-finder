@@ -193,7 +193,7 @@ export async function syncHealthWorkouts(
 
     // Roster bonus: non-roster shoes earn 50% XP
     const inRoster = profile.weekly_roster?.includes(shoeId);
-    const finalXP = inRoster || profile.weekly_roster.length === 0
+    const finalXP = inRoster || (profile.weekly_roster?.length ?? 0) === 0
       ? xpForRun
       : Math.floor(xpForRun * 0.5);
 

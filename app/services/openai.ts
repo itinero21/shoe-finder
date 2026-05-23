@@ -1,15 +1,13 @@
 import OpenAI from 'openai';
 
-const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY ?? '';
 
-if (!OPENAI_API_KEY) {
-  console.warn('OpenAI API key not found. Please add EXPO_PUBLIC_OPENAI_API_KEY to your .env file');
-}
-
-const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true, // Required for Expo/React Native
-});
+const openai = OPENAI_API_KEY
+  ? new OpenAI({
+      apiKey: OPENAI_API_KEY,
+      dangerouslyAllowBrowser: true,
+    })
+  : null;
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -42,6 +40,10 @@ export async function sendRunningCoachMessage(
   try {
     // Build system prompt with context
     const systemPrompt = buildSystemPrompt(context);
+
+    if (!openai) {
+      return 'AI coach is not configured. Use the static coach for advice.';
+    }
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo', // Using GPT-3.5 for better rate limits (change to 'gpt-4o' for better quality)
