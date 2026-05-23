@@ -17,12 +17,10 @@
       "environment": "production",
       "channel": "main",
       "ios": {
-        "simulator": false,
-        "image": "latest"
+        "simulator": false
       },
       "android": {
-        "buildType": "apk",
-        "image": "latest"
+        "buildType": "apk"
       }
     },
     "production": {
