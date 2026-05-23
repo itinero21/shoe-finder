@@ -15,6 +15,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 import { saveRun } from '../utils/runStorage';
 import { addMiles, addXP } from '../utils/userProfile';
 import { Run, RunTerrain, RunPurpose } from '../types/run';
@@ -30,7 +31,13 @@ WebBrowser.maybeCompleteAuthSession();
 // ── Config ────────────────────────────────────────────────────────────────────
 const CLIENT_ID     = process.env.EXPO_PUBLIC_STRAVA_CLIENT_ID ?? '';
 const CLIENT_SECRET = process.env.EXPO_PUBLIC_STRAVA_CLIENT_SECRET ?? '';
-const REDIRECT_URI  = 'shoefinder://strava-callback';
+// Use Expo AuthSession proxy — gives an HTTPS URL that Strava accepts
+// Then Expo redirects back to the app via the native scheme
+const REDIRECT_URI  = AuthSession.makeRedirectUri({
+  scheme: 'shoefinder',
+  path: 'strava-callback',
+  preferLocalhost: false,
+});
 
 const TOKEN_KEY    = 'stride_strava_tokens_v1';
 const LAST_SYNC    = 'stride_strava_last_sync_v1';
@@ -86,15 +93,16 @@ export function isStravaConnected(tokens: StravaTokens | null): boolean {
 
 // ── OAuth URL ─────────────────────────────────────────────────────────────────
 export function getStravaAuthUrl(): string {
-  return `https://www.strava.com/oauth/mobile/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&approval_prompt=auto&scope=activity:read_all,activity:write`;
+  console.log('[Strava] Redirect URI:', REDIRECT_URI);
+  // Use regular authorize (not mobile/authorize) for better compatibility
+  return `https://www.strava.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&approval_prompt=auto&scope=activity:read_all,activity:write`;
 }
 
-// ── Full OAuth flow using expo-auth-session ───────────────────────────────────
-// Call this from the UI instead of manually opening a URL.
-// Returns tokens on success, null on failure/cancel.
+// ── Full OAuth flow ──────────────────────────────────────────────────────────
 export async function connectStrava(): Promise<StravaTokens | null> {
   try {
     const authUrl = getStravaAuthUrl();
+    console.log('[Strava] Auth URL:', authUrl);
     const result = await WebBrowser.openAuthSessionAsync(authUrl, REDIRECT_URI);
 
     if (result.type !== 'success') {
