@@ -55,11 +55,14 @@ async function handleDeepLink(url: string | null) {
   }
   if (!code) return;
 
+  console.log('[Strava] Exchanging code:', code.slice(0, 10) + '...');
   const tokens = await exchangeStravaCode(code);
   if (tokens) {
+    console.log('[Strava] Token exchange SUCCESS:', tokens.athlete_name);
     Alert.alert('Strava connected', `Welcome, ${tokens.athlete_name}. Your runs will sync automatically.`);
   } else {
-    Alert.alert('Strava', 'Could not complete sign-in. Check your API credentials in .env and try again.');
+    console.error('[Strava] Token exchange FAILED');
+    Alert.alert('Strava Error', 'Authorization succeeded but token exchange failed. Please try again.');
   }
 }
 
