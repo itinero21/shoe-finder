@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import Animated from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -349,6 +350,7 @@ const rp = StyleSheet.create({
 
 // ─── MAIN SCREEN ──────────────────────────────────────────────────────────────
 export default function ArsenalScreen() {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>('active');
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
@@ -641,6 +643,12 @@ export default function ArsenalScreen() {
               <Ionicons name="layers-outline" size={48} color="rgba(10,10,10,0.2)" />
               <Text style={s.emptyTitle}>ARSENAL EMPTY</Text>
               <Text style={s.emptySub}>Run the Scout diagnostic and add shoes to your arsenal.</Text>
+              <TouchableOpacity
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push('/(tabs)/scan' as any); }}
+                style={{ marginTop: 20, backgroundColor: INK, paddingVertical: 14, paddingHorizontal: 28, borderRadius: 2 }}
+              >
+                <Text style={{ fontFamily: MONO, fontSize: 11, fontWeight: '700', color: PAPER, letterSpacing: 2 }}>OPEN SCOUT</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             favoriteShoes.map((shoe, index) => {

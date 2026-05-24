@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   SafeAreaView,
   Dimensions,
+  BackHandler,
 } from 'react-native';
 import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
 import { Shoe } from '../app/data/shoes';
@@ -66,7 +67,7 @@ const rowStyles = StyleSheet.create({
   },
   label: {
     fontFamily: 'SpaceMono',
-    fontSize: 9,
+    fontSize: 10,
     color: 'rgba(10,10,10,0.4)',
     letterSpacing: 2,
     marginBottom: 8,
@@ -91,7 +92,7 @@ const rowStyles = StyleSheet.create({
   },
   valText: {
     fontFamily: 'SpaceMono',
-    fontSize: 12,
+    fontSize: 13,
     color: 'rgba(10,10,10,0.6)',
     textAlign: 'center',
     textTransform: 'capitalize',
@@ -114,6 +115,15 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
   shoe1,
   shoe2,
 }) => {
+  // Android back button support
+  useEffect(() => {
+    if (!visible) return;
+    const handler = () => { onClose(); return true; };
+    const sub = BackHandler.addEventListener('hardwareBackPress', handler);
+    return () => sub.remove();
+  }, [visible, onClose]);
+
+  const betterDrop = shoe1.specs.drop_mm < shoe2.specs.drop_mm ? 'left' : shoe1.specs.drop_mm > shoe2.specs.drop_mm ? 'right' : 'equal';
   const betterStack = shoe1.specs.stack_heel_mm > shoe2.specs.stack_heel_mm ? 'left' : shoe1.specs.stack_heel_mm < shoe2.specs.stack_heel_mm ? 'right' : 'equal';
   const betterWeight = shoe1.specs.weight_oz < shoe2.specs.weight_oz ? 'left' : shoe1.specs.weight_oz > shoe2.specs.weight_oz ? 'right' : 'equal';
 
@@ -154,8 +164,12 @@ export const ComparisonView: React.FC<ComparisonViewProps> = ({
           {/* Stats table */}
           <Animated.View entering={FadeIn.delay(300)} style={styles.section}>
             <Text style={styles.sectionTitle}>// SPECS</Text>
+            <View style={styles.legend}>
+              <View style={[styles.legendDot, { backgroundColor: '#FF3D00' }]} />
+              <Text style={styles.legendText}>ORANGE = ADVANTAGE IN THIS SPEC</Text>
+            </View>
             <Row label="CATEGORY" value1={getCategoryLabel(shoe1.category)} value2={getCategoryLabel(shoe2.category)} />
-            <Row label="HEEL DROP" value1={`${shoe1.specs.drop_mm}mm`} value2={`${shoe2.specs.drop_mm}mm`} />
+            <Row label="HEEL DROP" value1={`${shoe1.specs.drop_mm}mm`} value2={`${shoe2.specs.drop_mm}mm`} betterSide={betterDrop} />
             <Row label="STACK HEIGHT" value1={`${shoe1.specs.stack_heel_mm}mm`} value2={`${shoe2.specs.stack_heel_mm}mm`} betterSide={betterStack} />
             <Row label="WEIGHT" value1={`${shoe1.specs.weight_oz}oz`} value2={`${shoe2.specs.weight_oz}oz`} betterSide={betterWeight} />
             <Row label="STABILITY" value1={shoe1.biomech.stability_level} value2={shoe2.biomech.stability_level} />
@@ -287,6 +301,24 @@ const styles = StyleSheet.create({
     color: 'rgba(10,10,10,0.4)',
     letterSpacing: 2,
     marginBottom: 4,
+  },
+  legend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    marginBottom: 4,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontFamily: 'SpaceMono',
+    fontSize: 8,
+    color: 'rgba(10,10,10,0.4)',
+    letterSpacing: 1,
   },
   prosRow: {
     flexDirection: 'row',

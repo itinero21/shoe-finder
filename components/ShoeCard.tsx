@@ -120,7 +120,7 @@ export const ShoeCard: React.FC<ShoeCardProps> = ({
             </Text>
           </View>
 
-          <TouchableOpacity onPress={handleFavoritePress} style={styles.favBtn}>
+          <TouchableOpacity onPress={handleFavoritePress} style={styles.favBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <Animated.View style={animatedHeartStyle}>
               <Ionicons
                 name={isFavorite ? 'heart' : 'heart-outline'}
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   favBtn: {
-    padding: 4,
+    padding: 10,
   },
   brand: {
     fontFamily: 'SpaceMono',

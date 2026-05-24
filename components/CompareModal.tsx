@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
+  BackHandler,
 } from 'react-native';
 import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +31,14 @@ export const CompareModal: React.FC<CompareModalProps> = ({
   onToggleShoe,
   onCompare,
 }) => {
+  // Android back button support
+  useEffect(() => {
+    if (!visible) return;
+    const handler = () => { onClose(); return true; };
+    const sub = BackHandler.addEventListener('hardwareBackPress', handler);
+    return () => sub.remove();
+  }, [visible, onClose]);
+
   const handleCompare = () => {
     if (selectedShoes.length === 2) {
       const shoe1 = shoes.find(s => s.id === selectedShoes[0]);

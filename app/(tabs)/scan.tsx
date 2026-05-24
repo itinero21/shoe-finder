@@ -243,12 +243,7 @@ export default function ScanScreen() {
                     <Text style={s.inspectBtnText}>INSPECT MODEL</Text>
                   </View>
                 </Pressable>
-                <Pressable
-                  onPress={() => { setWhyNotShoe(primary); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
-                  style={s.whyNotBtn}
-                >
-                  <Text style={s.whyNotBtnText}>WHY NOT THIS SHOE?</Text>
-                </Pressable>
+                {/* WHY NOT only on secondary matches, not the #1 pick */}
               </View>
             </View>
           </View>

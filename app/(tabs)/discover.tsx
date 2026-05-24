@@ -290,7 +290,7 @@ export default function SearchScreen() {
                 isFavorite={favorites.includes(shoe.id)}
                 onToggleFavorite={() => handleToggleFavorite(shoe.id)}
                 onCompare={() => handleAddToCompare(shoe.id)}
-                onWhyNot={savedAnswers ? () => setWhyNotShoe(shoe) : undefined}
+                onWhyNot={savedAnswers && !favorites.includes(shoe.id) ? () => setWhyNotShoe(shoe) : undefined}
               />
             </Animated.View>
           ))
@@ -351,7 +351,7 @@ export default function SearchScreen() {
       {/* Compare Modal */}
       <CompareModal
         visible={showCompareModal}
-        onClose={() => setShowCompareModal(false)}
+        onClose={() => { setShowCompareModal(false); setSelectedCompareShoes([]); }}
         shoes={SHOES}
         selectedShoes={selectedCompareShoes}
         onToggleShoe={handleToggleCompareShoe}
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#F4F1EA',
-    paddingTop: 20,
+    paddingTop: 24,
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 2,

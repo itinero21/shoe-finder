@@ -421,7 +421,7 @@ const s = StyleSheet.create({
   catPct: { fontFamily: MONO, fontSize: 9, fontWeight: '700' },
   catBarTrack: { width: '100%', height: 60, backgroundColor: 'rgba(10,10,10,0.06)', borderRadius: 2, justifyContent: 'flex-end', overflow: 'hidden' },
   catBarFill: { width: '100%', borderRadius: 2 },
-  catLabel: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.4)', letterSpacing: 0.5, textAlign: 'center' },
+  catLabel: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.4)', letterSpacing: 0.5, textAlign: 'center', minHeight: 22, lineHeight: 11 },
 
   disclaimer: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginTop: 20, padding: 12, backgroundColor: 'rgba(10,10,10,0.04)', borderRadius: 2 },
   disclaimerText: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', flex: 1, lineHeight: 15 },
