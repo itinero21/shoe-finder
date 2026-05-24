@@ -49,6 +49,28 @@
         "android.permission.FOREGROUND_SERVICE_LOCATION",
         "android.permission.ACCESS_BACKGROUND_LOCATION",
         "android.permission.RECORD_AUDIO"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "shoefinder",
+              "host": "strava-callback"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "shoefinder",
+              "host": "auth"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "plugins": [
