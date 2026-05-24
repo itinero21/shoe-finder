@@ -15,7 +15,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
+import { Linking } from 'react-native';
 import { saveRun } from '../utils/runStorage';
 import { addMiles, addXP } from '../utils/userProfile';
 import { Run, RunTerrain, RunPurpose } from '../types/run';
@@ -31,13 +31,7 @@ WebBrowser.maybeCompleteAuthSession();
 // ── Config ────────────────────────────────────────────────────────────────────
 const CLIENT_ID     = process.env.EXPO_PUBLIC_STRAVA_CLIENT_ID ?? '';
 const CLIENT_SECRET = process.env.EXPO_PUBLIC_STRAVA_CLIENT_SECRET ?? '';
-// Use Expo AuthSession proxy — gives an HTTPS URL that Strava accepts
-// Then Expo redirects back to the app via the native scheme
-const REDIRECT_URI  = AuthSession.makeRedirectUri({
-  scheme: 'shoefinder',
-  path: 'strava-callback',
-  preferLocalhost: false,
-});
+const REDIRECT_URI  = 'shoefinder://strava-callback';
 
 const TOKEN_KEY    = 'stride_strava_tokens_v1';
 const LAST_SYNC    = 'stride_strava_last_sync_v1';
@@ -93,32 +87,34 @@ export function isStravaConnected(tokens: StravaTokens | null): boolean {
 
 // ── OAuth URL ─────────────────────────────────────────────────────────────────
 export function getStravaAuthUrl(): string {
-  console.log('[Strava] Redirect URI:', REDIRECT_URI);
-  // Use regular authorize (not mobile/authorize) for better compatibility
-  return `https://www.strava.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&approval_prompt=auto&scope=activity:read_all,activity:write`;
+  return `https://www.strava.com/oauth/mobile/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&approval_prompt=auto&scope=activity:read_all,activity:write`;
 }
 
 // ── Full OAuth flow ──────────────────────────────────────────────────────────
+// Opens Strava in browser → user authorizes → Strava redirects to shoefinder://strava-callback?code=XXX
+// On iOS: WebBrowser.openAuthSessionAsync catches the redirect automatically
+// On Android: the deep link handler in _layout.tsx catches it via Linking
 export async function connectStrava(): Promise<StravaTokens | null> {
   try {
     const authUrl = getStravaAuthUrl();
-    console.log('[Strava] Auth URL:', authUrl);
+
+    // openAuthSessionAsync opens an in-app browser that auto-closes
+    // when it detects a URL matching REDIRECT_URI
     const result = await WebBrowser.openAuthSessionAsync(authUrl, REDIRECT_URI);
 
-    if (result.type !== 'success') {
-      console.log('[Strava] Auth session result:', result.type);
-      return null;
+    if (result.type === 'success' && result.url) {
+      const code = getParam(result.url, 'code');
+      const error = getParam(result.url, 'error');
+      if (error || !code) return null;
+      return exchangeStravaCode(code);
     }
 
-    const url = result.url;
-    const code = getParam(url, 'code');
-    const error = getParam(url, 'error');
-
-    if (error) { console.log('[Strava] Auth error:', error); return null; }
-    if (!code) { console.log('[Strava] No code in callback URL:', url); return null; }
-    return exchangeStravaCode(code);
-  } catch (e: any) {
-    console.error('[Strava] Connect failed:', e?.message);
+    // On Android, WebBrowser may return 'cancel' even when successful
+    // because the deep link closes the browser. The _layout.tsx deep link
+    // handler will catch it instead. Return null here — the handler
+    // calls exchangeStravaCode directly.
+    return null;
+  } catch {
     return null;
   }
 }
