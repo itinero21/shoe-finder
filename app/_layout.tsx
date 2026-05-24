@@ -3,7 +3,8 @@ import { useFonts } from 'expo-font';
 import { Stack, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Alert, Linking, useColorScheme } from 'react-native';
+import { Alert, useColorScheme } from 'react-native';
+import * as Linking from 'expo-linking';
 import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -90,10 +91,18 @@ function RootLayoutInner() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  // Handle Strava OAuth deep links
+  // Handle deep links (Strava OAuth, email confirm, password reset)
   useEffect(() => {
-    Linking.getInitialURL().then(handleDeepLink);
-    const sub = Linking.addEventListener('url', ({ url }) => handleDeepLink(url));
+    // Check if app was opened via a deep link
+    Linking.getInitialURL().then((url) => {
+      console.log('[DeepLink] Initial URL:', url);
+      handleDeepLink(url);
+    });
+    // Listen for deep links while app is running
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      console.log('[DeepLink] Incoming URL:', url);
+      handleDeepLink(url);
+    });
     return () => sub.remove();
   }, []);
 

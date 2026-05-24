@@ -15,7 +15,6 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
-import { Linking } from 'react-native';
 import { saveRun } from '../utils/runStorage';
 import { addMiles, addXP } from '../utils/userProfile';
 import { Run, RunTerrain, RunPurpose } from '../types/run';
@@ -87,34 +86,42 @@ export function isStravaConnected(tokens: StravaTokens | null): boolean {
 
 // ── OAuth URL ─────────────────────────────────────────────────────────────────
 export function getStravaAuthUrl(): string {
-  return `https://www.strava.com/oauth/mobile/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&approval_prompt=auto&scope=activity:read_all,activity:write`;
+  const url = `https://www.strava.com/oauth/mobile/authorize`
+    + `?client_id=${CLIENT_ID}`
+    + `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
+    + `&response_type=code`
+    + `&approval_prompt=auto`
+    + `&scope=activity:read_all,activity:write`;
+  console.log('[Strava] REDIRECT_URI:', REDIRECT_URI);
+  console.log('[Strava] Auth URL:', url);
+  return url;
 }
 
 // ── Full OAuth flow ──────────────────────────────────────────────────────────
 // Opens Strava in browser → user authorizes → Strava redirects to shoefinder://strava-callback?code=XXX
-// On iOS: WebBrowser.openAuthSessionAsync catches the redirect automatically
-// On Android: the deep link handler in _layout.tsx catches it via Linking
+// iOS: openAuthSessionAsync catches the redirect and returns the URL
+// Android: deep link fires back to _layout.tsx handler which calls exchangeStravaCode
 export async function connectStrava(): Promise<StravaTokens | null> {
   try {
     const authUrl = getStravaAuthUrl();
-
-    // openAuthSessionAsync opens an in-app browser that auto-closes
-    // when it detects a URL matching REDIRECT_URI
     const result = await WebBrowser.openAuthSessionAsync(authUrl, REDIRECT_URI);
+    console.log('[Strava] WebBrowser result:', result.type);
 
     if (result.type === 'success' && result.url) {
+      console.log('[Strava] Callback URL received:', result.url);
       const code = getParam(result.url, 'code');
       const error = getParam(result.url, 'error');
       if (error || !code) return null;
       return exchangeStravaCode(code);
     }
 
-    // On Android, WebBrowser may return 'cancel' even when successful
-    // because the deep link closes the browser. The _layout.tsx deep link
-    // handler will catch it instead. Return null here — the handler
-    // calls exchangeStravaCode directly.
+    // On Android, WebBrowser returns 'cancel' or 'dismiss' because
+    // the deep link callback closes the browser tab. The deep link
+    // handler in _layout.tsx catches the URL and calls exchangeStravaCode.
+    // Return null here — UI will update when tokens are saved.
     return null;
-  } catch {
+  } catch (e: any) {
+    console.error('[Strava] Connect error:', e?.message);
     return null;
   }
 }
