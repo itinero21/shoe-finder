@@ -334,21 +334,8 @@ export default function DailyFeedScreen() {
                   if (tokens) {
                     setStravaConnected(true);
                     setStravaAthleteName(tokens.athlete_name ?? null);
-                  } else {
-                    // On Android, connectStrava returns null because the deep link
-                    // closes the browser (returns 'cancel'). The _layout.tsx handler
-                    // catches the callback instead. Wait 3s then re-check tokens.
-                    setTimeout(async () => {
-                      const { getStravaTokens: recheck } = await import('../services/stravaService');
-                      const rechecked = await recheck();
-                      if (rechecked?.access_token) {
-                        setStravaConnected(true);
-                        setStravaAthleteName(rechecked.athlete_name ?? null);
-                      } else {
-                        Alert.alert('Strava', 'Could not connect. Make sure you authorized access and try again.');
-                      }
-                    }, 3000);
                   }
+                  // If null, user cancelled or timed out — no error shown
                 } catch {
                   Alert.alert('Strava', 'Connection failed. Check your internet and try again.');
                 }
