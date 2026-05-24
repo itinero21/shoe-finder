@@ -55,7 +55,7 @@ export async function requestHealthPermission(): Promise<HealthPermStatus> {
   try {
     // @kingstinct/react-native-healthkit — Expo config plugin compatible
     // Loaded via require so TypeScript doesn't fail if not yet installed
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const HK = (() => { try { return require('@kingstinct/react-native-healthkit'); } catch { return null; } })();
 
     if (HK?.default) {
@@ -98,7 +98,7 @@ async function fetchHealthWorkouts(afterDate: Date): Promise<HealthWorkout[]> {
   if (Platform.OS !== 'ios') return [];
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const HK = (() => { try { return require('@kingstinct/react-native-healthkit'); } catch { return null; } })();
 
     if (HK?.default) {

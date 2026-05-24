@@ -10,6 +10,9 @@ import { Run } from '../types/run';
 import { deriveShoeTag, ShoeTag } from './shoeTags';
 import { computeShoeHealth } from './shoeFatigue';
 
+// ── Verdict storage ───────────────────────────────────────────────────────────
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export type AbuseVerdict = {
   type: 'category_mismatch' | 'distance_overload' | 'consecutive' | 'worn_shoe' | 'wrong_terrain' | 'perfect_match';
   severity: 'high' | 'moderate' | 'low' | 'positive';
@@ -156,9 +159,6 @@ export function detectAbuse(
 
   return null;
 }
-
-// ── Verdict storage ───────────────────────────────────────────────────────────
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const VERDICTS_KEY = 'stride_abuse_verdicts_v1';
 

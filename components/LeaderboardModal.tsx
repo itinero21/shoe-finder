@@ -92,7 +92,7 @@ function buildLeaderboard(scope: Scope): LeaderboardData {
   const total = rawPcts.reduce((s, v) => s + v, 0);
   const normed = rawPcts.map(p => Math.round((p / total) * 100));
 
-  const trends: Array<'up' | 'down' | 'stable'> = ['up', 'up', 'stable', 'stable', 'up', 'down', 'down', 'stable'];
+  const trends: ('up' | 'down' | 'stable')[] = ['up', 'up', 'stable', 'stable', 'up', 'down', 'down', 'stable'];
 
   const entries: LeaderboardEntry[] = top8.map(({ shoe, stats }, i) => ({
     rank: i + 1,
@@ -148,7 +148,7 @@ function buildLeaderboardFromReal(realCounts: { shoe_id: string; user_count: num
   });
 
   const top8 = all.slice(0, 8);
-  const trends: Array<'up' | 'down' | 'stable'> = ['up', 'up', 'stable', 'stable', 'up', 'down', 'down', 'stable'];
+  const trends: ('up' | 'down' | 'stable')[] = ['up', 'up', 'stable', 'stable', 'up', 'down', 'down', 'stable'];
 
   // Compute percentages: real data for real-count shoes, seeded % for the rest
   const totalTop8Real = top8.reduce((s, e) => s + e.realCount, 0);

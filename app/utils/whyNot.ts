@@ -4,8 +4,7 @@
  */
 
 import { Shoe } from '../data/shoes';
-import { QuizAnswers } from './scoring';
-import { scoreShoe } from './scoring';
+import { QuizAnswers , scoreShoe } from './scoring';
 
 export interface WhyNotResult {
   headline: string;

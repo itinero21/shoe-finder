@@ -10,11 +10,11 @@ export interface ChatMessage {
 }
 
 export interface RunningCoachContext {
-  userRotation?: Array<{
+  userRotation?: {
     name: string;
     mileage: number;
     category: string;
-  }>;
+  }[];
   userProfile?: {
     archType?: string;
     pronation?: string;

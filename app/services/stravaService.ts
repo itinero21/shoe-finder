@@ -15,15 +15,13 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
-import { saveRun } from '../utils/runStorage';
-import { addMiles, addXP } from '../utils/userProfile';
+import { saveRun , getRuns } from '../utils/runStorage';
+import { addMiles, addXP , getUserProfile } from '../utils/userProfile';
 import { Run, RunTerrain, RunPurpose } from '../types/run';
 import { SHOES } from '../data/shoes';
 import { getMileageForShoe } from '../utils/mileage';
-import { getRuns } from '../utils/runStorage';
 import { Coordinate } from '../types/territory';
 import { calcMatchQuality, calcXP } from '../utils/matchQuality';
-import { getUserProfile } from '../utils/userProfile';
 
 WebBrowser.maybeCompleteAuthSession();
 

@@ -12,8 +12,7 @@
 
 import { supabase } from '../lib/supabase';
 import { RunPath, TerritoryState, City, Rivalry } from '../types/territory';
-import { getAllPaths } from '../utils/pathStorage';
-import { getAllTerritoryStates } from '../utils/pathStorage';
+import { getAllPaths , getAllTerritoryStates } from '../utils/pathStorage';
 import { getAllCities } from '../utils/cityStorage';
 import { getUserProfile } from '../utils/userProfile';
 import * as Crypto from 'expo-crypto';
@@ -62,7 +61,7 @@ export async function pushPathsToCloud(): Promise<void> {
 export interface PublicHeatPath {
   id: string;
   heat: string;
-  coordinates: Array<{ lat: number; lng: number }>;
+  coordinates: { lat: number; lng: number }[];
   run_count: number;
   city?: string;
 }

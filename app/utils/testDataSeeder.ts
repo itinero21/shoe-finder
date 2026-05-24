@@ -39,14 +39,14 @@ export async function seedTestRuns(options: SeedOptions = { source: 'strava', co
 
   if (shoePool.length === 0) return { imported: 0, xpEarned: 0, milesAdded: 0 };
 
-  const SCENARIOS: Array<{
+  const SCENARIOS: {
     distanceKm: number;
     terrain: RunTerrain;
     purpose: RunPurpose;
     durationMinutes: number;
     feel: 1 | 2 | 3;
     label: string;
-  }> = [
+  }[] = [
     { distanceKm: 5.2,  terrain: 'road',      purpose: 'easy',     durationMinutes: 32,  feel: 3, label: 'Morning easy' },
     { distanceKm: 10.1, terrain: 'road',      purpose: 'tempo',    durationMinutes: 51,  feel: 2, label: 'Tempo Tuesday' },
     { distanceKm: 21.3, terrain: 'road',      purpose: 'long',     durationMinutes: 130, feel: 2, label: 'Long Sunday' },
