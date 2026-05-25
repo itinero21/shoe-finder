@@ -15,6 +15,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
+import { Platform } from 'react-native';
 import { saveRun , getRuns } from '../utils/runStorage';
 import { addMiles, addXP , getUserProfile } from '../utils/userProfile';
 import { Run, RunTerrain, RunPurpose } from '../types/run';
@@ -84,13 +85,20 @@ export function isStravaConnected(tokens: StravaTokens | null): boolean {
 
 // ── OAuth URL ─────────────────────────────────────────────────────────────────
 export function getStravaAuthUrl(): string {
-  const url = `https://www.strava.com/oauth/mobile/authorize`
+  // On Android, use web authorize (not mobile/authorize) because
+  // mobile/authorize routes through the Strava app which can't handle
+  // custom scheme redirects and shows "Request Failed"
+  const endpoint = Platform.OS === 'android'
+    ? 'https://www.strava.com/oauth/authorize'
+    : 'https://www.strava.com/oauth/mobile/authorize';
+
+  const url = endpoint
     + `?client_id=${CLIENT_ID}`
     + `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
     + `&response_type=code`
     + `&approval_prompt=auto`
     + `&scope=activity:read_all,activity:write`;
-  console.log('[Strava] REDIRECT_URI:', REDIRECT_URI);
+  console.log('[Strava] Platform:', Platform.OS);
   console.log('[Strava] Auth URL:', url);
   return url;
 }
