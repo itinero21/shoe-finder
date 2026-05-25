@@ -96,48 +96,41 @@ export function getStravaAuthUrl(): string {
 }
 
 // ── Full OAuth flow ──────────────────────────────────────────────────────────
-// Opens Strava in browser → user authorizes → Strava redirects to shoefinder://strava-callback?code=XXX
+// Opens Strava auth page. After user authorizes, Strava redirects to
+// shoefinder://strava-callback?code=XXX which is caught by _layout.tsx
+// deep link handler and exchanged there.
+//
+// On iOS: openAuthSessionAsync may catch the redirect directly.
+// On Android: the deep link handler in _layout.tsx always handles it.
 export async function connectStrava(): Promise<StravaTokens | null> {
   try {
     const authUrl = getStravaAuthUrl();
 
-    // Create a promise that resolves when we get the deep link callback
-    const callbackPromise = new Promise<string | null>((resolve) => {
-      const timeout = setTimeout(() => resolve(null), 60000); // 60s timeout
-
-      const { Linking } = require('react-native');
-      const handler = ({ url }: { url: string }) => {
-        if (url && url.includes('strava-callback')) {
-          clearTimeout(timeout);
-          Linking.removeEventListener?.('url', handler);
-          resolve(url);
-        }
-      };
-      Linking.addEventListener('url', handler);
-    });
-
-    // Open the browser
     const result = await WebBrowser.openAuthSessionAsync(authUrl, REDIRECT_URI);
-    console.log('[Strava] WebBrowser result:', result.type);
+    console.log('[Strava] WebBrowser result type:', result.type);
 
-    // iOS: WebBrowser returns the URL directly
+    // iOS typically returns 'success' with the callback URL
     if (result.type === 'success' && result.url) {
-      console.log('[Strava] iOS callback URL:', result.url);
+      console.log('[Strava] Got callback URL from WebBrowser:', result.url.slice(0, 60));
       const code = getParam(result.url, 'code');
-      if (!code) return null;
+      const error = getParam(result.url, 'error');
+      if (error || !code) return null;
       return exchangeStravaCode(code);
     }
 
-    // Android: WebBrowser returns 'cancel'/'dismiss' but deep link fires separately
-    // Wait for the deep link callback
-    console.log('[Strava] Waiting for deep link callback...');
-    const callbackUrl = await callbackPromise;
-    if (callbackUrl) {
-      console.log('[Strava] Android callback URL:', callbackUrl);
-      const code = getParam(callbackUrl, 'code');
-      const error = getParam(callbackUrl, 'error');
-      if (error || !code) return null;
-      return exchangeStravaCode(code);
+    // Android: browser returns 'cancel' or 'dismiss' — this is NORMAL.
+    // The deep link handler in _layout.tsx will catch the callback URL
+    // and call exchangeStravaCode + show success alert.
+    // Return 'pending' signal — don't show error.
+    if (result.type === 'cancel' || result.type === 'dismiss') {
+      console.log('[Strava] Browser closed — waiting for deep link handler');
+      // Wait briefly then check if tokens were saved by the deep link handler
+      await new Promise(r => setTimeout(r, 4000));
+      const tokens = await getStravaTokens();
+      if (tokens?.access_token) {
+        console.log('[Strava] Tokens found after deep link handler processed');
+        return tokens;
+      }
     }
 
     return null;
