@@ -45,13 +45,13 @@ const Row: React.FC<RowProps> = ({ label, value1, value2, betterSide = 'equal' }
     <Text style={rowStyles.label}>{label}</Text>
     <View style={rowStyles.values}>
       <View style={[rowStyles.val, betterSide === 'left' && rowStyles.valBetter]}>
-        <Text style={[rowStyles.valText, betterSide === 'left' && rowStyles.valTextBetter]}>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={[rowStyles.valText, betterSide === 'left' && rowStyles.valTextBetter]}>
           {value1}
         </Text>
       </View>
       <Text style={rowStyles.vs}>VS</Text>
       <View style={[rowStyles.val, betterSide === 'right' && rowStyles.valBetter]}>
-        <Text style={[rowStyles.valText, betterSide === 'right' && rowStyles.valTextBetter]}>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={[rowStyles.valText, betterSide === 'right' && rowStyles.valTextBetter]}>
           {value2}
         </Text>
       </View>
@@ -80,11 +80,13 @@ const rowStyles = StyleSheet.create({
   val: {
     flex: 1,
     paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingHorizontal: 6,
     borderWidth: 2,
     borderColor: 'rgba(10,10,10,0.15)',
     borderRadius: 2,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 38,
   },
   valBetter: {
     borderColor: '#FF3D00',
@@ -92,7 +94,7 @@ const rowStyles = StyleSheet.create({
   },
   valText: {
     fontFamily: 'SpaceMono',
-    fontSize: 13,
+    fontSize: 12,
     color: 'rgba(10,10,10,0.6)',
     textAlign: 'center',
     textTransform: 'capitalize',

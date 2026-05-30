@@ -150,18 +150,18 @@ export const ShoeCard: React.FC<ShoeCardProps> = ({
         {/* Spec row */}
         <View style={styles.specRow}>
           <View style={styles.specItem}>
-            <Text style={styles.specValue}>{shoe.specs.drop_mm}mm</Text>
-            <Text style={styles.specKey}>DROP</Text>
+            <Text numberOfLines={1} style={styles.specValue}>{shoe.specs.drop_mm}mm</Text>
+            <Text numberOfLines={1} style={styles.specKey}>DROP</Text>
           </View>
           <View style={styles.specDivider} />
           <View style={styles.specItem}>
-            <Text style={styles.specValue}>{shoe.specs.stack_heel_mm}mm</Text>
-            <Text style={styles.specKey}>STACK</Text>
+            <Text numberOfLines={1} style={styles.specValue}>{shoe.specs.stack_heel_mm}mm</Text>
+            <Text numberOfLines={1} style={styles.specKey}>STACK</Text>
           </View>
           <View style={styles.specDivider} />
           <View style={styles.specItem}>
-            <Text style={styles.specValue}>{shoe.specs.weight_oz}oz</Text>
-            <Text style={styles.specKey}>WEIGHT</Text>
+            <Text numberOfLines={1} style={styles.specValue}>{shoe.specs.weight_oz}oz</Text>
+            <Text numberOfLines={1} style={styles.specKey}>WEIGHT</Text>
           </View>
         </View>
 
