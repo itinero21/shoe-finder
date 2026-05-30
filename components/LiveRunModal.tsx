@@ -380,9 +380,18 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
   const handleStop = async () => {
     stopTimer();
     const chunk = await stopRunTracking();
-    const finalTrace = [...trace, ...chunk];
-    setTrace(finalTrace);
-    setDistanceKm(traceDistanceKm(finalTrace));
+    // Merge snapshot trace with final chunk, dedup by timestamp
+    const seen = new Set<number>();
+    const merged: Coordinate[] = [];
+    for (const c of [...trace, ...chunk]) {
+      const ts = c.timestamp ?? 0;
+      if (!seen.has(ts)) { seen.add(ts); merged.push(c); }
+    }
+    merged.sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
+    const km = traceDistanceKm(merged);
+    setTrace(merged);
+    setDistanceKm(km);
+    console.log('[LiveRun] Stop — points:', merged.length, 'distance:', km.toFixed(2), 'km');
     setRunState('summary');
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
   };
@@ -390,10 +399,13 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
   // ── Save + Strava upload ──────────────────────────────────────────────────────
 
   const handleSave = async () => {
-    if (distanceKm < 0.1) {
+    // Recalculate distance from trace in case state is stale
+    const actualKm = trace.length >= 2 ? traceDistanceKm(trace) : distanceKm;
+    if (actualKm < 0.1 && distanceKm < 0.1) {
       Alert.alert('Too short', 'Run at least 0.1 km before saving.');
       return;
     }
+    const saveDistanceKm = actualKm > 0 ? actualKm : distanceKm;
     if (!selectedShoe) {
       Alert.alert('No shoe selected', 'Add shoes to your Arsenal in the FIND tab, then select one before saving.');
       return;
@@ -405,8 +417,8 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
       const shoe = SHOES.find(s => s.id === selectedShoe);
       const profile = await getUserProfile();
       const isBeginnerMode = profile.is_beginner_mode ?? false;
-      const mq = shoe ? calcMatchQuality(shoe, terrain, purpose, distanceKm) : 'neutral';
-      const xpEarned = calcXP(distanceKm, mq, isBeginnerMode);
+      const mq = shoe ? calcMatchQuality(shoe, terrain, purpose, saveDistanceKm) : 'neutral';
+      const xpEarned = calcXP(saveDistanceKm, mq, isBeginnerMode);
 
       // Roster bonus: non-roster shoes earn 50% XP
       const inRoster = profile.weekly_roster?.includes(selectedShoe);
@@ -418,7 +430,7 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
       const run: Run = {
         id:              runId,
         shoeId:          selectedShoe,
-        distanceKm,
+        distanceKm:      saveDistanceKm,
         date:            new Date().toISOString(),
         terrain,
         purpose,
@@ -433,7 +445,7 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
 
       // 1. Save locally + to Supabase
       await saveRun(run);
-      await addMiles(distanceKm * 0.621371);
+      await addMiles(saveDistanceKm * 0.621371);
       await addXP(finalXP);
 
       // 2. DRIFT territory update (fire-and-forget)
