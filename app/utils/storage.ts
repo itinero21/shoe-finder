@@ -53,6 +53,22 @@ export const addToFavorites = async (shoeId: string): Promise<void> => {
       await AsyncStorage.setItem('favorites', JSON.stringify(updatedFavorites));
       syncArsenalToCloud(updatedFavorites); // fire-and-forget
       recordChoiceToCloud(shoeId);          // leaderboard tracking — fire-and-forget
+
+      // Create a Living Shoe character for the new shoe (fire-and-forget)
+      import('./characterStorage').then(async ({ getLivingShoe, saveLivingShoe }) => {
+        const existing = await getLivingShoe(shoeId);
+        if (!existing) {
+          const { SHOES } = await import('../data/shoes');
+          const { createLivingShoe } = await import('./characterEngine');
+          const { getUserProfile } = await import('./userProfile');
+          const shoe = SHOES.find(s => s.id === shoeId);
+          if (shoe) {
+            const profile = await getUserProfile();
+            const char = createLivingShoe(shoe, profile.weight_lbs ?? 160);
+            await saveLivingShoe(char);
+          }
+        }
+      }).catch(() => {});
     }
   } catch (error) {
     console.error('Error adding to favorites:', error);

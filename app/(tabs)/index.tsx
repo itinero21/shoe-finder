@@ -365,6 +365,21 @@ export default function ClosetScreen() {
             await addMemorial(memorial);
             await removeLivingShoe(memorial.shoeId);
             await removeFromFavorites(memorial.shoeId);
+
+            // Apply lineage: update heir with inherited trait + memory
+            if (heirId && retireChar) {
+              const { getLivingShoe, saveLivingShoe } = await import('../utils/characterStorage');
+              const heir = await getLivingShoe(heirId);
+              if (heir) {
+                heir.ancestorId = memorial.shoeId;
+                heir.inheritedTrait = retireChar.archetype;
+                heir.inheritedMemory = `Inherited the spirit of ${memorial.brand} ${memorial.model}${memorial.nickname ? ` "${memorial.nickname}"` : ''} — ${Math.round(memorial.totalMiles)} miles of legacy.`;
+                await saveLivingShoe(heir);
+                // Update local state
+                setLivingShoes(prev => prev.map(c => c.shoeId === heirId ? heir : c));
+              }
+            }
+
             setRetireShoe(null);
             setRetireChar(null);
             setMemorials(prev => [memorial, ...prev]);

@@ -180,6 +180,18 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
         weightLbs: profile.weight_lbs ?? 160,
       }).catch(() => {});
 
+      // Update the Living Shoe character (fire-and-forget)
+      import('../app/utils/characterStorage').then(async ({ getLivingShoe, saveLivingShoe }) => {
+        const char = await getLivingShoe(shoeId);
+        if (char && shoe) {
+          const { updateShoeAfterRun } = await import('../app/utils/characterEngine');
+          const { getLivingShoes } = await import('../app/utils/characterStorage');
+          const allChars = await getLivingShoes();
+          const updated = updateShoeAfterRun(char, shoe, allRuns, allChars, profile.weight_lbs ?? 160);
+          await saveLivingShoe(updated);
+        }
+      }).catch(() => {});
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       setDistance('');

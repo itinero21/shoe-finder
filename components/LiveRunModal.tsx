@@ -453,6 +453,18 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
         updateTerritoryAfterRun(run).catch(() => {});
       }
 
+      // 3. Update Living Shoe character (fire-and-forget)
+      import('../app/utils/characterStorage').then(async ({ getLivingShoe, saveLivingShoe, getLivingShoes }) => {
+        const char = await getLivingShoe(selectedShoe);
+        if (char && shoe) {
+          const { updateShoeAfterRun } = await import('../app/utils/characterEngine');
+          const allRuns = await (await import('../app/utils/runStorage')).getRuns();
+          const allChars = await getLivingShoes();
+          const updated = updateShoeAfterRun(char, shoe, allRuns, allChars, profile.weight_lbs ?? 160);
+          await saveLivingShoe(updated);
+        }
+      }).catch(() => {});
+
       setSaving(false);
 
       // 3. Strava upload (if opted in)
