@@ -26,6 +26,8 @@ import { findTodaysMemories, ClosetMemory } from '../utils/closetRemembers';
 import { addMemorial, removeLivingShoe } from '../utils/characterStorage';
 import { removeFromFavorites } from '../utils/storage';
 import { RetirementCeremony } from '../../components/RetirementCeremony';
+import { HallOfFame } from '../../components/HallOfFame';
+import { FamilyTree } from '../../components/FamilyTree';
 import { Onboarding } from '../../components/Onboarding';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -76,6 +78,8 @@ export default function ClosetScreen() {
   const [memories, setMemories] = useState<ClosetMemory[]>([]);
   const [retireShoe, setRetireShoe] = useState<Shoe | null>(null);
   const [retireChar, setRetireChar] = useState<LivingShoe | null>(null);
+  const [showHallOfFame, setShowHallOfFame] = useState(false);
+  const [showFamilyTree, setShowFamilyTree] = useState(false);
 
   React.useEffect(() => {
     AsyncStorage.getItem('stride_onboarding_done').then(val => {
@@ -167,6 +171,20 @@ export default function ClosetScreen() {
           <Text style={s.title}>YOUR SHOES{'\n'}ARE ALIVE.</Text>
         </View>
         <View style={s.headerRight}>
+          <View style={s.headerBtns}>
+            <TouchableOpacity
+              onPress={() => { setShowHallOfFame(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+              style={s.headerSmallBtn}
+            >
+              <Ionicons name="trophy-outline" size={14} color={INK} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => { setShowFamilyTree(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+              style={s.headerSmallBtn}
+            >
+              <Ionicons name="git-branch-outline" size={14} color={INK} />
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity
             onPress={() => { setShowGraveyard(!showGraveyard); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
             style={s.graveyardBtn}
@@ -234,6 +252,28 @@ export default function ClosetScreen() {
                         <Text style={s.nickname}>"{char.nickname}"</Text>
                       )}
 
+                      {/* Inherited lineage */}
+                      {char.inheritedMemory && (
+                        <Text style={s.lineageText}>{char.inheritedMemory}</Text>
+                      )}
+
+                      {/* Inter-shoe relationship */}
+                      {(() => {
+                        const jealous = char.relationships?.find(r => r.sentiment < -0.3);
+                        const admires = char.relationships?.find(r => r.sentiment > 0.3);
+                        const otherShoe = jealous
+                          ? SHOES.find(sh => sh.id === jealous.otherShoeId)
+                          : admires ? SHOES.find(sh => sh.id === admires.otherShoeId) : null;
+                        if (!otherShoe) return null;
+                        return (
+                          <Text style={s.relationshipText}>
+                            {jealous
+                              ? `Jealous of ${otherShoe.model} getting more runs lately`
+                              : `Good teammates with ${otherShoe.model}`}
+                          </Text>
+                        );
+                      })()}
+
                       {/* Life bar */}
                       <View style={s.lifeBar}>
                         <View style={[s.lifeBarFill, {
@@ -260,14 +300,32 @@ export default function ClosetScreen() {
                         </View>
                       </View>
 
-                      {/* Moments count */}
+                      {/* Moments timeline */}
                       {char.moments.length > 0 && (
-                        <Text style={s.momentsCount}>
-                          {char.moments.length} {char.moments.length === 1 ? 'MEMORY' : 'MEMORIES'}
-                        </Text>
+                        <View style={s.momentsSection}>
+                          <Text style={s.momentsTitle}>
+                            {char.moments.length} {char.moments.length === 1 ? 'MEMORY' : 'MEMORIES'}
+                          </Text>
+                          {char.moments.slice(0, 4).map((m, mi) => (
+                            <View key={m.type} style={s.momentRow}>
+                              <View style={s.momentDot} />
+                              <View style={s.momentContent}>
+                                <Text style={s.momentCaption}>{m.caption}</Text>
+                                <Text style={s.momentDate}>{m.date.slice(0, 10)}</Text>
+                              </View>
+                            </View>
+                          ))}
+                        </View>
                       )}
 
                       {/* A line from the shoe */}
+                      {char.runCount === 0 && (
+                        <View style={s.welcomeCard}>
+                          <Text style={s.welcomeLine}>
+                            "Welcome, {shoe.model}. No memories yet. Let's see where this story goes."
+                          </Text>
+                        </View>
+                      )}
                       {char.runCount > 0 && (
                         <View style={s.voiceCard}>
                           <Text style={s.voiceLine}>
@@ -350,6 +408,25 @@ export default function ClosetScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
+      {/* Hall of Fame */}
+      <HallOfFame
+        visible={showHallOfFame}
+        onClose={() => setShowHallOfFame(false)}
+        livingShoes={livingShoes}
+        memorials={memorials}
+        shoeDataMap={(() => { const m: Record<string, Shoe> = {}; SHOES.forEach(s => m[s.id] = s); return m; })()}
+        totalRuns={runs.length}
+      />
+
+      {/* Family Tree */}
+      <FamilyTree
+        visible={showFamilyTree}
+        onClose={() => setShowFamilyTree(false)}
+        livingShoes={livingShoes}
+        memorials={memorials}
+        shoeDataMap={(() => { const m: Record<string, Shoe> = {}; SHOES.forEach(s => m[s.id] = s); return m; })()}
+      />
+
       {/* Retirement Ceremony */}
       {retireShoe && retireChar && (
         <RetirementCeremony
@@ -397,7 +474,9 @@ const s = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, borderBottomWidth: 2, borderBottomColor: INK },
   eyebrow: { fontFamily: MONO, fontSize: 9, color: ACCENT, letterSpacing: 2, marginBottom: 4 },
   title: { fontSize: 28, fontWeight: '900', color: INK, letterSpacing: -1, lineHeight: 30 },
-  headerRight: { paddingTop: 4 },
+  headerRight: { paddingTop: 4, gap: 8 },
+  headerBtns: { flexDirection: 'row', gap: 6, justifyContent: 'flex-end' },
+  headerSmallBtn: { borderWidth: 1.5, borderColor: 'rgba(10,10,10,0.2)', padding: 6, borderRadius: 2 },
   graveyardBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 2, borderColor: INK, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 2 },
   graveyardBtnText: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: INK, letterSpacing: 1 },
 
@@ -426,7 +505,9 @@ const s = StyleSheet.create({
 
   brand: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginBottom: 2 },
   model: { fontSize: 22, fontWeight: '900', color: INK, letterSpacing: -0.5, marginBottom: 4 },
-  nickname: { fontFamily: MONO, fontSize: 10, color: ACCENT, fontStyle: 'italic', marginBottom: 8 },
+  nickname: { fontFamily: MONO, fontSize: 10, color: ACCENT, fontStyle: 'italic', marginBottom: 4 },
+  lineageText: { fontFamily: MONO, fontSize: 9, color: '#7C3AED', fontStyle: 'italic', marginBottom: 4, lineHeight: 14 },
+  relationshipText: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', fontStyle: 'italic', marginBottom: 8, lineHeight: 14 },
 
   lifeBar: { height: 6, backgroundColor: 'rgba(10,10,10,0.1)', borderRadius: 3, overflow: 'hidden', marginBottom: 14 },
   lifeBarFill: { height: '100%', borderRadius: 3 },
@@ -437,8 +518,16 @@ const s = StyleSheet.create({
   statVal: { fontSize: 16, fontWeight: '800', color: INK, marginBottom: 2 },
   statLabel: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.4)', letterSpacing: 1 },
 
-  momentsCount: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.35)', letterSpacing: 1, marginBottom: 10 },
+  momentsSection: { marginBottom: 10 },
+  momentsTitle: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.35)', letterSpacing: 1, marginBottom: 8 },
+  momentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 6 },
+  momentDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: ACCENT, marginTop: 5 },
+  momentContent: { flex: 1 },
+  momentCaption: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.55)', lineHeight: 15 },
+  momentDate: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.25)', letterSpacing: 1, marginTop: 1 },
 
+  welcomeCard: { backgroundColor: 'rgba(10,10,10,0.04)', padding: 12, borderRadius: 2, borderLeftWidth: 3, borderLeftColor: '#7C3AED', marginBottom: 10 },
+  welcomeLine: { fontFamily: MONO, fontSize: 11, color: '#7C3AED', fontStyle: 'italic', lineHeight: 17 },
   voiceCard: { backgroundColor: 'rgba(10,10,10,0.04)', padding: 12, borderRadius: 2, borderLeftWidth: 3, borderLeftColor: ACCENT },
   voiceLine: { fontFamily: MONO, fontSize: 11, color: 'rgba(10,10,10,0.6)', fontStyle: 'italic', lineHeight: 17 },
 
