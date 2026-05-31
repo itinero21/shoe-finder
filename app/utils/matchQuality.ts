@@ -1,6 +1,6 @@
 /**
  * Match quality engine — determines how well a shoe matches a run.
- * Used for XP multipliers in Shoe Wars.
+ * Used for shoe reaction, mood drift, and wear.
  */
 import { Shoe } from '../data/shoes';
 import { RunTerrain, RunPurpose, MatchQuality } from '../types/run';
@@ -49,23 +49,10 @@ export function calcMatchQuality(shoe: Shoe, terrain: RunTerrain, purpose: RunPu
   return 'neutral';
 }
 
-export function calcXP(
-  distanceKm: number,
-  quality: MatchQuality,
-  isBeginnerMode: boolean
-): number {
-  const miles = distanceKm * 0.621371;
-  const MULTI: Record<MatchQuality, number> = { perfect: 2.0, good: 1.5, neutral: 1.0, poor: 0.5, abuse: 0.25 };
-  const capped = Math.min(miles, 30);
-  const raw = Math.round(capped * 2 * MULTI[quality]);
-  const cap = isBeginnerMode ? 120 : 60;
-  return Math.min(raw, cap);
-}
-
 export const MATCH_LABELS: Record<MatchQuality, { label: string; color: string; desc: string }> = {
-  perfect: { label: 'PERFECT MATCH', color: '#16A34A', desc: 'Ideal shoe for this run type — 2× XP' },
-  good:    { label: 'GOOD MATCH',    color: '#2563EB', desc: 'Suitable for this run — 1.5× XP' },
-  neutral: { label: 'NEUTRAL',       color: '#6B7280', desc: 'Acceptable — 1× XP' },
-  poor:    { label: 'POOR MATCH',    color: '#D97706', desc: 'Not ideal for this run — 0.5× XP' },
-  abuse:   { label: 'ABUSE',         color: '#FF3D00', desc: 'Wrong shoe entirely — 0.25× XP, lifespan risk' },
+  perfect: { label: 'PERFECT MATCH', color: '#16A34A', desc: 'Exactly the run this shoe wants.' },
+  good:    { label: 'GOOD MATCH',    color: '#2563EB', desc: 'A solid use for this shoe.' },
+  neutral: { label: 'NEUTRAL',       color: '#6B7280', desc: 'Fine, but not especially meaningful.' },
+  poor:    { label: 'POOR MATCH',    color: '#D97706', desc: 'Not ideal. The shoe will feel it.' },
+  abuse:   { label: 'ABUSE',         color: '#FF3D00', desc: 'Wrong tool for the job. Lifespan risk.' },
 };

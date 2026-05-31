@@ -31,16 +31,15 @@ import {
   hasBackgroundPermission, requestBackgroundPermission, getTrackingSnapshot,
 } from '../app/services/locationService';
 import { saveRun } from '../app/utils/runStorage';
-import { addMiles, addXP, getUserProfile } from '../app/utils/userProfile';
-import { updateTerritoryAfterRun } from '../app/utils/driftEngine';
+import { addMiles, getUserProfile } from '../app/utils/userProfile';
 import { getFavorites } from '../app/utils/storage';
 import { getStravaTokens, uploadRunToStrava, StravaTokens } from '../app/services/stravaService';
-import { getHealthPermStatus } from '../app/services/healthService';
 import { getWatchStatus } from '../app/services/watchService';
 import { SHOES } from '../app/data/shoes';
 import { Run, RunTerrain, RunPurpose } from '../app/types/run';
 import { Coordinate } from '../app/types/territory';
-import { calcMatchQuality, calcXP } from '../app/utils/matchQuality';
+import { calcMatchQuality } from '../app/utils/matchQuality';
+import { StravaMark } from './BrandMarks';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -123,7 +122,7 @@ function PulseRing({ active }: { active: boolean }) {
     ]));
     anim.start();
     return () => anim.stop();
-  }, [active]);
+  }, [active, opacity, scale]);
 
   return (
     <View style={pr.wrap}>
@@ -212,7 +211,7 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
   const [purpose, setPurpose]           = useState<RunPurpose>('easy');
   const [feel, setFeel]                 = useState<1|2|3>(2);
   const [notes, setNotes]               = useState('');
-  const [arsenalIds, setArsenalIds]     = useState<string[]>([]);
+  const [closetIds, setClosetIds]       = useState<string[]>([]);
 
   // ── Integrations ─────────────────────────────────────────────────────────────
   const [gpsGranted, setGpsGranted]       = useState(false);
@@ -239,24 +238,23 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
   );
   const currentPace    = formatPace(distanceKm, elapsed);
   const milesDisplay   = kmToMi(distanceKm);
-  const arsenalShoes   = SHOES.filter(s => arsenalIds.includes(s.id));
+  const closetShoes    = SHOES.filter(s => closetIds.includes(s.id));
   const summaryRegion  = useMemo(() => getBoundingRegion(trace), [trace]);
 
-  // ── Load connections + arsenal when modal opens ───────────────────────────────
+  // ── Load connections + closet when modal opens ────────────────────────────────
 
   useEffect(() => {
     if (!visible) { resetAll(); return; }
 
     (async () => {
-      const [favs, perm, tokens, healthPerm, watchStatus] = await Promise.all([
+      const [favs, perm, tokens, watchStatus] = await Promise.all([
         getFavorites(),
         getLocationPermStatus(),
         getStravaTokens(),
-        getHealthPermStatus(),
         getWatchStatus(),
       ]);
 
-      setArsenalIds(favs);
+      setClosetIds(favs);
       if (favs.length > 0) setSelectedShoe(favs[0]);
       setGpsGranted(perm === 'granted');
       setStravaTokens(tokens);
@@ -265,6 +263,8 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
       const watchOk = watchStatus.appleWatchDetected || watchStatus.garminViaStrava;
       setWatchConnected(watchOk);
     })();
+  // resetAll intentionally stays outside dependencies; it only clears local modal state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   // ── Animate map to latest GPS point ─────────────────────────────────────────
@@ -278,7 +278,7 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
       latitudeDelta:  0.005,
       longitudeDelta: 0.005,
     }, 800);
-  }, [trace]);
+  }, [runState, trace]);
 
   // ── Timer ─────────────────────────────────────────────────────────────────────
 
@@ -407,24 +407,16 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
     }
     const saveDistanceKm = actualKm > 0 ? actualKm : distanceKm;
     if (!selectedShoe) {
-      Alert.alert('No shoe selected', 'Add shoes to your Arsenal in the FIND tab, then select one before saving.');
+      Alert.alert('No shoe selected', 'Add shoes in the ADD tab, then select one before saving.');
       return;
     }
     setSaving(true);
 
     try {
-      // Calculate real match quality + XP with multiplier
+      // Calculate match quality for shoe reaction and wear.
       const shoe = SHOES.find(s => s.id === selectedShoe);
       const profile = await getUserProfile();
-      const isBeginnerMode = profile.is_beginner_mode ?? false;
       const mq = shoe ? calcMatchQuality(shoe, terrain, purpose, saveDistanceKm) : 'neutral';
-      const xpEarned = calcXP(saveDistanceKm, mq, isBeginnerMode);
-
-      // Roster bonus: non-roster shoes earn 50% XP
-      const inRoster = profile.weekly_roster?.includes(selectedShoe);
-      const finalXP = inRoster || (profile.weekly_roster?.length ?? 0) === 0
-        ? xpEarned
-        : Math.floor(xpEarned * 0.5);
 
       const runId = `run_live_${Date.now()}`;
       const run: Run = {
@@ -438,7 +430,6 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
         notes:           notes.trim() || undefined,
         durationMinutes: Math.round(elapsed / 60),
         match_quality:   mq,
-        xp_earned:       finalXP,
         source:          'manual',
         coordinates:     trace.length >= 5 ? trace : undefined,
       };
@@ -446,14 +437,8 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
       // 1. Save locally + to Supabase
       await saveRun(run);
       await addMiles(saveDistanceKm * 0.621371);
-      await addXP(finalXP);
 
-      // 2. DRIFT territory update (fire-and-forget)
-      if (trace.length >= 5) {
-        updateTerritoryAfterRun(run).catch(() => {});
-      }
-
-      // 3. Update Living Shoe character (fire-and-forget)
+      // 2. Update Living Shoe character (fire-and-forget)
       import('../app/utils/characterStorage').then(async ({ getLivingShoe, saveLivingShoe, getLivingShoes }) => {
         const char = await getLivingShoe(selectedShoe);
         if (char && shoe) {
@@ -616,11 +601,11 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
 
               {/* Shoe picker */}
               <Text style={s.sectionLbl}>SHOE USED</Text>
-              {arsenalShoes.length === 0 ? (
-                <Text style={s.emptyShoe}>Add shoes to your Arsenal to attribute mileage.</Text>
+              {closetShoes.length === 0 ? (
+                <Text style={s.emptyShoe}>Add shoes to the Closet to attribute mileage.</Text>
               ) : (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.shoeScroll}>
-                  {arsenalShoes.map(shoe => (
+                  {closetShoes.map(shoe => (
                     <TouchableOpacity
                       key={shoe.id}
                       onPress={() => setSelectedShoe(shoe.id)}
@@ -703,9 +688,7 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
               {stravaTokens && (
                 <View style={s.stravaToggle}>
                   <View style={s.stravaToggleLeft}>
-                    <View style={s.stravaLogoBox}>
-                      <Text style={s.stravaLogoTxt}>S</Text>
-                    </View>
+                    <StravaMark size="sm" inverted />
                     <View>
                       <Text style={s.stravaToggleTitle}>UPLOAD TO STRAVA</Text>
                       <Text style={s.stravaToggleSub}>Post this run to your Strava profile</Text>
@@ -719,12 +702,6 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
                   />
                 </View>
               )}
-
-              {/* XP preview */}
-              <View style={s.xpPreview}>
-                <Text style={s.xpPreviewTxt}>+{Math.round(Math.min(distanceKm, 20) * 10)} XP</Text>
-                <Text style={s.xpPreviewSub}>credited on save</Text>
-              </View>
 
               {/* Save button */}
               <TouchableOpacity
@@ -1135,11 +1112,6 @@ const s = StyleSheet.create({
     borderRadius: 2, borderWidth: 1, borderColor: 'rgba(252,76,2,0.2)',
   },
   stravaToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  stravaLogoBox: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: '#FC4C02',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  stravaLogoTxt:      { color: PAPER, fontWeight: '900', fontSize: 13 },
   stravaToggleTitle:  { fontFamily: MONO, fontSize: 10, fontWeight: '700', color: PAPER, letterSpacing: 1 },
   stravaToggleSub:    { fontFamily: MONO, fontSize: 8, color: 'rgba(244,241,234,0.4)', marginTop: 2 },
 

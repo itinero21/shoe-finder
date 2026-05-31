@@ -17,12 +17,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 import { saveRun , getRuns } from '../utils/runStorage';
-import { addMiles, addXP , getUserProfile } from '../utils/userProfile';
+import { addMiles } from '../utils/userProfile';
 import { Run, RunTerrain, RunPurpose } from '../types/run';
 import { SHOES } from '../data/shoes';
-import { getMileageForShoe } from '../utils/mileage';
 import { Coordinate } from '../types/territory';
-import { calcMatchQuality, calcXP } from '../utils/matchQuality';
+import { calcMatchQuality } from '../utils/matchQuality';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -59,7 +58,7 @@ export async function disconnectStrava(): Promise<void> {
   await AsyncStorage.removeItem(GEAR_MAP_KEY);
 }
 
-// ── Gear map (Strava gear ID ↔ Arsenal shoe ID) ───────────────────────────────
+// ── Gear map (Strava gear ID ↔ Closet shoe ID) ────────────────────────────────
 export async function saveGearMap(map: Record<string, string>): Promise<void> {
   await AsyncStorage.setItem(GEAR_MAP_KEY, JSON.stringify(map));
 }
@@ -70,7 +69,7 @@ export async function getGearMap(): Promise<Record<string, string>> {
 }
 
 /**
- * Given an Arsenal shoe ID, returns the Strava gear ID it maps to (if any).
+ * Given a Closet shoe ID, returns the Strava gear ID it maps to (if any).
  * Used when uploading a run to attach the right shoe on Strava.
  */
 export async function getStravaGearIdForShoe(shoeId: string): Promise<string | undefined> {
@@ -191,6 +190,7 @@ export async function exchangeStravaCode(code: string): Promise<StravaTokens | n
 // ── Refresh expired token ─────────────────────────────────────────────────────
 async function refreshStravaToken(tokens: StravaTokens): Promise<StravaTokens | null> {
   try {
+    if (!CLIENT_SECRET) return null;
     const res = await fetch('https://www.strava.com/oauth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -244,7 +244,7 @@ export interface SyncResult {
 }
 
 export async function syncStravaActivities(
-  /** Optional: map Strava gear_id → Arsenal shoe_id */
+  /** Optional: map Strava gear_id → Closet shoe_id */
   gearMap: Record<string, string> = {}
 ): Promise<SyncResult> {
   const accessToken = await getValidAccessToken();
@@ -266,11 +266,6 @@ export async function syncStravaActivities(
     let imported = 0;
     let skipped  = 0;
     let totalMilesAdded = 0;
-    let totalXPAdded = 0;
-
-    const profile = await getUserProfile();
-    const isBeginnerMode = profile.is_beginner_mode ?? false;
-
     for (const act of activities) {
       if (!['Run', 'TrailRun', 'VirtualRun'].includes(act.type)) continue;
       const externalId = `strava_${act.id}`;
@@ -283,18 +278,11 @@ export async function syncStravaActivities(
       const shoeId = gearMap[act.gear_id] ?? '';
       const durationMin = act.moving_time ? Math.round(act.moving_time / 60) : undefined;
 
-      // Compute real match quality if shoe is in Arsenal
+      // Compute real match quality if shoe is in the Closet
       const shoe = shoeId ? SHOES.find(s => s.id === shoeId) : undefined;
       const mq = shoe ? calcMatchQuality(shoe, terrain, purpose, distKm) : 'neutral';
-      const xpForRun = calcXP(distKm, mq, isBeginnerMode);
 
-      // Roster bonus: non-roster shoes earn 50% XP
-      const inRoster = profile.weekly_roster?.includes(shoeId);
-      const finalXP = inRoster || (profile.weekly_roster?.length ?? 0) === 0
-        ? xpForRun
-        : Math.floor(xpForRun * 0.5);
-
-      // Fetch GPS coordinates for territory/DRIFT mapping
+      // Fetch GPS coordinates for route history.
       let coordinates: Coordinate[] | undefined;
       try {
         const gps = await fetchActivityGPS(String(act.id));
@@ -310,24 +298,13 @@ export async function syncStravaActivities(
         purpose,
         durationMinutes: durationMin,
         match_quality: mq,
-        xp_earned: finalXP,
         source: 'strava',
         external_id: externalId,
         strava_gear_id: act.gear_id ?? undefined,
         coordinates,
       };
 
-      totalXPAdded += finalXP;
-
       await saveRun(run);
-
-      // DRIFT territory detection for runs with GPS
-      if (coordinates && coordinates.length >= 5) {
-        try {
-          const { updateTerritoryAfterRun } = await import('../utils/driftEngine');
-          updateTerritoryAfterRun(run).catch(() => {});
-        } catch { /* non-fatal */ }
-      }
 
       const miles = distKm * 0.621371;
       totalMilesAdded += miles;
@@ -335,19 +312,7 @@ export async function syncStravaActivities(
     }
 
     if (totalMilesAdded > 0) await addMiles(totalMilesAdded);
-    if (totalXPAdded > 0) await addXP(totalXPAdded);
     await AsyncStorage.setItem(LAST_SYNC, String(Math.floor(Date.now() / 1000)));
-
-    // Post-sync hooks: streaks + achievements (fire-and-forget)
-    if (imported > 0) {
-      try {
-        const allRuns = await getRuns();
-        const { updateStreaksAfterRun } = await import('../utils/streakEngine');
-        await updateStreaksAfterRun(allRuns);
-        const { checkAndUnlockAchievements } = await import('../utils/achievementEngine');
-        await checkAndUnlockAchievements();
-      } catch { /* non-fatal */ }
-    }
 
     return { imported, skipped };
   } catch (e: any) {
@@ -355,7 +320,7 @@ export async function syncStravaActivities(
   }
 }
 
-// ── GPS streams (for DRIFT territory) ────────────────────────────────────────
+// ── GPS streams ──────────────────────────────────────────────────────────────
 
 /**
  * Fetches the GPS coordinate stream for a single Strava activity.
@@ -393,7 +358,7 @@ export async function syncStravaActivitiesWithGPS(
   gearMap: Record<string, string> = {}
 ): Promise<SyncResult> {
   const result = await syncStravaActivities(gearMap);
-  // GPS fetch is done lazily by driftEngine when path detection runs
+  // GPS fetch is done lazily so normal activity sync stays quick.
   return result;
 }
 

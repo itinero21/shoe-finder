@@ -25,6 +25,7 @@ import {
 } from '../app/services/watchService';
 import { requestHealthPermission } from '../app/services/healthService';
 import { connectStrava } from '../app/services/stravaService';
+import { AppleHealthMark, GarminMark, StravaMark, Wordmark } from './BrandMarks';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
@@ -62,7 +63,7 @@ function PulseDot({ color, size = 10 }: { color: string; size?: number }) {
     );
     pulse.start();
     return () => pulse.stop();
-  }, []);
+  }, [opacity, scale]);
 
   return (
     <View style={{ width: size + 8, height: size + 8, alignItems: 'center', justifyContent: 'center' }}>
@@ -250,11 +251,9 @@ export function WatchConnectModal({ visible, onClose }: Props) {
           {Platform.OS === 'ios' && (
             <View style={s.card}>
               <View style={s.cardHeader}>
-                <View style={[s.watchIconBox, { backgroundColor: '#1C1C1E' }]}>
-                  <Text style={s.watchIcon}>⌚</Text>
-                </View>
+                <AppleHealthMark size="lg" />
                 <View style={s.cardMeta}>
-                  <Text style={s.cardTitle}>APPLE WATCH</Text>
+                  <Wordmark brand="apple" />
                   <Text style={s.cardSub}>
                     {status?.appleWatchDetected
                       ? `${status.appleWatchRunCount} run${status.appleWatchRunCount !== 1 ? 's' : ''} imported`
@@ -296,7 +295,7 @@ export function WatchConnectModal({ visible, onClose }: Props) {
                     {[
                       { icon: 'watch-outline' as const, text: 'Start Outdoor Run, Indoor Run, or Trail Run on your Watch' },
                       { icon: 'phone-portrait-outline' as const, text: 'Watch auto-syncs to iPhone Apple Health when in range' },
-                      { icon: 'sync-outline' as const, text: 'Tap Sync to pull into Stride — mileage + XP credited instantly' },
+                      { icon: 'sync-outline' as const, text: 'Tap Sync to pull into Stride and update each shoe story' },
                     ].map((item, i) => (
                       <View key={i} style={s.howRow}>
                         <View style={s.howIconBox}>
@@ -339,11 +338,9 @@ export function WatchConnectModal({ visible, onClose }: Props) {
           {/* ── Garmin ───────────────────────────────────────────────────────── */}
           <View style={s.card}>
             <View style={s.cardHeader}>
-              <View style={[s.watchIconBox, { backgroundColor: GARMIN_BLUE }]}>
-                <Text style={[s.watchIcon, { fontSize: 18, fontWeight: '900' }]}>G</Text>
-              </View>
+              <GarminMark size="lg" />
               <View style={s.cardMeta}>
-                <Text style={s.cardTitle}>GARMIN</Text>
+                <Wordmark brand="garmin" />
                 <Text style={s.cardSub}>
                   {garminReady
                     ? `${status?.garminRunCount ?? 0} run${(status?.garminRunCount ?? 0) !== 1 ? 's' : ''} via Strava`
@@ -371,6 +368,14 @@ export function WatchConnectModal({ visible, onClose }: Props) {
                 </Text>
               </View>
             )}
+
+            <View style={s.bridgeCard}>
+              <StravaMark size="sm" />
+              <View style={{ flex: 1 }}>
+                <Wordmark brand="strava" />
+                <Text style={s.bridgeText}>GARMIN RUNS ENTER STRIDE THROUGH STRAVA.</Text>
+              </View>
+            </View>
 
             {/* 3-step setup */}
             <View style={s.stepsContainer}>
@@ -474,7 +479,7 @@ export function WatchConnectModal({ visible, onClose }: Props) {
           <View style={s.manualNote}>
             <Ionicons name="information-circle-outline" size={14} color="rgba(10,10,10,0.4)" />
             <Text style={s.manualNoteText}>
-              No watch? Tap "+ LOG RUN" on any shoe in your Arsenal to record runs manually.
+              No watch? Use manual logging in the RUN tab to record miles.
             </Text>
           </View>
 
@@ -494,7 +499,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 2, borderBottomColor: INK,
   },
   eyebrow: { fontFamily: MONO, fontSize: 9, color: ACCENT, letterSpacing: 2, marginBottom: 4 },
-  title:   { fontSize: 28, fontWeight: '900', color: INK, letterSpacing: -1 },
+  title:   { fontFamily: MONO, fontSize: 24, fontWeight: '900', color: INK, letterSpacing: 0 },
   closeBtn: { padding: 4 },
 
   summaryBar: {
@@ -509,28 +514,26 @@ const s = StyleSheet.create({
   summarySync: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.35)' },
   dotOff: { width: 10, height: 10, borderRadius: 5, backgroundColor: 'rgba(10,10,10,0.15)', margin: 4 },
 
-  scroll: { padding: 20, paddingBottom: 60, gap: 16 },
+  scroll: { padding: 20, paddingBottom: 80, gap: 18 },
 
   card: {
-    backgroundColor: '#fff', borderRadius: 4, padding: 20,
+    backgroundColor: PAPER, borderRadius: 2, padding: 20,
     borderWidth: 2, borderColor: INK,
-    shadowColor: INK, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 0.08, shadowRadius: 0,
-    elevation: 3,
+    shadowColor: INK, shadowOffset: { width: 6, height: 6 }, shadowOpacity: 1, shadowRadius: 0,
+    elevation: 6,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
   watchIconBox: {
     width: 48, height: 48, borderRadius: 4, alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: INK,
   },
-  watchIcon: { fontSize: 22, color: '#fff' },
   cardMeta: { flex: 1 },
-  cardTitle: { fontFamily: MONO, fontSize: 13, fontWeight: '700', color: INK, letterSpacing: 1 },
   cardSub:   { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.4)', marginTop: 3 },
   statusArea: { alignItems: 'center', justifyContent: 'center', width: 24 },
 
   statusCard: {
-    backgroundColor: 'rgba(10,10,10,0.03)', borderRadius: 2, padding: 12,
-    borderWidth: 1, borderColor: 'rgba(10,10,10,0.08)', marginBottom: 14,
+    backgroundColor: PAPER, borderRadius: 2, padding: 12,
+    borderWidth: 2, borderColor: 'rgba(10,10,10,0.16)', marginBottom: 14,
   },
   statusRow:   { flexDirection: 'row', alignItems: 'center', gap: 8 },
   statusLabel: { fontFamily: MONO, fontSize: 10, fontWeight: '700', color: '#16A34A', letterSpacing: 1 },
@@ -541,8 +544,9 @@ const s = StyleSheet.create({
   howTitle:   { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.35)', letterSpacing: 2, marginBottom: 4 },
   howRow:     { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   howIconBox: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(10,10,10,0.06)',
+    width: 28, height: 28, borderRadius: 2, backgroundColor: 'rgba(10,10,10,0.06)',
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    borderWidth: 1, borderColor: 'rgba(10,10,10,0.15)',
   },
   howText: { fontFamily: MONO, fontSize: 10, color: INK, flex: 1, lineHeight: 17, paddingTop: 5 },
 
@@ -556,6 +560,7 @@ const s = StyleSheet.create({
   syncBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     paddingVertical: 13, borderRadius: 2, marginTop: 4,
+    borderWidth: 2, borderColor: INK,
   },
   syncBtnText: { fontFamily: MONO, fontSize: 11, fontWeight: '700', letterSpacing: 1 },
   btnDisabled: { opacity: 0.55 },
@@ -568,6 +573,19 @@ const s = StyleSheet.create({
     height: 3, backgroundColor: 'rgba(10,10,10,0.08)', borderRadius: 2, marginBottom: 14, overflow: 'hidden',
   },
   progressFill: { height: '100%', backgroundColor: GARMIN_BLUE, borderRadius: 2 },
+
+  bridgeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 2,
+    borderColor: INK,
+    borderRadius: 2,
+    padding: 10,
+    marginBottom: 14,
+    backgroundColor: 'rgba(252,76,2,0.07)',
+  },
+  bridgeText: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.45)', letterSpacing: 1, marginTop: 3 },
 
   syncAllContainer: { gap: 8 },
   syncAllBtn: {

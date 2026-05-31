@@ -17,14 +17,10 @@ export type Run = {
   purpose?: RunPurpose;
   durationMinutes?: number;
   match_quality?: MatchQuality;
-  xp_earned?: number;
   source?: RunSource;
-  route_hash?: string;          // for exploration tracking
   external_id?: string;         // Strava activity ID etc
   strava_gear_id?: string;      // Strava gear (shoe) ID linked to this run
-  // DRIFT territory fields
-  coordinates?: Coordinate[];   // GPS trace from Strava/Garmin
-  path_id?: string;             // matched RunPath ID after detection
+  coordinates?: Coordinate[];   // GPS trace from live/Strava/Garmin runs
 };
 
 export type ShoeStats = {

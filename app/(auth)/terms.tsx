@@ -102,7 +102,7 @@ function TermsContent() {
 
       <Section title="8. Disclaimer of Warranties">
         <P>THE APP IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, ACCURACY, AND NON-INFRINGEMENT.</P>
-        <P>WE DO NOT WARRANT THAT THE APP WILL BE UNINTERRUPTED, ERROR-FREE, SECURE, OR FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS. WE DO NOT WARRANT THE ACCURACY OR COMPLETENESS OF ANY SHOE RECOMMENDATIONS, TRAINING SUGGESTIONS, OR COACHING CONTENT.</P>
+        <P>WE DO NOT WARRANT THAT THE APP WILL BE UNINTERRUPTED, ERROR-FREE, SECURE, OR FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS. WE DO NOT WARRANT THE ACCURACY OR COMPLETENESS OF ANY SHOE RECOMMENDATIONS, SHOE LIFE ESTIMATES, OR RUNNING-RELATED CONTENT.</P>
       </Section>
 
       <Section title="9. Limitation of Liability">
@@ -168,8 +168,7 @@ function PrivacyContent() {
         <Text style={s.subHeading}>Fitness & Training Data</Text>
         <Bullet>Running activities you log: distance, duration, date, terrain, perceived effort, personal notes</Bullet>
         <Bullet>Shoe inventory and per-shoe mileage</Bullet>
-        <Bullet>Race events and goal times you enter</Bullet>
-        <Bullet>XP, level, and achievement progress</Bullet>
+        <Bullet>Shoe memories, retirement records, lineage, and life-stage history</Bullet>
 
         <Text style={s.subHeading}>Health Information You Voluntarily Provide</Text>
         <Bullet>Injury type and phase (if you choose to use the injury tracking feature)</Bullet>
@@ -190,8 +189,8 @@ function PrivacyContent() {
       <Section title="2. How We Use Your Information">
         <Bullet>Provide, personalize, and improve the App's features</Bullet>
         <Bullet>Sync your data across your devices when you are signed in</Bullet>
-        <Bullet>Calculate shoe mileage, rotation health scores, and performance metrics</Bullet>
-        <Bullet>Generate AI-powered shoe recommendations and coaching insights</Bullet>
+        <Bullet>Calculate shoe mileage, life stages, memories, and match quality</Bullet>
+        <Bullet>Generate local shoe recommendations from your quiz answers</Bullet>
         <Bullet>Maintain a legal record of your consent to these policies</Bullet>
         <Bullet>Respond to your support requests</Bullet>
         <P>We do not use your data for advertising, profiling for marketing purposes, or selling to data brokers. We do not build advertising profiles from your health or fitness data.</P>
@@ -215,12 +214,10 @@ function PrivacyContent() {
         <Bullet><Text style={s.bold}>Business transfer:</Text> In the event of a merger, acquisition, or sale of all or substantially all of our assets, your data may be transferred — but only under commitments of confidentiality and the same privacy protections described here.</Bullet>
       </Section>
 
-      <Section title="5. AI Features & Data Processing">
-        <P>Some features of the App use AI models to generate recommendations and coaching responses. When these features are used:</P>
-        <Bullet>Only the minimum necessary data (e.g., your quiz answers, shoe attributes) is sent to generate a response</Bullet>
-        <Bullet>Data sent to AI APIs is transmitted over encrypted connections</Bullet>
-        <Bullet>We do not use your personal data to train AI models without your explicit consent</Bullet>
-        <Bullet>AI-generated advice is not medical advice. See the Terms of Service health disclaimer.</Bullet>
+      <Section title="5. Recommendations & Data Processing">
+        <P>Shoe recommendations are generated locally from your quiz answers and the app's shoe database.</P>
+        <Bullet>Stride does not require external AI API keys for the current app experience</Bullet>
+        <Bullet>Recommendations and shoe dialogue are not medical advice. See the Terms of Service health disclaimer.</Bullet>
       </Section>
 
       <Section title="6. Your Rights">

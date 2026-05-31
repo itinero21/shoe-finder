@@ -34,7 +34,6 @@ export async function saveRun(run: Run): Promise<void> {
     const idx = runs.findIndex(r => r.id === run.id);
     let updatedRuns: Run[];
     if (idx !== -1) {
-      // Update existing run (e.g. path_id added by DRIFT)
       runs[idx] = { ...runs[idx], ...run };
       updatedRuns = runs;
     } else {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, TextInput, Modal, StyleSheet,
   TouchableOpacity, ScrollView, Alert,
@@ -9,17 +9,9 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { saveRun, getRuns } from '../app/utils/runStorage';
 import { Run, RunTerrain, RunPurpose, MatchQuality } from '../app/types/run';
-import { calcMatchQuality, calcXP, MATCH_LABELS } from '../app/utils/matchQuality';
-import { addXP, addMiles, getUserProfile } from '../app/utils/userProfile';
-import { checkAndUnlockAchievements } from '../app/utils/achievementEngine';
-import { calcRunBonuses, applyRunBonuses, RunBonusResult } from '../app/utils/runBonuses';
-import { updateStreaksAfterRun } from '../app/utils/streakEngine';
+import { calcMatchQuality, MATCH_LABELS } from '../app/utils/matchQuality';
+import { addMiles, getUserProfile } from '../app/utils/userProfile';
 import { SHOES, Shoe } from '../app/data/shoes';
-import { getLocationPermStatus, getCurrentCoordinate, requestLocationPermission } from '../app/services/locationService';
-import { updateTerritoryAfterRun } from '../app/utils/driftEngine';
-import { Coordinate } from '../app/types/territory';
-import { detectAbuse, saveVerdict } from '../app/utils/abuseDetector';
-import { refreshRunnerDNA } from '../app/utils/runnerDNA';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
@@ -66,38 +58,6 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
   const [feel, setFeel] = useState<1 | 2 | 3 | undefined>(undefined);
   const [notes, setNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [isBeginnerMode, setIsBeginnerMode] = useState(true);
-  const [previousRuns, setPreviousRuns] = useState<Run[]>([]);
-  const [bonusResult, setBonusResult] = useState<RunBonusResult | null>(null);
-  const [gpsStatus, setGpsStatus] = useState<'checking' | 'ready' | 'off' | 'denied'>('checking');
-  const [capturedCoord, setCapturedCoord] = useState<Coordinate | null>(null);
-
-  useEffect(() => {
-    if (visible) {
-      getUserProfile().then(p => setIsBeginnerMode(p.is_beginner_mode));
-      getRuns().then(r => setPreviousRuns(r));
-      // Check GPS and capture current position
-      (async () => {
-        setGpsStatus('checking');
-        const status = await getLocationPermStatus();
-        if (status === 'not_asked') {
-          // Ask for permission if not yet asked
-          const granted = await requestLocationPermission();
-          if (granted !== 'granted') { setGpsStatus('denied'); return; }
-        } else if (status === 'denied') {
-          setGpsStatus('denied');
-          return;
-        }
-        const coord = await getCurrentCoordinate();
-        if (coord) {
-          setCapturedCoord(coord);
-          setGpsStatus('ready');
-        } else {
-          setGpsStatus('off');
-        }
-      })();
-    }
-  }, [visible]);
 
   const shoe = SHOES.find(s => s.id === shoeId);
   const distNum = parseFloat(distance) || 0;
@@ -105,18 +65,6 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
   const matchQuality: MatchQuality | null = shoe && distNum > 0
     ? calcMatchQuality(shoe, terrain, purpose, distNum)
     : null;
-
-  const baseXP = matchQuality ? calcXP(distNum, matchQuality, isBeginnerMode) : 0;
-
-  // Recalculate bonuses whenever shoe or distance changes
-  useEffect(() => {
-    if (!shoeId || previousRuns.length === 0 && baseXP === 0) return;
-    setBonusResult(calcRunBonuses(shoeId, previousRuns, isBeginnerMode));
-  }, [shoeId, isBeginnerMode, previousRuns]);
-
-  const xpPreview = bonusResult && baseXP > 0
-    ? applyRunBonuses(baseXP, bonusResult)
-    : baseXP;
 
   const matchInfo = matchQuality ? MATCH_LABELS[matchQuality] : null;
 
@@ -130,13 +78,6 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
     setIsSaving(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    // Roster bonus: non-roster shoes earn 50% XP
-    const profileNow = await getUserProfile();
-    const inRoster = profileNow.weekly_roster?.includes(shoeId);
-    const rosterXP = inRoster || (profileNow.weekly_roster?.length ?? 0) === 0
-      ? xpPreview
-      : Math.floor(xpPreview * 0.5);
-
     const run: Run = {
       id: `run_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       shoeId,
@@ -148,39 +89,16 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
       purpose,
       durationMinutes: parseFloat(duration) || undefined,
       match_quality: matchQuality ?? 'neutral',
-      xp_earned: rosterXP,
       source: 'manual',
-      // Attach current GPS position if available
-      coordinates: capturedCoord ? [capturedCoord] : undefined,
     };
 
     try {
       await saveRun(run);
       const miles = distNum * 0.621371;
       await addMiles(miles);
-      if (rosterXP > 0) await addXP(rosterXP);
-      // Streak recalc + season bonus XP
       const allRuns = await getRuns();
-      const { seasonBonusXP } = await updateStreaksAfterRun(allRuns);
-      if (seasonBonusXP > 0) await addXP(seasonBonusXP);
-      await checkAndUnlockAchievements();
-      // DRIFT territory — only fires when GPS trace has enough points (Strava runs)
-      // For manual logs, single coord is stored but path detection skipped gracefully
-      updateTerritoryAfterRun(run).catch(() => {});
 
-      // Post-run intelligence hooks (fire-and-forget, non-blocking)
       const profile = await getUserProfile();
-      if (shoe) {
-        const verdict = detectAbuse(run, shoe, allRuns, profile.weight_lbs ?? 160);
-        if (verdict) saveVerdict(run.id, verdict).catch(() => {});
-      }
-      refreshRunnerDNA({
-        runs: allRuns,
-        archType: profile.arch_type ?? null,
-        weightLbs: profile.weight_lbs ?? 160,
-      }).catch(() => {});
-
-      // Update the Living Shoe character (fire-and-forget)
       import('../app/utils/characterStorage').then(async ({ getLivingShoe, saveLivingShoe }) => {
         const char = await getLivingShoe(shoeId);
         if (char && shoe) {
@@ -220,22 +138,6 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
             <Text style={s.headerShoe}>{shoeName}</Text>
           </View>
           <View style={s.headerRight}>
-            {/* GPS status pill */}
-            <View style={[s.gpsPill, gpsStatus === 'ready' && s.gpsPillReady, gpsStatus === 'denied' && s.gpsPillDenied]}>
-              <View style={[s.gpsDot,
-                gpsStatus === 'ready'    ? s.gpsDotReady :
-                gpsStatus === 'denied'   ? s.gpsDotDenied :
-                gpsStatus === 'checking' ? s.gpsDotChecking : s.gpsDotOff
-              ]} />
-              <Text style={[s.gpsLabel,
-                gpsStatus === 'ready'  ? { color: '#16A34A' } :
-                gpsStatus === 'denied' ? { color: '#EF4444' } : {}
-              ]}>
-                {gpsStatus === 'ready'    ? 'GPS READY' :
-                 gpsStatus === 'denied'   ? 'NO GPS' :
-                 gpsStatus === 'checking' ? 'GPS...' : 'GPS OFF'}
-              </Text>
-            </View>
             <TouchableOpacity onPress={onClose} style={s.closeBtn}>
               <Ionicons name="close" size={22} color={INK} />
             </TouchableOpacity>
@@ -311,31 +213,9 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
               <View style={[s.matchDot, { backgroundColor: matchInfo.color }]} />
               <View style={s.matchText}>
                 <Text style={[s.matchLabel, { color: matchInfo.color }]}>{matchInfo.label}</Text>
-                <Text style={s.matchDesc}>{matchInfo.desc}</Text>
-              </View>
-              <View style={[s.xpBadge, { backgroundColor: matchInfo.color }]}>
-                <Text style={s.xpBadgeText}>+{xpPreview} XP</Text>
-              </View>
+              <Text style={s.matchDesc}>{matchInfo.desc}</Text>
             </View>
-          )}
-
-          {/* Rotation penalty */}
-          {bonusResult?.penaltyReason && (
-            <View style={s.penaltyCard}>
-              <Text style={s.penaltyText}>{bonusResult.penaltyReason}</Text>
-            </View>
-          )}
-
-          {/* Discovery bonuses */}
-          {bonusResult?.bonusReasons && bonusResult.bonusReasons.length > 0 && (
-            <View style={s.bonusCard}>
-              {bonusResult.bonusReasons.map((r, i) => (
-                <View key={i} style={s.bonusRow}>
-                  <Text style={s.bonusStar}>★</Text>
-                  <Text style={s.bonusText}>{r}</Text>
-                </View>
-              ))}
-            </View>
+          </View>
           )}
 
           {/* Feel */}
@@ -373,7 +253,7 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
               style={[s.saveBtn, isSaving && { opacity: 0.6 }]}
             >
               <Text style={s.saveBtnText}>
-                {isSaving ? 'SAVING...' : xpPreview > 0 ? `SAVE RUN — +${xpPreview} XP` : 'SAVE RUN'}
+                {isSaving ? 'SAVING...' : 'SAVE RUN'}
               </Text>
             </TouchableOpacity>
           </View>

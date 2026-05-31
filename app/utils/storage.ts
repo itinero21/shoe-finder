@@ -31,17 +31,10 @@ export const getFavorites = async (): Promise<string[]> => {
   }
 };
 
-async function syncArsenalToCloud(ids: string[]) {
+async function syncClosetToCloud(ids: string[]) {
   try {
-    const { pushArsenal } = await import('../services/cloudSync');
-    await pushArsenal(ids);
-  } catch { /* offline */ }
-}
-
-async function recordChoiceToCloud(shoeId: string) {
-  try {
-    const { recordShoeChoice } = await import('../services/cloudSync');
-    await recordShoeChoice(shoeId);
+    const { pushCloset } = await import('../services/cloudSync');
+    await pushCloset(ids);
   } catch { /* offline */ }
 }
 
@@ -51,8 +44,7 @@ export const addToFavorites = async (shoeId: string): Promise<void> => {
     if (!favorites.includes(shoeId)) {
       const updatedFavorites = [...favorites, shoeId];
       await AsyncStorage.setItem('favorites', JSON.stringify(updatedFavorites));
-      syncArsenalToCloud(updatedFavorites); // fire-and-forget
-      recordChoiceToCloud(shoeId);          // leaderboard tracking — fire-and-forget
+      syncClosetToCloud(updatedFavorites); // fire-and-forget
 
       // Create a Living Shoe character for the new shoe (fire-and-forget)
       import('./characterStorage').then(async ({ getLivingShoe, saveLivingShoe }) => {
@@ -80,7 +72,7 @@ export const removeFromFavorites = async (shoeId: string): Promise<void> => {
     const favorites = await getFavorites();
     const updatedFavorites = favorites.filter(id => id !== shoeId);
     await AsyncStorage.setItem('favorites', JSON.stringify(updatedFavorites));
-    syncArsenalToCloud(updatedFavorites); // fire-and-forget
+    syncClosetToCloud(updatedFavorites); // fire-and-forget
   } catch (error) {
     console.error('Error removing from favorites:', error);
   }

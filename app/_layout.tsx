@@ -11,8 +11,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { exchangeStravaCode } from './services/stravaService';
 import { initialSync } from './services/cloudSync';
 import { supabase } from './lib/supabase';
-import { requestLocationPermission, getLocationPermStatus } from './services/locationService';
-import { runDecayCheck } from './utils/driftEngine';
 
 // Parse query params from a deep-link URL
 function getParam(url: string, key: string): string | null {
@@ -48,7 +46,7 @@ async function handleDeepLink(url: string | null) {
 
   if (error) {
     Alert.alert('Strava', error === 'access_denied'
-      ? 'You denied Strava access. You can reconnect any time from the Integrations panel.'
+      ? 'You denied Strava access. You can reconnect any time from the RUN tab.'
       : `Strava returned an error: ${error}`
     );
     return;
@@ -107,19 +105,6 @@ function RootLayoutInner() {
       handleDeepLink(url);
     });
     return () => sub.remove();
-  }, []);
-
-  // Request location permission on first launch + run DRIFT decay check
-  useEffect(() => {
-    (async () => {
-      const status = await getLocationPermStatus();
-      if (status === 'not_asked') {
-        // Small delay so the app is fully visible before the popup appears
-        setTimeout(() => requestLocationPermission(), 1200);
-      }
-      // Run decay check every app open (fast, local only)
-      runDecayCheck().catch(() => {});
-    })();
   }, []);
 
   if (!loaded) return null;

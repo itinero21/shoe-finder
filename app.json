@@ -21,8 +21,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Stride needs camera access to analyze your feet and provide personalized shoe recommendations.",
         "NSPhotoLibraryUsageDescription": "Stride needs photo library access to save foot scan images.",
-        "NSLocationWhenInUseUsageDescription": "Stride uses your location to map your runs, build territory in DRIFT, and detect your city automatically.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Stride uses your location to map your runs, build territory in DRIFT, and detect your city automatically.",
+        "NSLocationWhenInUseUsageDescription": "Stride uses your location to map live runs and save route history.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Stride uses your location to keep tracking a live run when the screen locks.",
         "NSHealthShareUsageDescription": "Stride reads your workouts from Apple Health to automatically log runs and track mileage on your shoes.",
         "NSHealthUpdateUsageDescription": "Stride writes workout summaries to Apple Health to keep your fitness data in sync.",
         "ITSAppUsesNonExemptEncryption": false
@@ -86,7 +86,7 @@
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Stride uses your location to map your runs, track territory in DRIFT, and detect your city automatically.",
-          "locationWhenInUsePermission": "Stride uses your location while you run to map your route and track territory.",
+          "locationWhenInUsePermission": "Stride uses your location while you run to map your route.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true
         }

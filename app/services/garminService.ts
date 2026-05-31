@@ -1,6 +1,5 @@
 /**
  * garminService — Garmin Connect integration stub
- * Phase 6 / DRIFT territory
  *
  * STATUS: STUB — Garmin does not offer a public OAuth API for third-party apps.
  *
@@ -26,7 +25,7 @@
  *   PATH D — Manual GPX import (future feature):
  *     User exports .gpx from Garmin Connect website.
  *     App imports the file via expo-document-picker.
- *     GPX parser converts to Coordinate[] for DRIFT.
+ *     GPX parser converts to Coordinate[] for route history.
  *
  * For now: Garmin users should connect Strava as the bridge (PATH A).
  * This file is a placeholder for future direct integration.

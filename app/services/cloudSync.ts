@@ -5,7 +5,7 @@
  *   - Every write goes to AsyncStorage first (instant, offline-safe).
  *   - Then an async Supabase upsert runs in the background.
  *   - On app launch, if signed in, we pull the cloud state and merge
- *     (cloud wins for profile/arsenal, local wins for runs to avoid duplicates).
+ *     (cloud wins for profile/closet, local wins for runs to avoid duplicates).
  *
  * This means the app works fully offline and syncs when connectivity returns.
  */
@@ -30,17 +30,11 @@ export async function pushProfile(profile: UserProfile): Promise<void> {
   await supabase.from('user_profiles').upsert({
     id:                    userId,
     lifetime_miles:        profile.lifetime_miles,
-    total_xp:              profile.total_xp,
-    current_level:         profile.current_level,
     is_beginner_mode:      profile.is_beginner_mode,
     graduated_at:          profile.graduated_at,
     quiz_completed_at:     profile.quiz_completed_at,
-    streak_states:         profile.streak_states,
     active_injury:         profile.active_injury,
     injury_history:        profile.injury_history,
-    achievements_unlocked: profile.achievements_unlocked,
-    weekly_roster:         profile.weekly_roster,
-    weekly_roster_locked:  profile.weekly_roster_locked,
     week_starting:         profile.week_starting,
     graveyard_count:       profile.graveyard_count,
     weight_lbs:            profile.weight_lbs,
@@ -59,17 +53,11 @@ export async function pullProfile(): Promise<Partial<UserProfile> | null> {
   if (error || !data) return null;
   return {
     lifetime_miles:        data.lifetime_miles,
-    total_xp:              data.total_xp,
-    current_level:         data.current_level,
     is_beginner_mode:      data.is_beginner_mode,
     graduated_at:          data.graduated_at,
     quiz_completed_at:     data.quiz_completed_at,
-    streak_states:         data.streak_states,
     active_injury:         data.active_injury,
     injury_history:        data.injury_history ?? [],
-    achievements_unlocked: data.achievements_unlocked ?? [],
-    weekly_roster:         data.weekly_roster ?? [],
-    weekly_roster_locked:  data.weekly_roster_locked,
     week_starting:         data.week_starting,
     graveyard_count:       data.graveyard_count ?? 0,
     created_at:            data.created_at,
@@ -78,9 +66,9 @@ export async function pullProfile(): Promise<Partial<UserProfile> | null> {
   };
 }
 
-// ── Arsenal (favorites) ───────────────────────────────────────────────────────
+// ── Closet shoes (favorites) ──────────────────────────────────────────────────
 
-export async function pushArsenal(shoeIds: string[]): Promise<void> {
+export async function pushCloset(shoeIds: string[]): Promise<void> {
   const userId = await uid();
   if (!userId) return;
 
@@ -92,7 +80,7 @@ export async function pushArsenal(shoeIds: string[]): Promise<void> {
   );
 }
 
-export async function pullArsenal(): Promise<string[]> {
+export async function pullCloset(): Promise<string[]> {
   const userId = await uid();
   if (!userId) return [];
   const { data } = await supabase
@@ -119,13 +107,10 @@ export async function pushRun(run: Run): Promise<void> {
     feel:             run.feel,
     notes:            run.notes,
     match_quality:    run.match_quality,
-    xp_earned:        run.xp_earned ?? 0,
     source:           run.source ?? 'manual',
     external_id:      run.external_id,
-    route_hash:       run.route_hash,
     strava_gear_id:   run.strava_gear_id,
     coordinates:      run.coordinates,
-    path_id:          run.path_id,
   }, { onConflict: 'id' });
 }
 
@@ -150,13 +135,10 @@ export async function pullRuns(): Promise<Run[]> {
     feel:            r.feel,
     notes:           r.notes,
     match_quality:   r.match_quality,
-    xp_earned:       r.xp_earned,
     source:          r.source,
     external_id:     r.external_id,
-    route_hash:      r.route_hash,
     strava_gear_id:  r.strava_gear_id,
     coordinates:     r.coordinates,
-    path_id:         r.path_id,
   }));
 }
 
@@ -177,36 +159,6 @@ export async function pushMileage(shoeId: string, totalKm: number, runCount: num
     total_km:  totalKm,
     run_count: runCount,
   }, { onConflict: 'user_id,shoe_id' });
-}
-
-// ── Shoe choices (leaderboard data) ──────────────────────────────────────────
-
-/**
- * Record that this user has chosen a shoe for their arsenal.
- * Called when a shoe is added to favourites.
- * Table is public/aggregate — only shoe_id and an anonymous user count matter.
- */
-export async function recordShoeChoice(shoeId: string): Promise<void> {
-  const userId = await uid();
-  if (!userId) return;
-  await supabase.from('shoe_choices').upsert(
-    { user_id: userId, shoe_id: shoeId },
-    { onConflict: 'user_id,shoe_id' }
-  );
-}
-
-/**
- * Fetch aggregated shoe choice counts for the leaderboard.
- * Returns top 20 shoes by unique user count.
- */
-export async function fetchShoeChoiceCounts(): Promise<{ shoe_id: string; user_count: number }[]> {
-  const { data, error } = await supabase
-    .from('shoe_choices_aggregate')  // materialised view — see schema below
-    .select('shoe_id, user_count')
-    .order('user_count', { ascending: false })
-    .limit(20);
-  if (error || !data) return [];
-  return data as { shoe_id: string; user_count: number }[];
 }
 
 // ── Graveyard (retired shoes) ────────────────────────────────────────────────
@@ -259,16 +211,16 @@ export async function pullObituaries(): Promise<ShoeObituary[]> {
 // ── Full initial sync (call once after login) ─────────────────────────────────
 /**
  * Merges cloud data into local storage after sign-in.
- * Cloud profile + arsenal overwrite local (cloud is source of truth for settings).
+ * Cloud profile + closet overwrite local (cloud is source of truth for settings).
  * Cloud runs are merged with local runs by ID (no duplicates).
  */
 export async function initialSync(): Promise<void> {
   const userId = await uid();
   if (!userId) return;
 
-  const [cloudProfile, cloudArsenal, cloudRuns, cloudObituaries] = await Promise.all([
+  const [cloudProfile, cloudCloset, cloudRuns, cloudObituaries] = await Promise.all([
     pullProfile(),
-    pullArsenal(),
+    pullCloset(),
     pullRuns(),
     pullObituaries(),
   ]);
@@ -282,23 +234,15 @@ export async function initialSync(): Promise<void> {
   if (cloudProfile) {
     const local = await getUserProfile();
     const merged = { ...local, ...cloudProfile };
-    // Additive fields: always keep the higher value to prevent data loss
-    merged.total_xp = Math.max(local.total_xp, cloudProfile.total_xp ?? 0);
     merged.lifetime_miles = Math.max(local.lifetime_miles, cloudProfile.lifetime_miles ?? 0);
     merged.graveyard_count = Math.max(local.graveyard_count, cloudProfile.graveyard_count ?? 0);
-    // Achievements: union of both sets
-    const allAchievements = new Set([
-      ...local.achievements_unlocked,
-      ...(cloudProfile.achievements_unlocked ?? []),
-    ]);
-    merged.achievements_unlocked = Array.from(allAchievements);
     await saveUserProfile(merged);
   }
 
-  // Merge arsenal — cloud wins (add any cloud shoe not already local)
-  if (cloudArsenal.length > 0) {
-    const localArsenal = await getFavorites();
-    const toAdd = cloudArsenal.filter(id => !localArsenal.includes(id));
+  // Merge closet — cloud wins (add any cloud shoe not already local)
+  if (cloudCloset.length > 0) {
+    const localCloset = await getFavorites();
+    const toAdd = cloudCloset.filter(id => !localCloset.includes(id));
     for (const id of toAdd) await addToFavorites(id);
   }
 

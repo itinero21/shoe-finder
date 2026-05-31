@@ -53,15 +53,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Hidden screens — still accessible but not in tab bar */}
-      <Tabs.Screen name="rotation"  options={{ href: null }} />
-      <Tabs.Screen name="map"       options={{ href: null }} />
-      <Tabs.Screen name="wars"      options={{ href: null }} />
-      <Tabs.Screen name="coach"     options={{ href: null }} />
-      <Tabs.Screen name="discover"  options={{ href: null }} />
-      <Tabs.Screen name="race"      options={{ href: null }} />
-      <Tabs.Screen name="history"   options={{ href: null }} />
-      <Tabs.Screen name="explore"   options={{ href: null }} />
     </Tabs>
   );
 }

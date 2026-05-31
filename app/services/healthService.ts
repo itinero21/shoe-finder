@@ -5,7 +5,7 @@
  *   ✅ Permission request — fully working (expo-location handles this for Android)
  *   ✅ iOS: Uses expo-health (Expo managed workflow compatible)
  *   ✅ Android: Uses Google Fit via expo-health
- *   ✅ Workout import → Run conversion with full mileage + XP attribution
+ *   ✅ Workout import → Run conversion with full mileage + match quality
  *
  * Apple Watch workouts flow automatically:
  *   Apple Watch records workout → syncs to iPhone HealthKit → Stride reads it here
@@ -22,11 +22,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { saveRun, getRuns } from '../utils/runStorage';
-import { addMiles, addXP, getUserProfile } from '../utils/userProfile';
+import { addMiles } from '../utils/userProfile';
 import { Run, RunTerrain, RunPurpose } from '../types/run';
-import { updateTerritoryAfterRun } from '../utils/driftEngine';
 import { SHOES } from '../data/shoes';
-import { calcMatchQuality, calcXP } from '../utils/matchQuality';
+import { calcMatchQuality } from '../utils/matchQuality';
 
 const HEALTH_LAST_SYNC = 'stride_health_last_sync_v1';
 const HEALTH_ENABLED   = 'stride_health_enabled_v1';
@@ -170,11 +169,6 @@ export async function syncHealthWorkouts(
   let imported    = 0;
   let skipped     = 0;
   let totalMiles  = 0;
-  let totalXP     = 0;
-
-  const profile = await getUserProfile();
-  const isBeginnerMode = profile.is_beginner_mode ?? false;
-
   for (const w of workouts) {
     const externalId = `healthkit_${w.id}`;
     if (existingIds.has(externalId)) { skipped++; continue; }
@@ -186,16 +180,9 @@ export async function syncHealthWorkouts(
     const shoeId  = rosterByDate[dateKey] ?? '';
     const { purpose, terrain } = mapHealthActivity(w.activityType);
 
-    // Compute real match quality if shoe is in Arsenal
+    // Compute real match quality if shoe is in the Closet
     const shoe = shoeId ? SHOES.find(s => s.id === shoeId) : undefined;
     const mq = shoe ? calcMatchQuality(shoe, terrain, purpose, distKm) : 'neutral';
-    const xpForRun = calcXP(distKm, mq, isBeginnerMode);
-
-    // Roster bonus: non-roster shoes earn 50% XP
-    const inRoster = profile.weekly_roster?.includes(shoeId);
-    const finalXP = inRoster || (profile.weekly_roster?.length ?? 0) === 0
-      ? xpForRun
-      : Math.floor(xpForRun * 0.5);
 
     const run: Run = {
       id: `run_health_${w.id.replace(/[^a-zA-Z0-9]/g, '_')}`,
@@ -206,33 +193,18 @@ export async function syncHealthWorkouts(
       purpose,
       durationMinutes: w.durationSeconds ? Math.round(w.durationSeconds / 60) : undefined,
       match_quality:   mq,
-      xp_earned:       finalXP,
       source:          'apple_health',
       external_id:     externalId,
     };
 
     await saveRun(run);
-    updateTerritoryAfterRun(run).catch(() => {});
 
     totalMiles += distKm * 0.621371;
-    totalXP    += finalXP;
     imported++;
   }
 
   if (totalMiles > 0) await addMiles(totalMiles);
-  if (totalXP    > 0) await addXP(totalXP);
   await AsyncStorage.setItem(HEALTH_LAST_SYNC, String(Date.now()));
-
-  // Post-sync hooks: streaks + achievements (fire-and-forget)
-  if (imported > 0) {
-    try {
-      const allRuns = await getRuns();
-      const { updateStreaksAfterRun } = await import('../utils/streakEngine');
-      await updateStreaksAfterRun(allRuns);
-      const { checkAndUnlockAchievements } = await import('../utils/achievementEngine');
-      await checkAndUnlockAchievements();
-    } catch { /* non-fatal */ }
-  }
 
   return { imported, skipped };
 }

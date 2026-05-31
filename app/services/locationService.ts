@@ -1,5 +1,5 @@
 /**
- * locationService — GPS permission + live tracking for DRIFT territory
+ * locationService — GPS permission + live run tracking
  *
  * Permission flow:
  *   requestLocationPermission() → foreground permission

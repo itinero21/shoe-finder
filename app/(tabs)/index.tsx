@@ -14,17 +14,21 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SHOES, Shoe } from '../data/shoes';
-import { getFavorites } from '../utils/storage';
+import { getFavorites, removeFromFavorites } from '../utils/storage';
 import { getRuns } from '../utils/runStorage';
 import { Run } from '../types/run';
 import { getUserProfile } from '../utils/userProfile';
-import { getLivingShoes, saveLivingShoes, getMemorials } from '../utils/characterStorage';
+import {
+  addMemorial,
+  getLivingShoes,
+  getMemorials,
+  removeLivingShoe,
+  saveLivingShoes,
+} from '../utils/characterStorage';
 import { LivingShoe, ShoeMemorial, LifeStage, ShoeMood } from '../types/character';
 import { createLivingShoe, updateShoeAfterRun, computeLifeStage } from '../utils/characterEngine';
 import { generateDialogue, generateDailyBrief } from '../utils/dialogueEngine';
 import { findTodaysMemories, ClosetMemory } from '../utils/closetRemembers';
-import { addMemorial, removeLivingShoe } from '../utils/characterStorage';
-import { removeFromFavorites } from '../utils/storage';
 import { RetirementCeremony } from '../../components/RetirementCeremony';
 import { HallOfFame } from '../../components/HallOfFame';
 import { FamilyTree } from '../../components/FamilyTree';
@@ -53,16 +57,16 @@ const STAGE_LABELS: Record<LifeStage, string> = {
   departed: 'DEPARTED',
 };
 
-const MOOD_EMOJI: Record<ShoeMood, string> = {
-  eager:      '✨',
-  content:    '😌',
-  proud:      '🔥',
-  tired:      '😮‍💨',
-  wistful:    '🌙',
-  anxious:    '😟',
-  hurt:       '💔',
-  weary:      '🫠',
-  reflective: '🪞',
+const MOOD_LABELS: Record<ShoeMood, string> = {
+  eager:      'EAGER',
+  content:    'CONTENT',
+  proud:      'PROUD',
+  tired:      'TIRED',
+  wistful:    'WISTFUL',
+  anxious:    'ANXIOUS',
+  hurt:       'HURT',
+  weary:      'WEARY',
+  reflective: 'REFLECTIVE',
 };
 
 export default function ClosetScreen() {
@@ -237,15 +241,19 @@ export default function ClosetScreen() {
                         <View style={[s.stageBadge, { backgroundColor: stageColor }]}>
                           <Text style={s.stageBadgeText}>{STAGE_LABELS[char.lifeStage]}</Text>
                         </View>
-                        <Text style={s.moodEmoji}>{MOOD_EMOJI[char.mood]}</Text>
+                        <View style={s.moodPill}>
+                          <Text style={s.moodText}>{MOOD_LABELS[char.mood]}</Text>
+                        </View>
                         <Text style={[s.lifePct, { color: stageColor }]}>
                           {Math.round(100 - char.lifePct)}% LIFE
                         </Text>
                       </View>
 
                       {/* Brand + model */}
-                      <Text style={s.brand}>{shoe.brand.toUpperCase()}</Text>
-                      <Text style={s.model}>{shoe.model}</Text>
+                      <View style={s.identityBlock}>
+                        <Text style={s.brand}>{shoe.brand.toUpperCase()}</Text>
+                        <Text style={s.model}>{shoe.model}</Text>
+                      </View>
 
                       {/* Nickname if earned */}
                       {char.nickname && (
@@ -266,10 +274,10 @@ export default function ClosetScreen() {
                           : admires ? SHOES.find(sh => sh.id === admires.otherShoeId) : null;
                         if (!otherShoe) return null;
                         return (
-                          <Text style={s.relationshipText}>
+                        <Text style={s.relationshipText}>
                             {jealous
-                              ? `Jealous of ${otherShoe.model} getting more runs lately`
-                              : `Good teammates with ${otherShoe.model}`}
+                              ? `JEALOUS OF ${otherShoe.model.toUpperCase()} GETTING MORE RUNS LATELY`
+                              : `GOOD TEAMMATES WITH ${otherShoe.model.toUpperCase()}`}
                           </Text>
                         );
                       })()}
@@ -322,7 +330,7 @@ export default function ClosetScreen() {
                       {char.runCount === 0 && (
                         <View style={s.welcomeCard}>
                           <Text style={s.welcomeLine}>
-                            "Welcome, {shoe.model}. No memories yet. Let's see where this story goes."
+                            "WELCOME, {shoe.model.toUpperCase()}. NO MEMORIES YET. LET'S SEE WHERE THIS STORY GOES."
                           </Text>
                         </View>
                       )}
@@ -473,16 +481,16 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: PAPER },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, borderBottomWidth: 2, borderBottomColor: INK },
   eyebrow: { fontFamily: MONO, fontSize: 9, color: ACCENT, letterSpacing: 2, marginBottom: 4 },
-  title: { fontSize: 28, fontWeight: '900', color: INK, letterSpacing: -1, lineHeight: 30 },
+  title: { fontFamily: MONO, fontSize: 24, fontWeight: '900', color: INK, letterSpacing: 0, lineHeight: 30 },
   headerRight: { paddingTop: 4, gap: 8 },
   headerBtns: { flexDirection: 'row', gap: 6, justifyContent: 'flex-end' },
   headerSmallBtn: { borderWidth: 1.5, borderColor: 'rgba(10,10,10,0.2)', padding: 6, borderRadius: 2 },
   graveyardBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 2, borderColor: INK, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 2 },
   graveyardBtnText: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: INK, letterSpacing: 1 },
 
-  briefCard: { marginHorizontal: 16, marginTop: 16, backgroundColor: INK, padding: 16, borderRadius: 2 },
+  briefCard: { marginHorizontal: 16, marginTop: 16, backgroundColor: INK, padding: 16, borderRadius: 2, borderWidth: 2, borderColor: INK },
   briefSpeaker: { fontFamily: MONO, fontSize: 8, color: 'rgba(244,241,234,0.4)', letterSpacing: 2, marginBottom: 8 },
-  briefLine: { fontSize: 15, fontWeight: '700', color: PAPER, fontStyle: 'italic', lineHeight: 22 },
+  briefLine: { fontFamily: MONO, fontSize: 13, fontWeight: '700', color: PAPER, lineHeight: 22 },
 
   scroll: { paddingVertical: 20, paddingBottom: 80 },
 
@@ -500,14 +508,16 @@ const s = StyleSheet.create({
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   stageBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 2 },
   stageBadgeText: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: PAPER, letterSpacing: 1.5 },
-  moodEmoji: { fontSize: 16 },
+  moodPill: { borderWidth: 2, borderColor: 'rgba(10,10,10,0.18)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 2 },
+  moodText: { fontFamily: MONO, fontSize: 8, fontWeight: '900', color: 'rgba(10,10,10,0.5)', letterSpacing: 1.2 },
   lifePct: { marginLeft: 'auto', fontFamily: MONO, fontSize: 11, fontWeight: '700' },
 
+  identityBlock: { borderTopWidth: 2, borderBottomWidth: 2, borderColor: INK, paddingVertical: 12, marginBottom: 12 },
   brand: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginBottom: 2 },
-  model: { fontSize: 22, fontWeight: '900', color: INK, letterSpacing: -0.5, marginBottom: 4 },
-  nickname: { fontFamily: MONO, fontSize: 10, color: ACCENT, fontStyle: 'italic', marginBottom: 4 },
-  lineageText: { fontFamily: MONO, fontSize: 9, color: '#7C3AED', fontStyle: 'italic', marginBottom: 4, lineHeight: 14 },
-  relationshipText: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', fontStyle: 'italic', marginBottom: 8, lineHeight: 14 },
+  model: { fontFamily: MONO, fontSize: 20, fontWeight: '900', color: INK, letterSpacing: 0, marginBottom: 4 },
+  nickname: { fontFamily: MONO, fontSize: 10, color: ACCENT, marginBottom: 8, letterSpacing: 1 },
+  lineageText: { fontFamily: MONO, fontSize: 9, color: '#7C3AED', marginBottom: 6, lineHeight: 14, letterSpacing: 0.5 },
+  relationshipText: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.45)', marginBottom: 10, lineHeight: 14, letterSpacing: 0.8 },
 
   lifeBar: { height: 6, backgroundColor: 'rgba(10,10,10,0.1)', borderRadius: 3, overflow: 'hidden', marginBottom: 14 },
   lifeBarFill: { height: '100%', borderRadius: 3 },
@@ -515,7 +525,7 @@ const s = StyleSheet.create({
   statsRow: { flexDirection: 'row', borderWidth: 2, borderColor: INK, borderRadius: 2, marginBottom: 12, overflow: 'hidden' },
   statCell: { flex: 1, alignItems: 'center', paddingVertical: 10 },
   statDivider: { width: 2, backgroundColor: INK },
-  statVal: { fontSize: 16, fontWeight: '800', color: INK, marginBottom: 2 },
+  statVal: { fontFamily: MONO, fontSize: 16, fontWeight: '900', color: INK, marginBottom: 2, letterSpacing: 0 },
   statLabel: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.4)', letterSpacing: 1 },
 
   momentsSection: { marginBottom: 10 },
@@ -527,9 +537,9 @@ const s = StyleSheet.create({
   momentDate: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.25)', letterSpacing: 1, marginTop: 1 },
 
   welcomeCard: { backgroundColor: 'rgba(10,10,10,0.04)', padding: 12, borderRadius: 2, borderLeftWidth: 3, borderLeftColor: '#7C3AED', marginBottom: 10 },
-  welcomeLine: { fontFamily: MONO, fontSize: 11, color: '#7C3AED', fontStyle: 'italic', lineHeight: 17 },
+  welcomeLine: { fontFamily: MONO, fontSize: 10, color: '#7C3AED', lineHeight: 17, letterSpacing: 0.5 },
   voiceCard: { backgroundColor: 'rgba(10,10,10,0.04)', padding: 12, borderRadius: 2, borderLeftWidth: 3, borderLeftColor: ACCENT },
-  voiceLine: { fontFamily: MONO, fontSize: 11, color: 'rgba(10,10,10,0.6)', fontStyle: 'italic', lineHeight: 17 },
+  voiceLine: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.62)', lineHeight: 17, letterSpacing: 0.3 },
 
   retireBtn: { marginTop: 12, borderWidth: 2, borderColor: 'rgba(10,10,10,0.2)', paddingVertical: 10, alignItems: 'center', borderRadius: 2 },
   retireBtnText: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.35)', letterSpacing: 1.5 },

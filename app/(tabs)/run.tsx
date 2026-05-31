@@ -15,9 +15,11 @@ import { SHOES, Shoe } from '../data/shoes';
 import { getFavorites } from '../utils/storage';
 import { getRuns } from '../utils/runStorage';
 import { Run } from '../types/run';
-import { getStravaTokens, syncStravaActivities } from '../services/stravaService';
+import { connectStrava, getStravaTokens, syncStravaActivities } from '../services/stravaService';
 import { LiveRunModal } from '../../components/LiveRunModal';
 import { LogRunModal } from '../../components/LogRunModal';
+import { WatchConnectModal } from '../../components/WatchConnectModal';
+import { StravaMark, AppleHealthMark, GarminMark, Wordmark } from '../../components/BrandMarks';
 import { getLivingShoes } from '../utils/characterStorage';
 import { LivingShoe } from '../types/character';
 import { generateDialogue } from '../utils/dialogueEngine';
@@ -26,6 +28,18 @@ const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
 const ACCENT = '#FF3D00';
 const MONO   = 'SpaceMono';
+const BLUE   = '#2563EB';
+const GREEN  = '#16A34A';
+const AMBER  = '#D97706';
+const GREY   = '#6B7280';
+
+const STAGE_COLORS: Record<string, string> = {
+  fresh: GREEN,
+  prime: BLUE,
+  veteran: AMBER,
+  twilight: ACCENT,
+  departed: GREY,
+};
 
 export default function RunScreen() {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
@@ -37,6 +51,7 @@ export default function RunScreen() {
   // Modals
   const [showLiveRun, setShowLiveRun] = useState(false);
   const [showLogRun, setShowLogRun] = useState(false);
+  const [showWatches, setShowWatches] = useState(false);
   const [logRunShoe, setLogRunShoe] = useState<Shoe | null>(null);
 
   useFocusEffect(useCallback(() => {
@@ -74,39 +89,79 @@ export default function RunScreen() {
     setSyncing(false);
   };
 
+  const handleConnectStrava = async () => {
+    setSyncing(true);
+    const tokens = await connectStrava().catch(() => null);
+    setStravaConnected(!!tokens?.access_token);
+    setSyncing(false);
+  };
+
   return (
     <SafeAreaView style={s.container}>
       <View style={s.header}>
-        <Text style={s.eyebrow}>// STRIDE</Text>
-        <Text style={s.title}>RUN.</Text>
+        <View>
+          <Text style={s.eyebrow}>// RUN CONTROL</Text>
+          <Text style={s.title}>RUN.</Text>
+        </View>
+        <View style={s.headerStat}>
+          <Text style={s.headerStatValue}>{runs.length}</Text>
+          <Text style={s.headerStatLabel}>LOGGED</Text>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         {/* Start a live GPS run */}
         <TouchableOpacity
-          style={s.bigBtn}
+          style={s.heroWrap}
           onPress={() => { setShowLiveRun(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); }}
           activeOpacity={0.85}
         >
-          <View style={s.bigBtnShadow} />
-          <View style={s.bigBtnInner}>
-            <Ionicons name="navigate-outline" size={28} color={PAPER} />
-            <Text style={s.bigBtnText}>START GPS RUN</Text>
-            <Text style={s.bigBtnSub}>Track your route live</Text>
+          <View style={s.heroShadow} />
+          <View style={s.heroCard}>
+            <View style={s.heroTop}>
+              <View style={s.heroIconBox}>
+                <Ionicons name="navigate-outline" size={26} color={PAPER} />
+              </View>
+              <View style={s.heroMeta}>
+                <Text style={s.heroLabel}>// GPS SESSION</Text>
+                <Text style={s.heroTitle}>START LIVE RUN</Text>
+              </View>
+              <Ionicons name="arrow-forward" size={22} color={PAPER} />
+            </View>
+            <View style={s.heroRule} />
+            <View style={s.heroStats}>
+              <View style={s.heroStat}>
+                <Text style={s.heroStatValue}>ROUTE</Text>
+                <Text style={s.heroStatLabel}>GPS TRACE</Text>
+              </View>
+              <View style={s.heroStatDivider} />
+              <View style={s.heroStat}>
+                <Text style={s.heroStatValue}>SHOE</Text>
+                <Text style={s.heroStatLabel}>REACTION</Text>
+              </View>
+              <View style={s.heroStatDivider} />
+              <View style={s.heroStat}>
+                <Text style={s.heroStatValue}>SYNC</Text>
+                <Text style={s.heroStatLabel}>OPTIONAL</Text>
+              </View>
+            </View>
           </View>
         </TouchableOpacity>
 
         {/* Log a manual run */}
         {favoriteShoes.length > 0 && (
-          <>
-            <Text style={s.sectionLabel}>// LOG A RUN</Text>
-            <Text style={s.sectionSub}>Pick the shoe you wore</Text>
+          <View style={s.section}>
+            <View style={s.sectionHead}>
+              <Text style={s.sectionLabel}>// MANUAL LOG</Text>
+              <Text style={s.sectionSub}>PICK THE SHOE YOU WORE</Text>
+            </View>
             {favoriteShoes.map(shoe => {
               const char = livingShoes.find(c => c.shoeId === shoe.id);
+              const stageColor = STAGE_COLORS[char?.lifeStage ?? 'fresh'] ?? ACCENT;
               return (
                 <TouchableOpacity
                   key={shoe.id}
-                  style={s.shoeRow}
+                  style={s.shoeRowWrap}
                   onPress={() => {
                     setLogRunShoe(shoe);
                     setShowLogRun(true);
@@ -114,42 +169,91 @@ export default function RunScreen() {
                   }}
                   activeOpacity={0.85}
                 >
-                  <View style={s.shoeRowLeft}>
-                    <Text style={s.shoeRowBrand}>{shoe.brand.toUpperCase()}</Text>
-                    <Text style={s.shoeRowModel}>{shoe.model}</Text>
-                    {char && (
-                      <Text style={s.shoeRowStage}>
-                        {char.lifeStage.toUpperCase()} · {Math.round(char.totalMiles)} MI
-                      </Text>
-                    )}
+                  <View style={[s.shoeRowShadow, { backgroundColor: stageColor }]} />
+                  <View style={s.shoeRow}>
+                    <View style={s.shoeRowLeft}>
+                      <Text style={s.shoeRowBrand}>{shoe.brand.toUpperCase()}</Text>
+                      <Text style={s.shoeRowModel}>{shoe.model}</Text>
+                      {char && (
+                        <View style={s.shoeMetaRow}>
+                          <View style={[s.stageDot, { backgroundColor: stageColor }]} />
+                          <Text style={s.shoeRowStage}>
+                            {char.lifeStage.toUpperCase()} / {Math.round(char.totalMiles)} MI / {char.runCount} RUNS
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={s.addRunBox}>
+                      <Ionicons name="add" size={20} color={INK} />
+                    </View>
                   </View>
-                  <Ionicons name="add-circle-outline" size={24} color={ACCENT} />
                 </TouchableOpacity>
               );
             })}
-          </>
+          </View>
         )}
 
-        {/* Sync Strava */}
-        {stravaConnected && (
+        <View style={s.section}>
+          <View style={s.sectionHead}>
+            <Text style={s.sectionLabel}>// CONNECTIONS</Text>
+            <Text style={s.sectionSub}>IMPORT RUNS WITHOUT LOSING THE STORY</Text>
+          </View>
+
           <TouchableOpacity
-            style={s.syncBtn}
-            onPress={handleSync}
+            style={s.integrationWrap}
+            onPress={stravaConnected ? handleSync : handleConnectStrava}
             activeOpacity={0.85}
           >
-            <Ionicons name="sync-outline" size={16} color={syncing ? 'rgba(10,10,10,0.3)' : INK} />
-            <Text style={s.syncBtnText}>{syncing ? 'SYNCING...' : 'SYNC STRAVA'}</Text>
+            <View style={s.integrationShadow} />
+            <View style={s.integrationCard}>
+              <StravaMark size="md" />
+              <View style={s.integrationBody}>
+                <Wordmark brand="strava" />
+                <Text style={s.integrationSub}>
+                  {stravaConnected ? 'CONNECTED / PULL LATEST RUNS' : 'CONNECT TO IMPORT ACTIVITIES'}
+                </Text>
+              </View>
+              <View style={[s.integrationStatus, stravaConnected && s.integrationStatusOn]}>
+                <Text style={[s.integrationStatusText, stravaConnected && s.integrationStatusTextOn]}>
+                  {syncing ? '...' : stravaConnected ? 'SYNC' : 'LINK'}
+                </Text>
+              </View>
+            </View>
           </TouchableOpacity>
-        )}
+
+          <TouchableOpacity
+            style={s.integrationWrap}
+            onPress={() => { setShowWatches(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+            activeOpacity={0.85}
+          >
+            <View style={[s.integrationShadow, { backgroundColor: BLUE }]} />
+            <View style={s.integrationCard}>
+              <View style={s.dualMarks}>
+                <AppleHealthMark size="sm" />
+                <GarminMark size="sm" />
+              </View>
+              <View style={s.integrationBody}>
+                <Text style={s.integrationTitle}>WATCHES</Text>
+                <Text style={s.integrationSub}>APPLE HEALTH / GARMIN BRIDGE</Text>
+              </View>
+              <View style={s.integrationStatus}>
+                <Text style={s.integrationStatusText}>OPEN</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
 
         {/* Last run reaction */}
         {postRunLine && recentShoe && (
-          <View style={s.reactionCard}>
-            <Text style={s.reactionLabel}>// LAST RUN — {recentShoe.brand} {recentShoe.model}</Text>
-            <Text style={s.reactionLine}>"{postRunLine.text}"</Text>
-            <Text style={s.reactionMeta}>
-              {(recentRun!.distanceKm * 0.621371).toFixed(1)} mi · {recentRun!.date.slice(0, 10)}
-            </Text>
+          <View style={s.reactionWrap}>
+            <View style={s.reactionShadow} />
+            <View style={s.reactionCard}>
+              <Text style={s.reactionLabel}>// LAST RUN / {recentShoe.brand.toUpperCase()} {recentShoe.model.toUpperCase()}</Text>
+              <Text style={s.reactionLine}>"{postRunLine.text}"</Text>
+              <Text style={s.reactionMeta}>
+                {(recentRun!.distanceKm * 0.621371).toFixed(1)} MI / {recentRun!.date.slice(0, 10)}
+              </Text>
+            </View>
           </View>
         )}
 
@@ -182,41 +286,73 @@ export default function RunScreen() {
           }}
         />
       )}
+
+      <WatchConnectModal visible={showWatches} onClose={() => setShowWatches(false)} />
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: PAPER },
-  header: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, borderBottomWidth: 2, borderBottomColor: INK },
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, borderBottomWidth: 2, borderBottomColor: INK },
   eyebrow: { fontFamily: MONO, fontSize: 9, color: ACCENT, letterSpacing: 2, marginBottom: 4 },
-  title: { fontSize: 36, fontWeight: '900', color: INK, letterSpacing: -1 },
+  title: { fontFamily: MONO, fontSize: 36, fontWeight: '900', color: INK, letterSpacing: 0 },
+  headerStat: { borderWidth: 2, borderColor: INK, minWidth: 70, alignItems: 'center', paddingVertical: 7, borderRadius: 2 },
+  headerStatValue: { fontFamily: MONO, fontSize: 16, fontWeight: '900', color: INK, letterSpacing: 0 },
+  headerStatLabel: { fontFamily: MONO, fontSize: 7, fontWeight: '700', color: 'rgba(10,10,10,0.45)', letterSpacing: 1.5 },
   scroll: { paddingVertical: 20, paddingBottom: 80 },
 
-  bigBtn: { marginHorizontal: 16, marginBottom: 24, position: 'relative' },
-  bigBtnShadow: { position: 'absolute', top: 6, left: 6, right: -6, bottom: -6, backgroundColor: INK, borderRadius: 2 },
-  bigBtnInner: { backgroundColor: ACCENT, padding: 28, borderRadius: 2, borderWidth: 2, borderColor: INK, alignItems: 'center', gap: 8 },
-  bigBtnText: { fontFamily: MONO, fontSize: 16, fontWeight: '700', color: PAPER, letterSpacing: 3 },
-  bigBtnSub: { fontFamily: MONO, fontSize: 10, color: 'rgba(244,241,234,0.6)', letterSpacing: 1 },
+  heroWrap: { marginHorizontal: 16, marginBottom: 26, position: 'relative' },
+  heroShadow: { position: 'absolute', top: 6, left: 6, right: -6, bottom: -6, backgroundColor: INK, borderRadius: 2 },
+  heroCard: { backgroundColor: ACCENT, padding: 18, borderRadius: 2, borderWidth: 2, borderColor: INK },
+  heroTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  heroIconBox: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: PAPER, borderRadius: 2 },
+  heroMeta: { flex: 1 },
+  heroLabel: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: 'rgba(244,241,234,0.65)', letterSpacing: 2, marginBottom: 3 },
+  heroTitle: { fontFamily: MONO, fontSize: 17, fontWeight: '900', color: PAPER, letterSpacing: 1.5 },
+  heroRule: { height: 2, backgroundColor: INK, marginVertical: 16, opacity: 0.5 },
+  heroStats: { flexDirection: 'row', borderWidth: 2, borderColor: PAPER },
+  heroStat: { flex: 1, alignItems: 'center', paddingVertical: 9 },
+  heroStatDivider: { width: 2, backgroundColor: PAPER },
+  heroStatValue: { fontFamily: MONO, fontSize: 10, fontWeight: '900', color: PAPER, letterSpacing: 1 },
+  heroStatLabel: { fontFamily: MONO, fontSize: 7, fontWeight: '700', color: 'rgba(244,241,234,0.6)', letterSpacing: 1 },
 
-  sectionLabel: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginHorizontal: 16, marginBottom: 4 },
-  sectionSub: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.3)', marginHorizontal: 16, marginBottom: 12 },
+  section: { marginBottom: 24 },
+  sectionHead: { paddingHorizontal: 16, marginBottom: 12 },
+  sectionLabel: { fontFamily: MONO, fontSize: 9, fontWeight: '700', color: ACCENT, letterSpacing: 2, marginBottom: 4 },
+  sectionSub: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', letterSpacing: 1.5 },
 
-  shoeRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginBottom: 10, borderWidth: 2, borderColor: INK, borderRadius: 2, padding: 14, backgroundColor: PAPER },
+  shoeRowWrap: { position: 'relative', marginHorizontal: 16, marginBottom: 14 },
+  shoeRowShadow: { position: 'absolute', top: 5, left: 5, right: -5, bottom: -5, borderRadius: 2 },
+  shoeRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 2, borderColor: INK, borderRadius: 2, padding: 14, backgroundColor: PAPER },
   shoeRowLeft: { flex: 1, gap: 2 },
   shoeRowBrand: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.4)', letterSpacing: 2 },
-  shoeRowModel: { fontSize: 16, fontWeight: '800', color: INK },
-  shoeRowStage: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', letterSpacing: 1 },
+  shoeRowModel: { fontFamily: MONO, fontSize: 15, fontWeight: '900', color: INK, letterSpacing: 0 },
+  shoeMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 5 },
+  stageDot: { width: 7, height: 7, borderRadius: 4 },
+  shoeRowStage: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.45)', letterSpacing: 1 },
+  addRunBox: { width: 32, height: 32, borderWidth: 2, borderColor: INK, alignItems: 'center', justifyContent: 'center', borderRadius: 2 },
 
-  syncBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 16, marginTop: 8, marginBottom: 20, paddingVertical: 12, borderWidth: 2, borderColor: 'rgba(10,10,10,0.15)', borderRadius: 2 },
-  syncBtnText: { fontFamily: MONO, fontSize: 10, color: INK, letterSpacing: 1.5 },
+  integrationWrap: { position: 'relative', marginHorizontal: 16, marginBottom: 14 },
+  integrationShadow: { position: 'absolute', top: 5, left: 5, right: -5, bottom: -5, backgroundColor: INK, borderRadius: 2 },
+  integrationCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 2, borderColor: INK, backgroundColor: PAPER, padding: 12, borderRadius: 2 },
+  dualMarks: { flexDirection: 'row', gap: 6 },
+  integrationBody: { flex: 1 },
+  integrationTitle: { fontFamily: MONO, fontSize: 11, fontWeight: '900', color: INK, letterSpacing: 2 },
+  integrationSub: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.45)', letterSpacing: 1, marginTop: 4 },
+  integrationStatus: { minWidth: 54, alignItems: 'center', borderWidth: 2, borderColor: 'rgba(10,10,10,0.2)', paddingVertical: 7, paddingHorizontal: 8, borderRadius: 2 },
+  integrationStatusOn: { borderColor: ACCENT, backgroundColor: ACCENT },
+  integrationStatusText: { fontFamily: MONO, fontSize: 8, fontWeight: '900', color: 'rgba(10,10,10,0.45)', letterSpacing: 1 },
+  integrationStatusTextOn: { color: PAPER },
 
-  reactionCard: { marginHorizontal: 16, marginTop: 8, borderWidth: 2, borderColor: INK, borderRadius: 2, padding: 16, backgroundColor: INK },
-  reactionLabel: { fontFamily: MONO, fontSize: 8, color: 'rgba(244,241,234,0.4)', letterSpacing: 2, marginBottom: 10 },
-  reactionLine: { fontSize: 16, fontWeight: '700', color: PAPER, lineHeight: 22, fontStyle: 'italic', marginBottom: 10 },
-  reactionMeta: { fontFamily: MONO, fontSize: 9, color: 'rgba(244,241,234,0.4)', letterSpacing: 1 },
+  reactionWrap: { position: 'relative', marginHorizontal: 16, marginTop: 2, marginBottom: 18 },
+  reactionShadow: { position: 'absolute', top: 6, left: 6, right: -6, bottom: -6, backgroundColor: ACCENT, borderRadius: 2 },
+  reactionCard: { borderWidth: 2, borderColor: INK, borderRadius: 2, padding: 16, backgroundColor: INK },
+  reactionLabel: { fontFamily: MONO, fontSize: 8, color: 'rgba(244,241,234,0.45)', letterSpacing: 2, marginBottom: 10 },
+  reactionLine: { fontFamily: MONO, fontSize: 14, fontWeight: '700', color: PAPER, lineHeight: 22, marginBottom: 10 },
+  reactionMeta: { fontFamily: MONO, fontSize: 9, color: 'rgba(244,241,234,0.45)', letterSpacing: 1 },
 
   empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 40 },
-  emptyTitle: { fontSize: 18, fontWeight: '900', color: INK, marginBottom: 8 },
+  emptyTitle: { fontFamily: MONO, fontSize: 18, fontWeight: '900', color: INK, marginBottom: 8, letterSpacing: 0 },
   emptySub: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.4)', textAlign: 'center', lineHeight: 17 },
 });

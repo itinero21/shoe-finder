@@ -8,10 +8,8 @@ import {
   Alert,
   StyleSheet,
   Dimensions,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -30,7 +28,6 @@ const PAPER = '#F4F1EA';
 const ACCENT = '#FF3D00';
 const LIME  = '#D4FF00';
 const MONO  = 'SpaceMono';
-const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -38,7 +35,6 @@ type Mode = 'splash' | 'results' | 'detail';
 
 // ─── Main Screen ──────────────────────────────────────────
 export default function ScanScreen() {
-  const router = useRouter();
   const [mode, setMode] = useState<Mode>('splash');
   const [showQuiz, setShowQuiz] = useState(false);
   const [recs, setRecs] = useState<ScoredShoe[]>([]);
@@ -76,7 +72,7 @@ export default function ScanScreen() {
     try {
       await addToFavorites(shoeId);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Added to Arsenal', 'Shoe saved to My Rotation.');
+      Alert.alert('Welcome to the Closet', 'This shoe is alive now. Go meet it in THE CLOSET.');
     } catch {
       /* ignore */
     }
@@ -164,7 +160,7 @@ export default function ScanScreen() {
             >
               <View style={s.ctaBtnShadow} />
               <View style={s.ctaBtnInner}>
-                <Text style={s.ctaBtnText}>ADD TO ARSENAL</Text>
+                <Text style={s.ctaBtnText}>ADD TO CLOSET</Text>
               </View>
             </Pressable>
           </View>
@@ -328,9 +324,9 @@ export default function ScanScreen() {
     <View style={[s.fill, { backgroundColor: PAPER }]}>
       <View style={[s.splashSafe, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 100 }]}>
         <View style={s.splashTop}>
-          <Text style={s.splashEyebrow}>// SHOE SCOUT</Text>
-          <Text style={s.splashTitle}>FIND YOUR{'\n'}SHOE.</Text>
-          <Text style={s.splashSub}>Four questions. Your gait decoded. One recommendation.</Text>
+          <Text style={s.splashEyebrow}>// ADD / SHOE SCOUT</Text>
+          <Text style={s.splashTitle}>ADD A{'\n'}CHARACTER.</Text>
+          <Text style={s.splashSub}>Answer the fit protocol. Choose the shoe. Let the story begin.</Text>
         </View>
 
         <View style={s.splashActions}>
@@ -344,12 +340,6 @@ export default function ScanScreen() {
             </View>
           </Pressable>
 
-          <Pressable
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push('/(tabs)/discover' as any); }}
-            style={({ pressed }) => [s.browseBtn, pressed && { opacity: 0.75 }]}
-          >
-            <Text style={s.browseBtnText}>BROWSE ALL SHOES</Text>
-          </Pressable>
         </View>
       </View>
     </View>
@@ -380,12 +370,13 @@ const s = StyleSheet.create({
     fontWeight: '900',
     fontSize: SCREEN_W < 380 ? 60 : 72,
     lineHeight: SCREEN_W < 380 ? 56 : 68,
-    letterSpacing: -3,
+    fontFamily: MONO,
+    letterSpacing: 0,
     color: INK,
     marginBottom: 20,
   },
   splashSub: {
-    fontFamily: MONO, fontSize: 12, color: 'rgba(10,10,10,0.5)',
+    fontFamily: MONO, fontSize: 11, color: 'rgba(10,10,10,0.5)',
     lineHeight: 20, maxWidth: 280,
   },
   splashActions: { gap: 12 },
@@ -405,7 +396,8 @@ const s = StyleSheet.create({
     fontWeight: '900',
     fontSize: SCREEN_W < 380 ? 52 : 64,
     lineHeight: SCREEN_W < 380 ? 48 : 60,
-    letterSpacing: -3, color: INK, marginBottom: 16,
+    fontFamily: MONO,
+    letterSpacing: 0, color: INK, marginBottom: 16,
   },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tagInk: { backgroundColor: INK, paddingHorizontal: 10, paddingVertical: 5 },
@@ -414,7 +406,7 @@ const s = StyleSheet.create({
 
   // Primary card
   primarySection: { padding: 16 },
-  primaryCard: { backgroundColor: INK, borderWidth: 2, borderColor: INK, overflow: 'hidden' },
+  primaryCard: { backgroundColor: INK, borderWidth: 2, borderColor: INK, overflow: 'hidden', borderRadius: 2 },
   primaryContent: { padding: 20 },
   primaryMatchLabel: { fontFamily: MONO, fontSize: 9, color: ACCENT, letterSpacing: 2, marginBottom: 12 },
   primaryBrand: { fontFamily: MONO, fontSize: 11, color: 'rgba(244,241,234,0.5)', letterSpacing: 3, marginBottom: 4 },
@@ -422,11 +414,12 @@ const s = StyleSheet.create({
     fontWeight: '900',
     fontSize: SCREEN_W < 380 ? 36 : 44,
     lineHeight: SCREEN_W < 380 ? 34 : 42,
-    letterSpacing: -2, color: ACCENT, marginBottom: 12,
+    fontFamily: MONO,
+    letterSpacing: 0, color: ACCENT, marginBottom: 12,
   },
   primaryTagline: {
-    fontFamily: SERIF, fontSize: 15, color: 'rgba(244,241,234,0.75)',
-    fontStyle: 'italic', lineHeight: 22, marginBottom: 20,
+    fontFamily: MONO, fontSize: 11, color: 'rgba(244,241,234,0.75)',
+    lineHeight: 19, marginBottom: 20,
   },
   statsGrid: { flexDirection: 'row', borderWidth: 1, borderColor: 'rgba(244,241,234,0.15)', marginBottom: 20 },
   statCell: { flex: 1, padding: 12, alignItems: 'center' },
@@ -449,7 +442,7 @@ const s = StyleSheet.create({
 
   // Secondary
   secondarySection: { paddingHorizontal: 16, paddingBottom: 8 },
-  secondaryTitle: { fontWeight: '900', fontSize: 24, letterSpacing: -1, color: INK, marginBottom: 16 },
+  secondaryTitle: { fontFamily: MONO, fontWeight: '900', fontSize: 20, letterSpacing: 0, color: INK, marginBottom: 16 },
   secCardWrap: { position: 'relative', marginBottom: 16 },
   secCardShadow: { position: 'absolute', top: 5, left: 5, right: -5, bottom: -5, backgroundColor: INK },
   secCard: { backgroundColor: PAPER, borderWidth: 2, borderColor: INK, padding: 16 },
@@ -459,7 +452,7 @@ const s = StyleSheet.create({
   secCatBadge: { backgroundColor: 'rgba(10,10,10,0.08)', paddingHorizontal: 8, paddingVertical: 4 },
   secCatText: { fontFamily: MONO, fontSize: 8, color: INK, letterSpacing: 1 },
   secBrand: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginBottom: 2 },
-  secModel: { fontWeight: '900', fontSize: 24, letterSpacing: -1, color: INK, lineHeight: 26, marginBottom: 12 },
+  secModel: { fontFamily: MONO, fontWeight: '900', fontSize: 19, letterSpacing: 0, color: INK, lineHeight: 25, marginBottom: 12 },
   secCardBottom: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     borderTopWidth: 1, borderTopColor: 'rgba(10,10,10,0.1)', paddingTop: 10,
@@ -493,14 +486,15 @@ const s = StyleSheet.create({
   detailHero: { backgroundColor: INK, padding: 24, paddingBottom: 32 },
   detailBrand: { fontFamily: MONO, fontSize: 11, color: 'rgba(244,241,234,0.5)', letterSpacing: 3, marginBottom: 6 },
   detailModel: {
+    fontFamily: MONO,
     fontWeight: '900',
     fontSize: SCREEN_W < 380 ? 44 : 56,
     lineHeight: SCREEN_W < 380 ? 40 : 52,
-    letterSpacing: -3, color: PAPER, marginBottom: 12,
+    letterSpacing: 0, color: PAPER, marginBottom: 12,
   },
   detailTagline: {
-    fontFamily: SERIF, fontSize: 15, color: 'rgba(244,241,234,0.7)',
-    fontStyle: 'italic', lineHeight: 22,
+    fontFamily: MONO, fontSize: 11, color: 'rgba(244,241,234,0.7)',
+    lineHeight: 19,
   },
 
   specSection: { padding: 20, borderBottomWidth: 2, borderBottomColor: INK },
@@ -515,7 +509,7 @@ const s = StyleSheet.create({
   featSection: { padding: 20, borderTopWidth: 2, borderTopColor: INK },
   featItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
   featDot: { width: 6, height: 6, backgroundColor: ACCENT, marginTop: 6 },
-  featText: { fontFamily: SERIF, fontSize: 15, color: INK, flex: 1, lineHeight: 22 },
+  featText: { fontFamily: MONO, fontSize: 11, color: INK, flex: 1, lineHeight: 18 },
 
   detailCta: { padding: 24, backgroundColor: INK },
   ctaBtn: { alignSelf: 'stretch' },
