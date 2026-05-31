@@ -22,6 +22,10 @@ import { getLivingShoes, saveLivingShoes, getMemorials } from '../utils/characte
 import { LivingShoe, ShoeMemorial, LifeStage, ShoeMood } from '../types/character';
 import { createLivingShoe, updateShoeAfterRun, computeLifeStage } from '../utils/characterEngine';
 import { generateDialogue, generateDailyBrief } from '../utils/dialogueEngine';
+import { findTodaysMemories, ClosetMemory } from '../utils/closetRemembers';
+import { addMemorial, removeLivingShoe } from '../utils/characterStorage';
+import { removeFromFavorites } from '../utils/storage';
+import { RetirementCeremony } from '../../components/RetirementCeremony';
 import { Onboarding } from '../../components/Onboarding';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -69,6 +73,9 @@ export default function ClosetScreen() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [dailyLine, setDailyLine] = useState<string | null>(null);
   const [dailySpeaker, setDailySpeaker] = useState<string | null>(null);
+  const [memories, setMemories] = useState<ClosetMemory[]>([]);
+  const [retireShoe, setRetireShoe] = useState<Shoe | null>(null);
+  const [retireChar, setRetireChar] = useState<LivingShoe | null>(null);
 
   React.useEffect(() => {
     AsyncStorage.getItem('stride_onboarding_done').then(val => {
@@ -128,6 +135,10 @@ export default function ClosetScreen() {
         setDailyLine(brief.text);
         setDailySpeaker(speaker ? `${speaker.brand} ${speaker.model}` : null);
       }
+
+      // Closet Remembers — surface old memories
+      const todaysMemories = findTodaysMemories(allRuns, updated, memos, shoeDataMap);
+      setMemories(todaysMemories);
 
       // Auto-sync watches
       import('../services/watchService').then(({ syncAllWatches }) =>
@@ -267,6 +278,20 @@ export default function ClosetScreen() {
                           </Text>
                         </View>
                       )}
+
+                      {/* Retire button — visible when in twilight or veteran stage */}
+                      {(char.lifeStage === 'twilight' || char.lifeStage === 'veteran') && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setRetireShoe(shoe);
+                            setRetireChar(char);
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                          }}
+                          style={s.retireBtn}
+                        >
+                          <Text style={s.retireBtnText}>RETIRE</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
                 );
@@ -310,8 +335,44 @@ export default function ClosetScreen() {
           </>
         )}
 
+        {/* ── CLOSET REMEMBERS ────────────────────────────────── */}
+        {!showGraveyard && memories.length > 0 && (
+          <View style={s.memoriesSection}>
+            <Text style={s.memoriesTitle}>// THE CLOSET REMEMBERS</Text>
+            {memories.map((m, i) => (
+              <View key={`${m.shoeId}-${i}`} style={[s.memoryCard, m.isDeparted && s.memoryCardDeparted]}>
+                <Text style={s.memoryText}>{m.text}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Retirement Ceremony */}
+      {retireShoe && retireChar && (
+        <RetirementCeremony
+          visible={!!retireShoe}
+          shoe={retireShoe}
+          character={retireChar}
+          runs={runs}
+          availableHeirs={SHOES.filter(s =>
+            favoriteIds.includes(s.id) && s.id !== retireShoe.id
+          )}
+          onCancel={() => { setRetireShoe(null); setRetireChar(null); }}
+          onComplete={async (memorial, heirId) => {
+            await addMemorial(memorial);
+            await removeLivingShoe(memorial.shoeId);
+            await removeFromFavorites(memorial.shoeId);
+            setRetireShoe(null);
+            setRetireChar(null);
+            setMemorials(prev => [memorial, ...prev]);
+            setFavoriteIds(prev => prev.filter(id => id !== memorial.shoeId));
+            setLivingShoes(prev => prev.filter(c => c.shoeId !== memorial.shoeId));
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -365,6 +426,16 @@ const s = StyleSheet.create({
 
   voiceCard: { backgroundColor: 'rgba(10,10,10,0.04)', padding: 12, borderRadius: 2, borderLeftWidth: 3, borderLeftColor: ACCENT },
   voiceLine: { fontFamily: MONO, fontSize: 11, color: 'rgba(10,10,10,0.6)', fontStyle: 'italic', lineHeight: 17 },
+
+  retireBtn: { marginTop: 12, borderWidth: 2, borderColor: 'rgba(10,10,10,0.2)', paddingVertical: 10, alignItems: 'center', borderRadius: 2 },
+  retireBtnText: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.35)', letterSpacing: 1.5 },
+
+  // Memories
+  memoriesSection: { marginHorizontal: 16, marginTop: 20 },
+  memoriesTitle: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.35)', letterSpacing: 2, marginBottom: 12 },
+  memoryCard: { backgroundColor: 'rgba(10,10,10,0.04)', padding: 14, borderRadius: 2, borderLeftWidth: 3, borderLeftColor: '#2563EB', marginBottom: 10 },
+  memoryCardDeparted: { borderLeftColor: ACCENT },
+  memoryText: { fontFamily: MONO, fontSize: 11, color: 'rgba(10,10,10,0.6)', fontStyle: 'italic', lineHeight: 17 },
 
   // ── Tombstone ─────────────────────────────────────────────────────────
   tombWrap: { position: 'relative', marginHorizontal: 16, marginBottom: 20 },
