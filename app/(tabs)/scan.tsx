@@ -114,7 +114,7 @@ export default function ScanScreen() {
           {/* Hero */}
           <View style={s.detailHero}>
             <Text style={s.detailBrand}>{shoe.brand.toUpperCase()}</Text>
-            <Text style={s.detailModel}>{shoe.model}</Text>
+            <Text style={s.detailModel} numberOfLines={1} adjustsFontSizeToFit>{shoe.model}</Text>
             <Text style={s.detailTagline}>{shoe.summary}</Text>
           </View>
 
@@ -130,10 +130,10 @@ export default function ScanScreen() {
               ].map((item, i) => (
                 <View key={i} style={[s.specCell, i < 3 && s.specCellBorder]}>
                   <View style={s.specValRow}>
-                    <Text style={s.specVal}>{item.val}</Text>
+                    <Text style={s.specVal} numberOfLines={1} adjustsFontSizeToFit>{item.val}</Text>
                     {item.unit ? <Text style={s.specUnit}>{item.unit}</Text> : null}
                   </View>
-                  <Text style={s.specLabel}>{item.label}</Text>
+                  <Text style={s.specLabel} numberOfLines={1}>{item.label}</Text>
                 </View>
               ))}
             </View>
@@ -212,7 +212,7 @@ export default function ScanScreen() {
               <View style={s.primaryContent}>
                 <Text style={s.primaryMatchLabel}>{compat}% COMPATIBILITY</Text>
                 <Text style={s.primaryBrand}>{primary.brand.toUpperCase()}</Text>
-                <Text style={s.primaryModel}>{primary.model}</Text>
+                <Text style={s.primaryModel} numberOfLines={1} adjustsFontSizeToFit>{primary.model}</Text>
                 <Text style={s.primaryTagline}>{primary.summary}</Text>
 
                 <View style={s.statsGrid}>
@@ -223,8 +223,8 @@ export default function ScanScreen() {
                     { val: primary.biomech.stability_level.toUpperCase(), label: 'STABILITY' },
                   ].map((stat, i) => (
                     <View key={i} style={[s.statCell, i < 3 && s.statCellBorder]}>
-                      <Text style={s.statVal}>{stat.val}</Text>
-                      <Text style={s.statLabel}>{stat.label}</Text>
+                      <Text style={s.statVal} numberOfLines={1} adjustsFontSizeToFit>{stat.val}</Text>
+                      <Text style={s.statLabel} numberOfLines={1}>{stat.label}</Text>
                     </View>
                   ))}
                 </View>
