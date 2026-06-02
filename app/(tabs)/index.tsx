@@ -29,6 +29,10 @@ import { LivingShoe, ShoeMemorial, LifeStage, ShoeMood } from '../types/characte
 import { createLivingShoe, updateShoeAfterRun, computeLifeStage } from '../utils/characterEngine';
 import { generateDialogue, generateDailyBrief } from '../utils/dialogueEngine';
 import { findTodaysMemories, ClosetMemory } from '../utils/closetRemembers';
+import { getTodaysWeather, TodaysWeather } from '../services/weatherService';
+import { getShoeOfTheDay, getRotationAnalysis, ShoeRecommendation } from '../utils/dailyShoeAdvisor';
+import { generateAllHealthReports, ShoeHealthReport } from '../utils/shoeLifeIntelligence';
+import { detectPainPatterns, PainPattern } from '../utils/painPatternDetector';
 import { RetirementCeremony } from '../../components/RetirementCeremony';
 import { HallOfFame } from '../../components/HallOfFame';
 import { FamilyTree } from '../../components/FamilyTree';
@@ -80,6 +84,11 @@ export default function ClosetScreen() {
   const [dailyLine, setDailyLine] = useState<string | null>(null);
   const [dailySpeaker, setDailySpeaker] = useState<string | null>(null);
   const [memories, setMemories] = useState<ClosetMemory[]>([]);
+  const [weather, setWeather] = useState<TodaysWeather | null>(null);
+  const [shoeOfDay, setShoeOfDay] = useState<ShoeRecommendation | null>(null);
+  const [healthReports, setHealthReports] = useState<ShoeHealthReport[]>([]);
+  const [painPatterns, setPainPatterns] = useState<PainPattern[]>([]);
+  const [rotationAdvice, setRotationAdvice] = useState<string>('');
   const [retireShoe, setRetireShoe] = useState<Shoe | null>(null);
   const [retireChar, setRetireChar] = useState<LivingShoe | null>(null);
   const [showHallOfFame, setShowHallOfFame] = useState(false);
@@ -148,6 +157,25 @@ export default function ClosetScreen() {
       const todaysMemories = findTodaysMemories(allRuns, updated, memos, shoeDataMap);
       setMemories(todaysMemories);
 
+      // Weather + Shoe of the Day
+      getTodaysWeather().then(w => {
+        setWeather(w);
+        const rec = getShoeOfTheDay(updated, shoeDataMap, allRuns, w);
+        setShoeOfDay(rec);
+      }).catch(() => {});
+
+      // Health reports
+      const reports = generateAllHealthReports(updated, shoeDataMap, allRuns);
+      setHealthReports(reports);
+
+      // Pain patterns
+      const patterns = detectPainPatterns(allRuns, shoeDataMap);
+      setPainPatterns(patterns);
+
+      // Rotation analysis
+      const rotation = getRotationAnalysis(updated, shoeDataMap, allRuns);
+      setRotationAdvice(rotation.advice);
+
       // Auto-sync watches
       import('../services/watchService').then(({ syncAllWatches }) =>
         syncAllWatches().catch(() => {})
@@ -210,6 +238,49 @@ export default function ClosetScreen() {
       )}
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+
+        {/* ── SHOE OF THE DAY ───────────────────────────────────── */}
+        {!showGraveyard && shoeOfDay && (
+          <View style={s.advisorCard}>
+            <Text style={s.advisorLabel}>// TODAY'S PICK</Text>
+            <Text style={s.advisorText}>{shoeOfDay.reason}</Text>
+            {weather && <Text style={s.advisorWeather}>{weather.summary}</Text>}
+            {shoeOfDay.warnings.map((w, i) => (
+              <Text key={i} style={s.advisorWarning}>⚠ {w}</Text>
+            ))}
+          </View>
+        )}
+
+        {/* ── ROTATION ADVICE ───────────────────────────────────── */}
+        {!showGraveyard && rotationAdvice.length > 0 && (
+          <View style={s.rotationCard}>
+            <Text style={s.rotationText}>{rotationAdvice}</Text>
+          </View>
+        )}
+
+        {/* ── HEALTH ALERTS ─────────────────────────────────────── */}
+        {!showGraveyard && healthReports.filter(r => r.retireWarning || r.loadWarning).map(r => (
+          <View key={r.shoeId} style={s.healthAlert}>
+            {r.retireWarning && <Text style={s.healthAlertText}>🪦 {r.retireWarning}</Text>}
+            {r.loadWarning && <Text style={s.healthAlertText}>⚡ {r.loadWarning}</Text>}
+            {r.restrictions.length > 0 && (
+              <Text style={s.healthRestriction}>{r.restrictions[0]}</Text>
+            )}
+            {r.costPerMile != null && r.totalMiles > 50 && (
+              <Text style={s.costPerMile}>${r.costPerMile.toFixed(2)}/mi</Text>
+            )}
+          </View>
+        ))}
+
+        {/* ── PAIN PATTERNS ─────────────────────────────────────── */}
+        {!showGraveyard && painPatterns.length > 0 && (
+          <View style={s.painCard}>
+            <Text style={s.painLabel}>// PATTERN DETECTED</Text>
+            {painPatterns.slice(0, 2).map((p, i) => (
+              <Text key={i} style={s.painText}>{p.pattern}</Text>
+            ))}
+          </View>
+        )}
 
         {/* ── LIVING SHOES ──────────────────────────────────────────── */}
         {!showGraveyard && (
@@ -487,6 +558,22 @@ const s = StyleSheet.create({
   headerSmallBtn: { borderWidth: 1.5, borderColor: 'rgba(10,10,10,0.2)', padding: 6, borderRadius: 2 },
   graveyardBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 2, borderColor: INK, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 2 },
   graveyardBtnText: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: INK, letterSpacing: 1 },
+
+  // Intelligence cards
+  advisorCard: { marginHorizontal: 16, marginTop: 16, backgroundColor: '#16A34A', padding: 16, borderRadius: 2 },
+  advisorLabel: { fontFamily: MONO, fontSize: 8, color: 'rgba(255,255,255,0.5)', letterSpacing: 2, marginBottom: 8 },
+  advisorText: { fontSize: 15, fontWeight: '700', color: '#fff', lineHeight: 22, marginBottom: 6 },
+  advisorWeather: { fontFamily: MONO, fontSize: 10, color: 'rgba(255,255,255,0.6)', marginBottom: 4 },
+  advisorWarning: { fontFamily: MONO, fontSize: 10, color: '#FBBF24', marginTop: 4 },
+  rotationCard: { marginHorizontal: 16, marginTop: 10, backgroundColor: 'rgba(37,99,235,0.08)', borderLeftWidth: 3, borderLeftColor: '#2563EB', padding: 12, borderRadius: 2 },
+  rotationText: { fontFamily: MONO, fontSize: 10, color: '#2563EB', lineHeight: 16 },
+  healthAlert: { marginHorizontal: 16, marginTop: 10, backgroundColor: 'rgba(255,61,0,0.06)', borderLeftWidth: 3, borderLeftColor: ACCENT, padding: 12, borderRadius: 2 },
+  healthAlertText: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.7)', lineHeight: 16, marginBottom: 4 },
+  healthRestriction: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', fontStyle: 'italic' },
+  costPerMile: { fontFamily: MONO, fontSize: 9, color: ACCENT, fontWeight: '700', marginTop: 4 },
+  painCard: { marginHorizontal: 16, marginTop: 10, backgroundColor: 'rgba(217,119,6,0.08)', borderLeftWidth: 3, borderLeftColor: '#D97706', padding: 12, borderRadius: 2 },
+  painLabel: { fontFamily: MONO, fontSize: 8, color: '#D97706', letterSpacing: 2, marginBottom: 6 },
+  painText: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.7)', lineHeight: 16, marginBottom: 4 },
 
   briefCard: { marginHorizontal: 16, marginTop: 16, backgroundColor: INK, padding: 16, borderRadius: 2, borderWidth: 2, borderColor: INK },
   briefSpeaker: { fontFamily: MONO, fontSize: 8, color: 'rgba(244,241,234,0.4)', letterSpacing: 2, marginBottom: 8 },
