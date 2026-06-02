@@ -88,6 +88,78 @@ const STEP_GOAL: SingleStep = {
   ],
 };
 
+
+const STEP_PRIORITY: SingleStep = {
+  kind: 'single',
+  id: 'priority',
+  question: 'What matters most for this shoe?',
+  subtext: 'This is the real fitter question. It tells us whether to protect, comfort, speed up, or save money.',
+  badge: '// FITTER MODE',
+  options: [
+    { value: 'comfort', label: 'Maximum Comfort', sublabel: 'I want the shoe that feels best' },
+    { value: 'injury_prevention', label: 'Injury Protection', sublabel: 'I want the safest option for pain/history' },
+    { value: 'one_shoe', label: 'One Shoe For Everything', sublabel: 'Daily runs, gym, walking, casual use' },
+    { value: 'speed', label: 'Speed / Performance', sublabel: 'Tempo, intervals, race efforts' },
+    { value: 'max_cushion', label: 'Maximum Cushion', sublabel: 'Soft, protective, high-stack ride' },
+    { value: 'natural', label: 'Natural Feel', sublabel: 'Flexible, lower drop, roomy toe box' },
+    { value: 'value', label: 'Best Value', sublabel: 'Good shoe, smart price' },
+  ],
+};
+
+const STEP_CURRENT_SHOE: SingleStep = {
+  kind: 'single',
+  id: 'current_shoe_feel',
+  question: 'Which shoe feels closest to what you like?',
+  subtext: 'This improves accuracy because previous shoe preference is often stronger than arch tests. Pick “None” if unsure.',
+  badge: '// SHOE DNA',
+  options: [
+    { value: 'none', label: 'None / Not Sure', sublabel: 'Use biomechanics only' },
+    { value: 'ghost', label: 'Brooks Ghost / similar', sublabel: 'Reliable traditional daily trainer' },
+    { value: 'clifton', label: 'HOKA Clifton / similar', sublabel: 'Light, soft, rocker daily trainer' },
+    { value: 'bondi', label: 'HOKA Bondi / similar', sublabel: 'Maximum cushion and walking comfort' },
+    { value: 'nimbus', label: 'ASICS Nimbus / similar', sublabel: 'Premium plush neutral cushion' },
+    { value: 'novablast', label: 'ASICS Novablast / similar', sublabel: 'Bouncy fun daily trainer' },
+    { value: 'adrenaline', label: 'Brooks Adrenaline / similar', sublabel: 'Classic mild stability' },
+    { value: 'kayano', label: 'ASICS Kayano / similar', sublabel: 'Premium stability support' },
+    { value: '1080', label: 'New Balance 1080 / similar', sublabel: 'Soft premium neutral comfort' },
+    { value: 'ride', label: 'Saucony Ride / similar', sublabel: 'Balanced daily trainer' },
+    { value: 'triumph', label: 'Saucony Triumph / similar', sublabel: 'Premium cushion daily trainer' },
+    { value: 'speedgoat', label: 'HOKA Speedgoat / similar', sublabel: 'Cushioned trail grip' },
+    { value: 'lone_peak', label: 'Altra Lone Peak / similar', sublabel: 'Zero-drop wide toe box trail' },
+    { value: 'endorphin_speed', label: 'Endorphin Speed / similar', sublabel: 'Fast plated trainer' },
+    { value: 'superblast', label: 'ASICS Superblast / similar', sublabel: 'Super trainer, big bounce' },
+  ],
+};
+
+const STEP_WEEKLY_MILEAGE: SingleStep = {
+  kind: 'single',
+  id: 'weekly_mileage',
+  question: 'How much do you run per week?',
+  subtext: 'A 5 km/week beginner and a 70 km/week runner should not get the same recommendation.',
+  badge: '// LOAD MATCH',
+  options: [
+    { value: 'low', label: '0–10 km / week', sublabel: 'New runner, casual, or restart' },
+    { value: 'moderate', label: '10–30 km / week', sublabel: 'Regular recreational running' },
+    { value: 'high', label: '30–60 km / week', sublabel: 'Consistent training load' },
+    { value: 'very_high', label: '60+ km / week', sublabel: 'Marathon / high-mileage training' },
+  ],
+};
+
+const STEP_AVG_PACE: SingleStep = {
+  kind: 'single',
+  id: 'avg_pace',
+  question: 'What is your usual easy-run pace?',
+  subtext: 'Pace helps us avoid pushing expensive race shoes to runners who need comfort and protection first.',
+  options: [
+    { value: 'slow', label: 'Slower than 7:00/km', sublabel: 'Comfort and rocker matter more than low weight' },
+    { value: 'easy', label: '6:00–7:00/km', sublabel: 'Easy recreational pace' },
+    { value: 'steady', label: '5:00–6:00/km', sublabel: 'Steady trained runner' },
+    { value: 'fast', label: '4:00–5:00/km', sublabel: 'Performance matters more' },
+    { value: 'elite', label: 'Faster than 4:00/km', sublabel: 'Very fast / competitive' },
+    { value: 'unknown', label: 'Not Sure', sublabel: 'Skip this signal' },
+  ],
+};
+
 const STEP_COMFORT: SingleStep = {
   kind: 'single',
   id: 'comfort_pref',
@@ -245,6 +317,10 @@ const STEP_BRAND: BrandStep = {
 // Full diagnostic (12 questions, longer track)
 const ALL_STEPS: QuizStep[] = [
   STEP_TERRAIN,
+  STEP_PRIORITY,
+  STEP_CURRENT_SHOE,
+  STEP_WEEKLY_MILEAGE,
+  STEP_AVG_PACE,
   STEP_GOAL,
   STEP_COMFORT,
   STEP_WEIGHT,
@@ -259,12 +335,16 @@ const ALL_STEPS: QuizStep[] = [
   STEP_BRAND,
 ];
 
-// Quick scan (6 questions, fast track) — keeps the most critical signals
+// Quick scan (10 questions): still fast, but includes the signals that stop the last 10% wrong answers.
 const BEGINNER_STEPS: QuizStep[] = [
   STEP_TERRAIN,
+  STEP_PRIORITY,
+  STEP_CURRENT_SHOE,
+  STEP_WEEKLY_MILEAGE,
   STEP_COMFORT,
   STEP_WEIGHT,
   STEP_PRONATION,
+  STEP_FOOT_WIDTH,
   STEP_INJURY_CURRENT,
   STEP_BRAND,
 ];
@@ -301,11 +381,14 @@ const HardShadowCard: React.FC<{
 const QUICK_SCAN_DEFAULTS: Partial<QuizAnswers> = {
   goal: 'easy_base',
   experience: 'intermediate',
-  foot_width: 'regular',
   arch_type: 'unsure',
   injury_history: ['none'],
   drop_pref: 'no_pref',
   wears_orthotics: false,
+  weekly_mileage: 'moderate',
+  avg_pace: 'unknown',
+  priority: 'one_shoe',
+  current_shoe_feel: 'none',
 };
 
 // ─── Main Quiz component ──────────────────────────────────────────────────────
