@@ -325,7 +325,7 @@ export default function ScanScreen() {
       <View style={[s.splashSafe, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 100 }]}>
         <View style={s.splashTop}>
           <Text style={s.splashEyebrow}>// ADD / SHOE SCOUT</Text>
-          <Text style={s.splashTitle}>ADD A{'\n'}CHARACTER.</Text>
+          <Text style={s.splashTitle} numberOfLines={1} adjustsFontSizeToFit>ADD A CHARACTER.</Text>
           <Text style={s.splashSub}>Answer the fit protocol. Choose the shoe. Let the story begin.</Text>
         </View>
 
