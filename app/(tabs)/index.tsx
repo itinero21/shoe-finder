@@ -33,6 +33,11 @@ import { getTodaysWeather, TodaysWeather } from '../services/weatherService';
 import { getShoeOfTheDay, getRotationAnalysis, ShoeRecommendation } from '../utils/dailyShoeAdvisor';
 import { generateAllHealthReports, ShoeHealthReport } from '../utils/shoeLifeIntelligence';
 import { detectPainPatterns, PainPattern } from '../utils/painPatternDetector';
+import {
+  computeShoeReadiness, ShoeReadiness,
+  detectBadPurchases, BadPurchase,
+  analyzeRotationChemistry, ShoeChemistry,
+} from '../utils/shoeIntelligence';
 import { RetirementCeremony } from '../../components/RetirementCeremony';
 import { HallOfFame } from '../../components/HallOfFame';
 import { FamilyTree } from '../../components/FamilyTree';
@@ -89,6 +94,9 @@ export default function ClosetScreen() {
   const [healthReports, setHealthReports] = useState<ShoeHealthReport[]>([]);
   const [painPatterns, setPainPatterns] = useState<PainPattern[]>([]);
   const [rotationAdvice, setRotationAdvice] = useState<string>('');
+  const [readinessScores, setReadinessScores] = useState<ShoeReadiness[]>([]);
+  const [badPurchases, setBadPurchases] = useState<BadPurchase[]>([]);
+  const [chemistry, setChemistry] = useState<ShoeChemistry[]>([]);
   const [retireShoe, setRetireShoe] = useState<Shoe | null>(null);
   const [retireChar, setRetireChar] = useState<LivingShoe | null>(null);
   const [showHallOfFame, setShowHallOfFame] = useState(false);
@@ -175,6 +183,23 @@ export default function ClosetScreen() {
       // Rotation analysis
       const rotation = getRotationAnalysis(updated, shoeDataMap, allRuns);
       setRotationAdvice(rotation.advice);
+
+      // Shoe readiness scores (computed after weather arrives)
+      getTodaysWeather().then(w => {
+        const scores = updated
+          .filter(c => c.lifeStage !== 'departed')
+          .map(c => {
+            const sd = shoeDataMap[c.shoeId];
+            return sd ? computeShoeReadiness(c, sd, allRuns, w, updated) : null;
+          })
+          .filter(Boolean)
+          .sort((a, b) => b!.score - a!.score) as ShoeReadiness[];
+        setReadinessScores(scores);
+      }).catch(() => {});
+
+      // Bad purchases + chemistry
+      setBadPurchases(detectBadPurchases(updated, shoeDataMap, allRuns));
+      setChemistry(analyzeRotationChemistry(updated, shoeDataMap));
 
       // Auto-sync watches
       import('../services/watchService').then(({ syncAllWatches }) =>
@@ -278,6 +303,57 @@ export default function ClosetScreen() {
             <Text style={s.painLabel}>// PATTERN DETECTED</Text>
             {painPatterns.slice(0, 2).map((p, i) => (
               <Text key={i} style={s.painText}>{p.pattern}</Text>
+            ))}
+          </View>
+        )}
+
+        {/* ── SHOE READINESS ──────────────────────────────────────── */}
+        {!showGraveyard && readinessScores.length > 0 && (
+          <View style={s.readinessSection}>
+            <Text style={s.readinessTitle}>// SHOE READINESS</Text>
+            {readinessScores.map(r => (
+              <View key={r.shoeId} style={s.readinessRow}>
+                <View style={s.readinessLeft}>
+                  <Text style={s.readinessName}>{r.shoeName}</Text>
+                  <Text style={s.readinessLabel}>{r.label}</Text>
+                </View>
+                <View style={s.readinessRight}>
+                  <Text style={[s.readinessScore, {
+                    color: r.score >= 75 ? '#16A34A' : r.score >= 50 ? '#D97706' : ACCENT,
+                  }]}>{r.score}%</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* ── SHOE CHEMISTRY ────────────────────────────────────── */}
+        {!showGraveyard && chemistry.length > 0 && (
+          <View style={s.chemistrySection}>
+            <Text style={s.chemistryTitle}>// ROTATION CHEMISTRY</Text>
+            {chemistry.slice(0, 3).map((c, i) => (
+              <View key={i} style={[s.chemistryRow, {
+                borderLeftColor: c.compatibility === 'excellent' ? '#16A34A' : c.compatibility === 'good' ? '#2563EB' : ACCENT,
+              }]}>
+                <Text style={s.chemistryPair}>{c.shoe1} + {c.shoe2}</Text>
+                <Text style={[s.chemistryLabel, {
+                  color: c.compatibility === 'excellent' ? '#16A34A' : c.compatibility === 'good' ? '#2563EB' : ACCENT,
+                }]}>{c.compatibility.toUpperCase()}</Text>
+                <Text style={s.chemistryReason}>{c.reason}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* ── BAD PURCHASES ─────────────────────────────────────── */}
+        {!showGraveyard && badPurchases.length > 0 && (
+          <View style={s.badPurchaseSection}>
+            <Text style={s.badPurchaseTitle}>// PURCHASE REVIEW</Text>
+            {badPurchases.map(b => (
+              <View key={b.shoeId} style={s.badPurchaseCard}>
+                <Text style={s.badPurchaseName}>{b.shoeName}</Text>
+                <Text style={s.badPurchaseReason}>{b.reason}</Text>
+              </View>
             ))}
           </View>
         )}
@@ -574,6 +650,31 @@ const s = StyleSheet.create({
   painCard: { marginHorizontal: 16, marginTop: 10, backgroundColor: 'rgba(217,119,6,0.08)', borderLeftWidth: 3, borderLeftColor: '#D97706', padding: 12, borderRadius: 2 },
   painLabel: { fontFamily: MONO, fontSize: 8, color: '#D97706', letterSpacing: 2, marginBottom: 6 },
   painText: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.7)', lineHeight: 16, marginBottom: 4 },
+
+  // Readiness
+  readinessSection: { marginHorizontal: 16, marginTop: 16 },
+  readinessTitle: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.35)', letterSpacing: 2, marginBottom: 10 },
+  readinessRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(10,10,10,0.08)' },
+  readinessLeft: { flex: 1, gap: 2 },
+  readinessName: { fontSize: 14, fontWeight: '700', color: INK },
+  readinessLabel: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)' },
+  readinessRight: { alignItems: 'flex-end' },
+  readinessScore: { fontSize: 22, fontWeight: '900' },
+
+  // Chemistry
+  chemistrySection: { marginHorizontal: 16, marginTop: 16 },
+  chemistryTitle: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.35)', letterSpacing: 2, marginBottom: 10 },
+  chemistryRow: { borderLeftWidth: 3, paddingLeft: 12, paddingVertical: 8, marginBottom: 8 },
+  chemistryPair: { fontFamily: MONO, fontSize: 10, color: INK, fontWeight: '700', marginBottom: 2 },
+  chemistryLabel: { fontFamily: MONO, fontSize: 8, letterSpacing: 1.5, marginBottom: 2 },
+  chemistryReason: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.45)', lineHeight: 14 },
+
+  // Bad purchases
+  badPurchaseSection: { marginHorizontal: 16, marginTop: 16 },
+  badPurchaseTitle: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.35)', letterSpacing: 2, marginBottom: 10 },
+  badPurchaseCard: { backgroundColor: 'rgba(10,10,10,0.04)', padding: 12, borderRadius: 2, borderLeftWidth: 3, borderLeftColor: '#6B7280', marginBottom: 8 },
+  badPurchaseName: { fontFamily: MONO, fontSize: 10, color: INK, fontWeight: '700', marginBottom: 4 },
+  badPurchaseReason: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.5)', lineHeight: 14 },
 
   briefCard: { marginHorizontal: 16, marginTop: 16, backgroundColor: INK, padding: 16, borderRadius: 2, borderWidth: 2, borderColor: INK },
   briefSpeaker: { fontFamily: MONO, fontSize: 8, color: 'rgba(244,241,234,0.4)', letterSpacing: 2, marginBottom: 8 },
