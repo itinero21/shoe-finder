@@ -113,6 +113,10 @@ export interface LivingShoe {
   // Meta
   lastMoodUpdate: string;           // ISO date
   lastDialogueTrigger: string | null;
+
+  // Economics
+  purchasePrice: number | null;     // actual price user paid (not list price)
+  decompressionHours: number;       // hours foam needs to recover after last run
 }
 
 // ── Dialogue Line ───────────────────────────────────────────────────────────

@@ -32,6 +32,11 @@ export interface UserProfile {
   // Runner profile (used by fatigue model)
   weight_lbs: number;      // default 160; used by shoe fatigue model
   arch_type: 'flat' | 'normal' | 'high' | null;
+  // Shoe Fund (micro-savings engine)
+  shoeFundBalance: number;
+  shoeFundTargetPrice: number | null;
+  shoeFundTargetName: string | null;
+  shoeFundTargetShoeId: string | null;
 }
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -46,6 +51,10 @@ const DEFAULT_PROFILE: UserProfile = {
   injury_history: [],
   week_starting: getThisSunday(),
   graveyard_count: 0,
+  shoeFundBalance: 0,
+  shoeFundTargetPrice: null,
+  shoeFundTargetName: null,
+  shoeFundTargetShoeId: null,
 };
 
 /**
@@ -131,5 +140,20 @@ export async function advanceInjuryPhase(): Promise<void> {
     profile.active_injury.phase = phases[idx + 1];
     profile.active_injury.phase_start_date = new Date().toISOString();
   }
+  await saveUserProfile(profile);
+}
+
+export async function addToShoeFund(amount: number): Promise<void> {
+  if (amount <= 0) return;
+  const profile = await getUserProfile();
+  profile.shoeFundBalance = (profile.shoeFundBalance ?? 0) + amount;
+  await saveUserProfile(profile);
+}
+
+export async function setShoeFundGoal(price: number, name: string, shoeId: string): Promise<void> {
+  const profile = await getUserProfile();
+  profile.shoeFundTargetPrice = price;
+  profile.shoeFundTargetName = name;
+  profile.shoeFundTargetShoeId = shoeId;
   await saveUserProfile(profile);
 }

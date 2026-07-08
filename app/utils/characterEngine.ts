@@ -7,6 +7,7 @@
 
 import { Shoe } from '../data/shoes';
 import { Run } from '../types/run';
+import { computeDecompressionHours } from './shoeFundEngine';
 import {
   ShoeArchetype, LifeStage, ShoeMood, EarnedNickname,
   LivingShoe, ShoeMoment, ShoeRelationship,
@@ -124,17 +125,25 @@ export function computeNickname(
 ): EarnedNickname {
   if (runs.length < 10) return null;
 
-  const rainRuns = runs.filter(r => r.notes?.toLowerCase().includes('rain')).length;
+  const rainRuns = runs.filter(r => /\brain|rainy|rained|storm|wet|drizzle|pouring\b/i.test(r.notes ?? '')).length;
   const raceRuns = runs.filter(r => r.purpose === 'race').length;
+  const nightRuns = runs.filter(r => new Date(r.date).getHours() >= 20).length;
   const longRuns = runs.filter(r => r.distanceKm > 15).length;
   const recoveryRuns = runs.filter(r => r.purpose === 'recovery' || r.purpose === 'easy').length;
   const speedRuns = runs.filter(r => r.purpose === 'speed' || r.purpose === 'tempo').length;
+  const comebackRuns = runs.filter(r => /\bcomeback|return|back after|injury|rehab\b/i.test(r.notes ?? '')).length;
 
   // Check for marathon distance
   if (runs.some(r => r.distanceKm >= 42)) return 'The Marathoner';
 
   // Rain warrior — lots of bad weather
   if (rainRuns >= 5) return 'The Rain Warrior';
+
+  // Comeback — user explicitly recorded return/injury context
+  if (comebackRuns > 0) return 'The Comeback Kid';
+
+  // Night runner — earned from repeated late runs
+  if (nightRuns >= 10) return 'The Night Runner';
 
   // Speed demon — mostly fast runs
   if (speedRuns / runs.length > 0.5) return 'The Speed Demon';
@@ -205,6 +214,20 @@ export function detectMoments(
     });
   }
 
+  // First rain run from notes
+  if (!existing.has('first_rain')) {
+    const rain = shoeRuns.find(r => /\brain|rainy|rained|storm|wet|drizzle|pouring\b/i.test(r.notes ?? ''));
+    if (rain) {
+      newMoments.push({
+        type: 'first_rain',
+        date: rain.date,
+        distanceKm: rain.distanceKm,
+        caption: 'First rain memory unlocked.',
+        runId: rain.id,
+      });
+    }
+  }
+
   // First trail run
   if (!existing.has('first_trail')) {
     const trail = shoeRuns.find(r => r.terrain === 'trail');
@@ -233,6 +256,37 @@ export function detectMoments(
     }
   }
 
+  // Fastest 5K / 10K equivalents when duration is available.
+  const timed = shoeRuns.filter(r => r.durationMinutes && r.distanceKm > 0);
+  if (!existing.has('fastest_5k')) {
+    const fiveK = timed
+      .filter(r => r.distanceKm >= 5)
+      .sort((a, b) => (a.durationMinutes! / a.distanceKm) - (b.durationMinutes! / b.distanceKm))[0];
+    if (fiveK) {
+      newMoments.push({
+        type: 'fastest_5k',
+        date: fiveK.date,
+        distanceKm: fiveK.distanceKm,
+        caption: `Fastest 5K-or-longer effort together: ${(fiveK.durationMinutes! / fiveK.distanceKm).toFixed(1)} min/km.`,
+        runId: fiveK.id,
+      });
+    }
+  }
+  if (!existing.has('fastest_10k')) {
+    const tenK = timed
+      .filter(r => r.distanceKm >= 10)
+      .sort((a, b) => (a.durationMinutes! / a.distanceKm) - (b.durationMinutes! / b.distanceKm))[0];
+    if (tenK) {
+      newMoments.push({
+        type: 'fastest_10k',
+        date: tenK.date,
+        distanceKm: tenK.distanceKm,
+        caption: `Fastest 10K-or-longer effort together: ${(tenK.durationMinutes! / tenK.distanceKm).toFixed(1)} min/km.`,
+        runId: tenK.id,
+      });
+    }
+  }
+
   // Longest run
   if (!existing.has('longest_run') && shoeRuns.length >= 5) {
     const longest = shoeRuns.reduce((best, r) => r.distanceKm > best.distanceKm ? r : best);
@@ -243,6 +297,20 @@ export function detectMoments(
         distanceKm: longest.distanceKm,
         caption: `Longest run together: ${(longest.distanceKm * 0.621371).toFixed(1)} miles.`,
         runId: longest.id,
+      });
+    }
+  }
+
+  // Comeback story from notes
+  if (!existing.has('comeback')) {
+    const comeback = shoeRuns.find(r => /\bcomeback|return|back after|injury|rehab\b/i.test(r.notes ?? ''));
+    if (comeback) {
+      newMoments.push({
+        type: 'comeback',
+        date: comeback.date,
+        distanceKm: comeback.distanceKm,
+        caption: 'Comeback run remembered.',
+        runId: comeback.id,
       });
     }
   }
@@ -338,6 +406,8 @@ export function createLivingShoe(shoe: Shoe, weightLbs: number): LivingShoe {
     heirId: null,
     lastMoodUpdate: new Date().toISOString(),
     lastDialogueTrigger: null,
+    purchasePrice: null,
+    decompressionHours: 0,
   };
 }
 
@@ -381,5 +451,6 @@ export function updateShoeAfterRun(
     moments: detectMoments(shoe.shoeId, allRuns, shoe.moments),
     relationships: updateRelationships(shoe, allShoes, allRuns),
     lastMoodUpdate: new Date().toISOString(),
+    decompressionHours: computeDecompressionHours(lastRun),
   };
 }

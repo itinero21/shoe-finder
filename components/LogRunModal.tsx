@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { SlideInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveRun, getRuns } from '../app/utils/runStorage';
 import { Run, RunTerrain, RunPurpose, MatchQuality } from '../app/types/run';
 import { calcMatchQuality, MATCH_LABELS } from '../app/utils/matchQuality';
@@ -107,6 +108,14 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
           const allChars = await getLivingShoes();
           const updated = updateShoeAfterRun(char, shoe, allRuns, allChars, profile.weight_lbs ?? 160);
           await saveLivingShoe(updated);
+          // Micro-savings: add run contribution to Shoe Fund
+          import('../app/utils/shoeFundEngine').then(({ addRunToFund }) => {
+            addRunToFund(char, shoe, distNum).then(amount => {
+              if (amount > 0) {
+                AsyncStorage.setItem('stride_fund_last_contribution', JSON.stringify({ amount, timestamp: Date.now() })).catch(() => {});
+              }
+            }).catch(() => {});
+          }).catch(() => {});
         }
       }).catch(() => {});
 
@@ -233,12 +242,12 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
           </View>
 
           {/* Notes */}
-          <Text style={s.sectionLabel}>NOTES (OPTIONAL)</Text>
+          <Text style={s.sectionLabel}>WHAT SHOULD THIS SHOE REMEMBER? (OPTIONAL)</Text>
           <TextInput
             style={s.notesInput}
             value={notes}
             onChangeText={setNotes}
-            placeholder="How was the run?"
+            placeholder="First run with my daughter, return from injury, first sub-25 5K..."
             placeholderTextColor="rgba(10,10,10,0.3)"
             multiline
             numberOfLines={3}

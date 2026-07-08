@@ -8,6 +8,7 @@ import {
   Alert,
   StyleSheet,
   Dimensions,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -43,11 +44,20 @@ export default function ScanScreen() {
   const [visibleCount, setVisibleCount] = useState(3);
   const [whyNotShoe, setWhyNotShoe] = useState<ScoredShoe | null>(null);
   const [isBeginnerMode, setIsBeginnerMode] = useState(false);
+  const [purchasePrice, setPurchasePrice] = useState('');
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     getUserProfile().then(p => setIsBeginnerMode(p.is_beginner_mode));
   }, []);
+
+  const PRICE_RANGE_DEFAULTS: Record<string, string> = {
+    budget: '85',
+    mid: '130',
+    premium: '175',
+    ultra: '',
+    no_pref: '',
+  };
 
   const handleQuizComplete = async (quizAnswers: QuizAnswers) => {
     const results = getRecommendations(quizAnswers, SHOES);
@@ -56,6 +66,10 @@ export default function ScanScreen() {
     setShowQuiz(false);
     setMode('results');
     setVisibleCount(3);
+    // Pre-seed the price input with the midpoint of the chosen budget range
+    if (quizAnswers.price_range) {
+      setPurchasePrice(PRICE_RANGE_DEFAULTS[quizAnswers.price_range] ?? '');
+    }
     await AsyncStorage.setItem(QUIZ_ANSWERS_KEY, JSON.stringify(quizAnswers));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
@@ -71,6 +85,11 @@ export default function ScanScreen() {
   const handleAddToRotation = async (shoeId: string) => {
     try {
       await addToFavorites(shoeId);
+      const price = parseFloat(purchasePrice);
+      if (!isNaN(price) && price > 0) {
+        await AsyncStorage.setItem(`stride_shoe_price_${shoeId}`, price.toString());
+      }
+      setPurchasePrice('');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Welcome to the Closet', 'This shoe is alive now. Go meet it in THE CLOSET.');
     } catch {
@@ -154,6 +173,20 @@ export default function ScanScreen() {
 
           {/* CTA */}
           <View style={s.detailCta}>
+            <Text style={s.priceLabel}>WHAT DID YOU PAY?</Text>
+            <Text style={s.priceSub}>Used to track cost-per-mile and build your Shoe Fund</Text>
+            <View style={s.priceRow}>
+              <Text style={s.priceSign}>$</Text>
+              <TextInput
+                style={s.priceInput}
+                value={purchasePrice}
+                onChangeText={setPurchasePrice}
+                placeholder={`${shoe.price_usd ?? '—'}`}
+                placeholderTextColor="rgba(244,241,234,0.25)"
+                keyboardType="decimal-pad"
+                returnKeyType="done"
+              />
+            </View>
             <Pressable
               onPress={() => handleAddToRotation(shoe.id)}
               style={({ pressed }) => [s.ctaBtn, pressed && { opacity: 0.85 }]}
@@ -202,6 +235,13 @@ export default function ScanScreen() {
               )}
               {answers?.arch_type && (
                 <View style={s.tagInk}><Text style={s.tagText}>/{answers.arch_type.toUpperCase()} ARCH/</Text></View>
+              )}
+              {answers?.price_range && answers.price_range !== 'no_pref' && (
+                <View style={[s.tagInk, { backgroundColor: LIME }]}>
+                  <Text style={[s.tagText, { color: INK }]}>
+                    /{answers.price_range === 'budget' ? 'UNDER $100' : answers.price_range === 'mid' ? '$100–$160' : answers.price_range === 'premium' ? '$160–$220' : '$220+'}/
+                  </Text>
+                </View>
               )}
             </View>
           </View>
@@ -512,6 +552,11 @@ const s = StyleSheet.create({
   featText: { fontFamily: MONO, fontSize: 11, color: INK, flex: 1, lineHeight: 18 },
 
   detailCta: { padding: 24, backgroundColor: INK },
+  priceLabel: { fontFamily: MONO, fontSize: 9, color: 'rgba(244,241,234,0.5)', letterSpacing: 2, marginBottom: 4 },
+  priceSub: { fontFamily: MONO, fontSize: 9, color: 'rgba(244,241,234,0.3)', lineHeight: 14, marginBottom: 14 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(244,241,234,0.2)', borderRadius: 2, marginBottom: 20, paddingHorizontal: 16 },
+  priceSign: { fontFamily: MONO, fontSize: 22, fontWeight: '900', color: LIME, marginRight: 6 },
+  priceInput: { flex: 1, fontFamily: MONO, fontSize: 22, fontWeight: '900', color: PAPER, paddingVertical: 14, letterSpacing: 0 },
   ctaBtn: { alignSelf: 'stretch' },
   ctaBtnShadow: { position: 'absolute', top: 5, left: 5, right: -5, bottom: -5, backgroundColor: PAPER },
   ctaBtnInner: {

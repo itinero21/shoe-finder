@@ -3,7 +3,7 @@
  * The default tab. Where you check in daily.
  * Each shoe is a character with personality, mood, life stage, and voice.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
 } from 'react-native';
@@ -38,6 +38,20 @@ import {
   detectBadPurchases, BadPurchase,
   analyzeRotationChemistry, ShoeChemistry,
 } from '../utils/shoeIntelligence';
+import {
+  buildShoeStoryProfile,
+  buildYearEndShoeAwards,
+  computeStoryMoodOverride,
+  ShoeAward,
+} from '../utils/shoeStoryEngine';
+import {
+  computeCostPerMile,
+  cpmTier,
+  computeFreshnessScore,
+  freshnessTier,
+  getDecompressionState,
+} from '../utils/shoeFundEngine';
+import { setShoeFundGoal } from '../utils/userProfile';
 import { RetirementCeremony } from '../../components/RetirementCeremony';
 import { HallOfFame } from '../../components/HallOfFame';
 import { FamilyTree } from '../../components/FamilyTree';
@@ -47,6 +61,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
 const ACCENT = '#FF3D00';
+const LIME   = '#D4FF00';
 const MONO   = 'SpaceMono';
 
 // ── Life stage colors ───────────────────────────────────────────────────────
@@ -97,10 +112,20 @@ export default function ClosetScreen() {
   const [readinessScores, setReadinessScores] = useState<ShoeReadiness[]>([]);
   const [badPurchases, setBadPurchases] = useState<BadPurchase[]>([]);
   const [chemistry, setChemistry] = useState<ShoeChemistry[]>([]);
+  const [shoeAwards, setShoeAwards] = useState<ShoeAward[]>([]);
+  const [shoeFund, setShoeFund] = useState<{ balance: number; targetPrice: number | null; targetName: string | null; targetShoeId: string | null }>({ balance: 0, targetPrice: null, targetName: null, targetShoeId: null });
   const [retireShoe, setRetireShoe] = useState<Shoe | null>(null);
   const [retireChar, setRetireChar] = useState<LivingShoe | null>(null);
   const [showHallOfFame, setShowHallOfFame] = useState(false);
   const [showFamilyTree, setShowFamilyTree] = useState(false);
+  const [, setMinuteTick] = useState(0);
+  const [lastContribution, setLastContribution] = useState<number | null>(null);
+
+  // Force re-render every 60s so foam decompression countdowns stay current
+  useEffect(() => {
+    const id = setInterval(() => setMinuteTick(t => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   React.useEffect(() => {
     AsyncStorage.getItem('stride_onboarding_done').then(val => {
@@ -122,6 +147,30 @@ export default function ClosetScreen() {
       setRuns(allRuns);
       setMemorials(memos);
 
+      // Load Shoe Fund state
+      setShoeFund({
+        balance: profile.shoeFundBalance ?? 0,
+        targetPrice: profile.shoeFundTargetPrice ?? null,
+        targetName: profile.shoeFundTargetName ?? null,
+        targetShoeId: profile.shoeFundTargetShoeId ?? null,
+      });
+
+      // Post-run fund reveal: show badge if a contribution was made in the last 5 min
+      const contributionRaw = await AsyncStorage.getItem('stride_fund_last_contribution');
+      if (contributionRaw) {
+        try {
+          const { amount, timestamp } = JSON.parse(contributionRaw) as { amount: number; timestamp: number };
+          if (Date.now() - timestamp < 5 * 60_000) {
+            setLastContribution(amount);
+          } else {
+            setLastContribution(null);
+          }
+          await AsyncStorage.removeItem('stride_fund_last_contribution');
+        } catch { /* ignore */ }
+      } else {
+        setLastContribution(null);
+      }
+
       // Ensure every favorite shoe has a LivingShoe character
       const weightLbs = profile.weight_lbs ?? 160;
       let updated = [...chars];
@@ -133,6 +182,17 @@ export default function ClosetScreen() {
         if (!updated.find(c => c.shoeId === id)) {
           updated.push(createLivingShoe(shoe, weightLbs));
           needsSave = true;
+        }
+      }
+
+      // Apply stored purchase prices (captured at add-to-closet time)
+      for (const c of updated) {
+        if (!c.purchasePrice) {
+          const stored = await AsyncStorage.getItem(`stride_shoe_price_${c.shoeId}`);
+          if (stored) {
+            c.purchasePrice = parseFloat(stored);
+            needsSave = true;
+          }
         }
       }
 
@@ -200,6 +260,7 @@ export default function ClosetScreen() {
       // Bad purchases + chemistry
       setBadPurchases(detectBadPurchases(updated, shoeDataMap, allRuns));
       setChemistry(analyzeRotationChemistry(updated, shoeDataMap));
+      setShoeAwards(buildYearEndShoeAwards(updated, memos, allRuns, shoeDataMap));
 
       // Auto-sync watches
       import('../services/watchService').then(({ syncAllWatches }) =>
@@ -345,6 +406,62 @@ export default function ClosetScreen() {
           </View>
         )}
 
+        {/* ── SHOE FUND ─────────────────────────────────────────── */}
+        {!showGraveyard && activeShoes.length > 0 && (
+          <View style={s.fundSection}>
+            <Text style={s.fundTitle}>// SHOE FUND</Text>
+            <View style={s.fundCard}>
+              {lastContribution !== null && (
+                <View style={s.fundContribBadge}>
+                  <Text style={s.fundContribText}>+${lastContribution.toFixed(3)} JUST ADDED FROM YOUR RUN</Text>
+                </View>
+              )}
+              <View style={s.fundTopRow}>
+                <View>
+                  <Text style={s.fundBalance}>${shoeFund.balance.toFixed(2)}</Text>
+                  <Text style={s.fundBalanceLabel}>SAVED</Text>
+                </View>
+                {shoeFund.targetName && shoeFund.targetPrice && (
+                  <View style={s.fundGoalBadge}>
+                    <Text style={s.fundGoalBadgeLabel}>GOAL</Text>
+                    <Text style={s.fundGoalBadgeName} numberOfLines={1}>{shoeFund.targetName.toUpperCase()}</Text>
+                    <Text style={s.fundGoalBadgePrice}>${shoeFund.targetPrice}</Text>
+                  </View>
+                )}
+              </View>
+              {shoeFund.targetPrice && shoeFund.targetPrice > 0 && (
+                <>
+                  <View style={s.fundBar}>
+                    <View style={[s.fundBarFill, { width: `${Math.min(100, (shoeFund.balance / shoeFund.targetPrice) * 100)}%` as any }]} />
+                  </View>
+                  <Text style={s.fundProgress}>
+                    {Math.round(Math.min(100, (shoeFund.balance / shoeFund.targetPrice) * 100))}% FUNDED · ${Math.max(0, shoeFund.targetPrice - shoeFund.balance).toFixed(2)} TO GO
+                  </Text>
+                </>
+              )}
+              {!shoeFund.targetName && (
+                <Text style={s.fundHint}>Every mile you run builds this fund. Set a goal from DRAFT NIGHT on any twilight shoe.</Text>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* ── SHOE AWARDS ───────────────────────────────────────── */}
+        {!showGraveyard && shoeAwards.length > 0 && (
+          <View style={s.awardsSection}>
+            <Text style={s.awardsTitle}>// SHOE WRAPPED</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.awardsScroll}>
+              {shoeAwards.map(a => (
+                <View key={a.id} style={s.awardCard}>
+                  <Text style={s.awardTitle}>{a.title.toUpperCase()}</Text>
+                  <Text style={s.awardShoe}>{a.shoeName}</Text>
+                  <Text style={s.awardDetail}>{a.detail}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {/* ── BAD PURCHASES ─────────────────────────────────────── */}
         {!showGraveyard && badPurchases.length > 0 && (
           <View style={s.badPurchaseSection}>
@@ -378,6 +495,11 @@ export default function ClosetScreen() {
                 const shoe = SHOES.find(s => s.id === char.shoeId);
                 if (!shoe) return null;
                 const stageColor = STAGE_COLORS[char.lifeStage];
+                const story = buildShoeStoryProfile(char, shoe, runs, livingShoes, SHOES);
+                const nextLockedAchievement = story.achievements.find(a => !a.unlocked);
+                const displayMood = computeStoryMoodOverride(char.mood, story.streak);
+                const freshness = computeFreshnessScore(char.lifePct);
+                const freshTier = freshnessTier(freshness);
 
                 return (
                   <View key={char.shoeId} style={s.cardWrap}>
@@ -389,11 +511,12 @@ export default function ClosetScreen() {
                           <Text style={s.stageBadgeText}>{STAGE_LABELS[char.lifeStage]}</Text>
                         </View>
                         <View style={s.moodPill}>
-                          <Text style={s.moodText}>{MOOD_LABELS[char.mood]}</Text>
+                          <Text style={s.moodText}>{MOOD_LABELS[displayMood]}</Text>
                         </View>
-                        <Text style={[s.lifePct, { color: stageColor }]}>
-                          {Math.round(100 - char.lifePct)}% LIFE
-                        </Text>
+                        <View style={s.freshnessBlock}>
+                          <Text style={[s.freshnessScore, { color: freshTier.color }]}>{freshness}%</Text>
+                          <Text style={[s.freshnessLabel, { color: freshTier.color }]}>{freshTier.label}</Text>
+                        </View>
                       </View>
 
                       {/* Brand + model */}
@@ -455,21 +578,154 @@ export default function ClosetScreen() {
                         </View>
                       </View>
 
+                      {/* Foam Decompression */}
+                      {(() => {
+                        const decomp = getDecompressionState(char);
+                        if (!decomp.recovering) return null;
+                        return (
+                          <View style={s.decompSection}>
+                            <View style={s.decompHeader}>
+                              <Text style={s.decompLabel}>FOAM RECOVERING</Text>
+                              <Text style={s.decompTime}>{decomp.hoursRemaining}H LEFT</Text>
+                            </View>
+                            <View style={s.decompBar}>
+                              <View style={[s.decompBarFill, { width: `${decomp.pctRecovered}%` as any }]} />
+                            </View>
+                          </View>
+                        );
+                      })()}
+
+                      {/* Cost Per Mile */}
+                      {(() => {
+                        if (char.totalMiles < 30) return null;
+                        const cpm = computeCostPerMile(char, shoe);
+                        if (!cpm) return null;
+                        const tier = cpmTier(cpm);
+                        return (
+                          <View style={s.cpmRow}>
+                            <Text style={[s.cpmValue, { color: tier.color }]}>${cpm.toFixed(2)}/mi</Text>
+                            <Text style={[s.cpmTier, { color: tier.color }]}>{tier.label}</Text>
+                          </View>
+                        );
+                      })()}
+
+                      {/* Per-mile savings rate (forward-looking) */}
+                      {(() => {
+                        const price = char.purchasePrice;
+                        if (!price || price <= 0 || char.lifespanMiles <= 0) return null;
+                        const ratePerMile = price / char.lifespanMiles;
+                        return (
+                          <View style={s.savingsRateRow}>
+                            <Text style={s.savingsRateLabel}>BUILDS FUND</Text>
+                            <Text style={s.savingsRateValue}>${ratePerMile.toFixed(3)}/mi</Text>
+                          </View>
+                        );
+                      })()}
+
+                      {/* Story signals */}
+                      {(story.streak.line || story.season || story.unexpectedMoment || story.earnedPersonality) && (
+                        <View style={s.storyPulse}>
+                          {story.earnedPersonality && (
+                            <Text style={s.storyPulseTitle}>{story.earnedPersonality.toUpperCase()}</Text>
+                          )}
+                          {story.streak.line && <Text style={s.storyPulseText}>{story.streak.line}</Text>}
+                          {story.season && <Text style={s.storyPulseText}>{story.season.line}</Text>}
+                          {story.unexpectedMoment && <Text style={s.storyPulseText}>{story.unexpectedMoment}</Text>}
+                        </View>
+                      )}
+
+                      {story.rivalry && (
+                        <View style={s.rivalryCard}>
+                          <Text style={s.rivalryLabel}>RIVAL SHOE</Text>
+                          <Text style={s.rivalryText}>{story.rivalry.line}</Text>
+                        </View>
+                      )}
+
+                      {story.unlockedAchievements.length > 0 && (
+                        <View style={s.achievementRow}>
+                          {story.unlockedAchievements.slice(0, 3).map(a => (
+                            <View key={a.id} style={s.achievementChip}>
+                              <Text style={s.achievementTitle}>{a.title.toUpperCase()}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
+                      {nextLockedAchievement && char.runCount >= 3 && (
+                        <Text style={s.nextAchievement}>
+                          NEXT HIDDEN AWARD: {nextLockedAchievement.title.toUpperCase()} / {nextLockedAchievement.detail}
+                        </Text>
+                      )}
+
+                      {story.memories.length > 0 && (
+                        <View style={s.storyMemoryCard}>
+                          <Text style={s.storyMemoryLabel}>{story.memories[0].title.toUpperCase()}</Text>
+                          <Text style={s.storyMemoryText}>{story.memories[0].text}</Text>
+                        </View>
+                      )}
+
+                      {story.soundtrack.beats.length > 0 && char.runCount >= 3 && (
+                        <View style={s.soundtrackCard}>
+                          <Text style={s.soundtrackTitle}>CAREER SOUNDTRACK</Text>
+                          <View style={s.soundtrackGrid}>
+                            {story.soundtrack.beats.slice(0, 6).map(beat => (
+                              <Text key={beat} style={s.soundtrackBeat}>{beat}</Text>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+
                       {/* Moments timeline */}
-                      {char.moments.length > 0 && (
+                      {story.scrapbook.greatestMoments.length > 0 && (
                         <View style={s.momentsSection}>
                           <Text style={s.momentsTitle}>
-                            {char.moments.length} {char.moments.length === 1 ? 'MEMORY' : 'MEMORIES'}
+                            SHOE SCRAPBOOK
                           </Text>
-                          {char.moments.slice(0, 4).map((m, mi) => (
-                            <View key={m.type} style={s.momentRow}>
+                          {story.scrapbook.greatestMoments.slice(0, 4).map((m, mi) => (
+                            <View key={`${m.title}-${mi}`} style={s.momentRow}>
                               <View style={s.momentDot} />
                               <View style={s.momentContent}>
-                                <Text style={s.momentCaption}>{m.caption}</Text>
-                                <Text style={s.momentDate}>{m.date.slice(0, 10)}</Text>
+                                <Text style={s.momentCaption}>{m.title}: {m.text}</Text>
+                                {m.date && <Text style={s.momentDate}>{m.date.slice(0, 10)}</Text>}
                               </View>
                             </View>
                           ))}
+                        </View>
+                      )}
+
+                      {story.draftPicks.length > 0 && (
+                        <View style={s.draftCard}>
+                          <Text style={s.draftTitle}>DRAFT NIGHT</Text>
+                          {story.draftPicks.slice(0, 2).map(pick => {
+                            const pickShoe = SHOES.find(sh => sh.id === pick.shoeId);
+                            const isGoal = shoeFund.targetShoeId === pick.shoeId;
+                            return (
+                              <View key={pick.shoeId} style={s.draftPick}>
+                                <Text style={s.draftRole}>{pick.role.toUpperCase()}</Text>
+                                <View style={s.draftPickRow}>
+                                  <Text style={s.draftName}>{pick.shoeName}</Text>
+                                  {pickShoe && (
+                                    <TouchableOpacity
+                                      onPress={() => {
+                                        const price = pickShoe.price_usd ?? 150;
+                                        const name = `${pickShoe.brand} ${pickShoe.model}`;
+                                        setShoeFundGoal(price, name, pick.shoeId).then(() => {
+                                          setShoeFund(prev => ({ ...prev, targetPrice: price, targetName: name, targetShoeId: pick.shoeId }));
+                                        }).catch(() => {});
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                      }}
+                                      style={[s.setGoalBtn, isGoal && s.setGoalBtnActive]}
+                                    >
+                                      <Text style={[s.setGoalText, isGoal && s.setGoalTextActive]}>
+                                        {isGoal ? 'GOAL SET' : 'SET GOAL'}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  )}
+                                </View>
+                                <Text style={s.draftReason}>{pick.reason}</Text>
+                              </View>
+                            );
+                          })}
                         </View>
                       )}
 
@@ -669,6 +925,15 @@ const s = StyleSheet.create({
   chemistryLabel: { fontFamily: MONO, fontSize: 8, letterSpacing: 1.5, marginBottom: 2 },
   chemistryReason: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.45)', lineHeight: 14 },
 
+  // Awards
+  awardsSection: { marginTop: 16 },
+  awardsTitle: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.35)', letterSpacing: 2, marginHorizontal: 16, marginBottom: 10 },
+  awardsScroll: { paddingHorizontal: 16, gap: 10 },
+  awardCard: { width: 170, backgroundColor: INK, padding: 14, borderRadius: 2, borderWidth: 2, borderColor: INK },
+  awardTitle: { fontFamily: MONO, fontSize: 8, color: LIME, letterSpacing: 1.5, marginBottom: 8 },
+  awardShoe: { fontFamily: MONO, fontSize: 12, color: PAPER, fontWeight: '900', lineHeight: 17, marginBottom: 6 },
+  awardDetail: { fontFamily: MONO, fontSize: 9, color: 'rgba(244,241,234,0.55)', lineHeight: 14 },
+
   // Bad purchases
   badPurchaseSection: { marginHorizontal: 16, marginTop: 16 },
   badPurchaseTitle: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.35)', letterSpacing: 2, marginBottom: 10 },
@@ -698,7 +963,9 @@ const s = StyleSheet.create({
   stageBadgeText: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: PAPER, letterSpacing: 1.5 },
   moodPill: { borderWidth: 2, borderColor: 'rgba(10,10,10,0.18)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 2 },
   moodText: { fontFamily: MONO, fontSize: 8, fontWeight: '900', color: 'rgba(10,10,10,0.5)', letterSpacing: 1.2 },
-  lifePct: { marginLeft: 'auto', fontFamily: MONO, fontSize: 11, fontWeight: '700' },
+  freshnessBlock: { marginLeft: 'auto', alignItems: 'flex-end' },
+  freshnessScore: { fontFamily: MONO, fontSize: 13, fontWeight: '900', lineHeight: 16 },
+  freshnessLabel: { fontFamily: MONO, fontSize: 7, letterSpacing: 1.2, lineHeight: 10 },
 
   identityBlock: { borderTopWidth: 2, borderBottomWidth: 2, borderColor: INK, paddingVertical: 12, marginBottom: 12 },
   brand: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginBottom: 2 },
@@ -716,6 +983,65 @@ const s = StyleSheet.create({
   statVal: { fontFamily: MONO, fontSize: 16, fontWeight: '900', color: INK, marginBottom: 2, letterSpacing: 0 },
   statLabel: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.4)', letterSpacing: 1 },
 
+  storyPulse: { backgroundColor: 'rgba(212,255,0,0.22)', borderLeftWidth: 3, borderLeftColor: LIME, padding: 12, borderRadius: 2, marginBottom: 10 },
+  storyPulseTitle: { fontFamily: MONO, fontSize: 9, color: INK, fontWeight: '900', letterSpacing: 1.5, marginBottom: 5 },
+  storyPulseText: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.62)', lineHeight: 16, marginBottom: 2 },
+  rivalryCard: { backgroundColor: 'rgba(255,61,0,0.08)', borderLeftWidth: 3, borderLeftColor: ACCENT, padding: 12, borderRadius: 2, marginBottom: 10 },
+  rivalryLabel: { fontFamily: MONO, fontSize: 8, color: ACCENT, fontWeight: '900', letterSpacing: 1.5, marginBottom: 4 },
+  rivalryText: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.62)', lineHeight: 16 },
+  achievementRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  achievementChip: { backgroundColor: INK, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 2 },
+  achievementTitle: { fontFamily: MONO, fontSize: 7, color: PAPER, fontWeight: '900', letterSpacing: 1 },
+  nextAchievement: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.35)', lineHeight: 13, marginBottom: 10, letterSpacing: 0.7 },
+  storyMemoryCard: { backgroundColor: 'rgba(37,99,235,0.08)', borderLeftWidth: 3, borderLeftColor: '#2563EB', padding: 12, borderRadius: 2, marginBottom: 10 },
+  storyMemoryLabel: { fontFamily: MONO, fontSize: 8, color: '#2563EB', fontWeight: '900', letterSpacing: 1.5, marginBottom: 4 },
+  storyMemoryText: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.62)', lineHeight: 16 },
+  soundtrackCard: { borderWidth: 1.5, borderColor: 'rgba(10,10,10,0.12)', borderRadius: 2, padding: 10, marginBottom: 10 },
+  soundtrackTitle: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.35)', letterSpacing: 1.5, marginBottom: 8 },
+  soundtrackGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  soundtrackBeat: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.55)', backgroundColor: 'rgba(10,10,10,0.05)', paddingHorizontal: 7, paddingVertical: 4, borderRadius: 2 },
+
+  // Foam Decompression
+  decompSection: { marginBottom: 10 },
+  decompHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+  decompLabel: { fontFamily: MONO, fontSize: 8, color: '#06B6D4', letterSpacing: 1.5 },
+  decompTime: { fontFamily: MONO, fontSize: 8, color: '#06B6D4', fontWeight: '700' },
+  decompBar: { height: 4, backgroundColor: 'rgba(6,182,212,0.15)', borderRadius: 2, overflow: 'hidden' },
+  decompBarFill: { height: '100%', backgroundColor: '#06B6D4', borderRadius: 2 },
+
+  // CPM
+  cpmRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  cpmValue: { fontFamily: MONO, fontSize: 13, fontWeight: '900', letterSpacing: 0 },
+  cpmTier: { fontFamily: MONO, fontSize: 8, letterSpacing: 1.5 },
+  savingsRateRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  savingsRateLabel: { fontFamily: MONO, fontSize: 8, color: LIME, letterSpacing: 1.5 },
+  savingsRateValue: { fontFamily: MONO, fontSize: 11, color: LIME, fontWeight: '700', letterSpacing: 0 },
+
+  // Shoe Fund
+  fundSection: { marginHorizontal: 16, marginTop: 16 },
+  fundTitle: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.35)', letterSpacing: 2, marginBottom: 10 },
+  fundCard: { backgroundColor: INK, padding: 16, borderRadius: 2, borderWidth: 2, borderColor: INK },
+  fundContribBadge: { backgroundColor: LIME, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 12, alignSelf: 'flex-start' },
+  fundContribText: { fontFamily: MONO, fontSize: 9, color: INK, fontWeight: '900', letterSpacing: 1 },
+  fundTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
+  fundBalance: { fontFamily: MONO, fontSize: 32, fontWeight: '900', color: LIME, letterSpacing: 0, lineHeight: 36 },
+  fundBalanceLabel: { fontFamily: MONO, fontSize: 8, color: 'rgba(244,241,234,0.4)', letterSpacing: 2, marginTop: 2 },
+  fundGoalBadge: { alignItems: 'flex-end' },
+  fundGoalBadgeLabel: { fontFamily: MONO, fontSize: 7, color: 'rgba(244,241,234,0.35)', letterSpacing: 2 },
+  fundGoalBadgeName: { fontFamily: MONO, fontSize: 10, fontWeight: '900', color: PAPER, maxWidth: 140, textAlign: 'right' },
+  fundGoalBadgePrice: { fontFamily: MONO, fontSize: 12, color: LIME, fontWeight: '700' },
+  fundBar: { height: 6, backgroundColor: 'rgba(244,241,234,0.1)', borderRadius: 3, overflow: 'hidden', marginBottom: 8 },
+  fundBarFill: { height: '100%', backgroundColor: LIME, borderRadius: 3 },
+  fundProgress: { fontFamily: MONO, fontSize: 9, color: 'rgba(244,241,234,0.45)', letterSpacing: 1 },
+  fundHint: { fontFamily: MONO, fontSize: 9, color: 'rgba(244,241,234,0.35)', lineHeight: 15 },
+
+  // Draft Night
+  draftPickRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
+  setGoalBtn: { paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1.5, borderColor: '#7C3AED', borderRadius: 2 },
+  setGoalBtnActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  setGoalText: { fontFamily: MONO, fontSize: 7, color: '#7C3AED', letterSpacing: 1, fontWeight: '900' },
+  setGoalTextActive: { color: PAPER },
+
   momentsSection: { marginBottom: 10 },
   momentsTitle: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.35)', letterSpacing: 1, marginBottom: 8 },
   momentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 6 },
@@ -723,6 +1049,12 @@ const s = StyleSheet.create({
   momentContent: { flex: 1 },
   momentCaption: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.55)', lineHeight: 15 },
   momentDate: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.25)', letterSpacing: 1, marginTop: 1 },
+  draftCard: { backgroundColor: 'rgba(124,58,237,0.08)', borderLeftWidth: 3, borderLeftColor: '#7C3AED', padding: 12, borderRadius: 2, marginBottom: 10 },
+  draftTitle: { fontFamily: MONO, fontSize: 8, color: '#7C3AED', fontWeight: '900', letterSpacing: 1.5, marginBottom: 8 },
+  draftPick: { marginBottom: 8 },
+  draftRole: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.35)', letterSpacing: 1.2, marginBottom: 2 },
+  draftName: { fontFamily: MONO, fontSize: 10, color: INK, fontWeight: '900', marginBottom: 2 },
+  draftReason: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.52)', lineHeight: 14 },
 
   welcomeCard: { backgroundColor: 'rgba(10,10,10,0.04)', padding: 12, borderRadius: 2, borderLeftWidth: 3, borderLeftColor: '#7C3AED', marginBottom: 10 },
   welcomeLine: { fontFamily: MONO, fontSize: 10, color: '#7C3AED', lineHeight: 17, letterSpacing: 0.5 },

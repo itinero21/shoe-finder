@@ -51,6 +51,7 @@ export type InjuryHistory =
 export type Pronation = 'overpronate_severe' | 'overpronate_mild' | 'neutral' | 'supinate' | 'unsure';
 
 export type DropPref = 'low' | 'medium' | 'high' | 'no_pref';
+export type PriceRange = 'budget' | 'mid' | 'premium' | 'ultra' | 'no_pref';
 
 export type WeeklyMileage = 'low' | 'moderate' | 'high' | 'very_high';
 export type AvgPace = 'slow' | 'easy' | 'steady' | 'fast' | 'elite' | 'unknown';
@@ -90,6 +91,9 @@ export interface QuizAnswers {
 
   // Brand filter — empty = any
   brand_pref: string[];
+
+  // Economic anchor — budget bracket from onboarding
+  price_range?: PriceRange;
 }
 
 export interface ScoredShoe extends Shoe {
@@ -121,6 +125,7 @@ function normalizeAnswers(answers: QuizAnswers): QuizAnswers {
     priority: answers.priority ?? derivePriorityFromGoal(answers),
     current_shoe_feel: answers.current_shoe_feel ?? 'none',
     wears_orthotics: !!answers.wears_orthotics,
+    price_range: answers.price_range ?? 'no_pref',
   };
 }
 
@@ -1007,6 +1012,31 @@ export const scoreShoe = (shoe: Shoe, answers: QuizAnswers): { score: number; re
   // Tiny bonus for category aligning with derived stability needs
   if (needsMaxStability(answers) && isMaxStability(shoe)) score += 2;
   if (needsStability(answers) && !needsMaxStability(answers) && stabilityLevel === 'guidance') score += 1;
+
+  // ─── 16. PRICE RANGE — soft budget signal ─────────────────────────────────
+
+  if (answers.price_range && answers.price_range !== 'no_pref') {
+    const p = shoe.price_usd ?? 150;
+    if (answers.price_range === 'budget') {
+      // Under $100 target: penalize expensive shoes, reward value picks
+      if (p <= 100) score += 4;
+      else if (p <= 130) score -= 1;
+      else if (p <= 160) score -= 3;
+      else score -= 6;
+    } else if (answers.price_range === 'mid') {
+      // $100–$160 target
+      if (p >= 100 && p <= 160) score += 3;
+      else if (p < 90) score += 1;   // under-budget is fine
+      else if (p <= 190) score -= 1;
+      else score -= 4;
+    } else if (answers.price_range === 'premium') {
+      // $160–$220 target — light bonus for range, no penalty under
+      if (p >= 160 && p <= 220) score += 2;
+      else if (p < 160) score += 0;
+      else score -= 2;               // over $220 is a slight stretch
+    }
+    // 'ultra' ($220+): no penalty — user explicitly chose top-shelf
+  }
 
   return { score: Math.max(0, score), reasons: reasons.slice(0, 4) };
 };

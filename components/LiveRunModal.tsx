@@ -30,6 +30,7 @@ import {
   getLocationPermStatus, requestLocationPermission, getCurrentCoordinate,
   hasBackgroundPermission, requestBackgroundPermission, getTrackingSnapshot,
 } from '../app/services/locationService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveRun } from '../app/utils/runStorage';
 import { addMiles, getUserProfile } from '../app/utils/userProfile';
 import { getFavorites } from '../app/utils/storage';
@@ -447,6 +448,14 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
           const allChars = await getLivingShoes();
           const updated = updateShoeAfterRun(char, shoe, allRuns, allChars, profile.weight_lbs ?? 160);
           await saveLivingShoe(updated);
+          // Micro-savings: add run contribution to Shoe Fund
+          import('../app/utils/shoeFundEngine').then(({ addRunToFund }) => {
+            addRunToFund(char, shoe, saveDistanceKm).then(amount => {
+              if (amount > 0) {
+                AsyncStorage.setItem('stride_fund_last_contribution', JSON.stringify({ amount, timestamp: Date.now() })).catch(() => {});
+              }
+            }).catch(() => {});
+          }).catch(() => {});
         }
       }).catch(() => {});
 
@@ -659,10 +668,10 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
               </View>
 
               {/* Notes */}
-              <Text style={s.sectionLbl}>RUN NOTES</Text>
+              <Text style={s.sectionLbl}>WHAT SHOULD THIS SHOE REMEMBER?</Text>
               <TextInput
                 style={s.notesInput}
-                placeholder="How was the run? Legs feeling good? Weather? Anything to remember…"
+                placeholder="First race, return from injury, longest run, ran with someone special..."
                 placeholderTextColor="rgba(244,241,234,0.2)"
                 value={notes}
                 onChangeText={setNotes}
