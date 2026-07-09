@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Dimensions,
   TextInput,
+  FlatList,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -32,7 +33,7 @@ const MONO  = 'SpaceMono';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
-type Mode = 'splash' | 'results' | 'detail';
+type Mode = 'splash' | 'results' | 'detail' | 'browse';
 
 // ─── Main Screen ──────────────────────────────────────────
 export default function ScanScreen() {
@@ -45,6 +46,7 @@ export default function ScanScreen() {
   const [whyNotShoe, setWhyNotShoe] = useState<ScoredShoe | null>(null);
   const [isBeginnerMode, setIsBeginnerMode] = useState(false);
   const [purchasePrice, setPurchasePrice] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -106,6 +108,16 @@ export default function ScanScreen() {
     return map[cat] || cat.replace(/_/g, ' ').toUpperCase();
   };
 
+  const browsedShoes = React.useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return [...SHOES].sort((a, b) => a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model));
+    return SHOES.filter(s =>
+      s.brand.toLowerCase().includes(q) ||
+      s.model.toLowerCase().includes(q) ||
+      getCategoryLabel(s.category).toLowerCase().includes(q)
+    ).sort((a, b) => a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model));
+  }, [searchQuery]);
+
   // ── Quiz ────────────────────────────────────────────────
   if (showQuiz) {
     return (
@@ -120,12 +132,13 @@ export default function ScanScreen() {
   // ── Detail ──────────────────────────────────────────────
   if (mode === 'detail' && selectedShoe) {
     const shoe = selectedShoe;
+    const fromBrowse = recs.length === 0;
     return (
       <View style={[s.fill, { backgroundColor: PAPER }]}>
         <View style={[s.navBar, { paddingTop: insets.top + 8 }]}>
-          <Pressable onPress={() => setMode('results')} style={s.navBackBtn}>
+          <Pressable onPress={() => setMode(fromBrowse ? 'browse' : 'results')} style={s.navBackBtn}>
             <Ionicons name="arrow-back" size={20} color={INK} />
-            <Text style={s.navLabel}>RESULTS</Text>
+            <Text style={s.navLabel}>{fromBrowse ? 'BROWSE' : 'RESULTS'}</Text>
           </Pressable>
         </View>
 
@@ -359,6 +372,58 @@ export default function ScanScreen() {
     );
   }
 
+  // ── Browse ──────────────────────────────────────────────
+  if (mode === 'browse') {
+    return (
+      <View style={[s.fill, s.browseContainer]}>
+        <View style={[s.browseNav, { paddingTop: insets.top + 12 }]}>
+          <Pressable onPress={() => setMode('splash')}>
+            <Text style={s.browseBack}>← ADD</Text>
+          </Pressable>
+          <TextInput
+            style={s.browseSearchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="SEARCH SHOES..."
+            placeholderTextColor="rgba(10,10,10,0.3)"
+            autoCorrect={false}
+            autoCapitalize="none"
+            returnKeyType="search"
+          />
+        </View>
+        <FlatList
+          data={browsedShoes}
+          keyExtractor={item => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
+          renderItem={({ item: shoe }) => (
+            <Pressable
+              onPress={() => {
+                setSelectedShoe({ ...shoe, score: 0, reasons: [] } as ScoredShoe);
+                setMode('detail');
+              }}
+              style={({ pressed }) => [s.browseRow, pressed && { opacity: 0.8 }]}
+            >
+              <View style={s.browseRowLeft}>
+                <Text style={s.browseBrand}>{shoe.brand.toUpperCase()}</Text>
+                <Text style={s.browseModel}>{shoe.model}</Text>
+                <View style={s.browseCatBadge}>
+                  <Text style={s.browseCatText}>{getCategoryLabel(shoe.category)}</Text>
+                </View>
+                {shoe.price_usd != null && (
+                  <Text style={s.browsePrice}>${shoe.price_usd}</Text>
+                )}
+              </View>
+              <View style={s.browseAddBtn}>
+                <Text style={s.browseAddText}>+</Text>
+              </View>
+            </Pressable>
+          )}
+        />
+      </View>
+    );
+  }
+
   // ── Splash ──────────────────────────────────────────────
   return (
     <View style={[s.fill, { backgroundColor: PAPER }]}>
@@ -378,6 +443,14 @@ export default function ScanScreen() {
             <View style={s.ctaInner}>
               <Text style={s.ctaText}>BEGIN SCOUT</Text>
             </View>
+          </Pressable>
+
+          <Pressable
+            onPress={() => { setMode('browse'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+            style={({ pressed }) => [s.browseBtn, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={s.browseBtnText}>BROWSE ALL SHOES</Text>
+            <Text style={[s.browseBtnText, { marginTop: 4, fontSize: 9 }]}>Browse and add any shoe from our database</Text>
           </Pressable>
 
         </View>
@@ -428,6 +501,30 @@ const s = StyleSheet.create({
   ctaText: { fontFamily: MONO, fontSize: 14, fontWeight: '700', letterSpacing: 2, color: PAPER },
   browseBtn: { paddingVertical: 14, alignItems: 'center', borderWidth: 2, borderColor: 'rgba(10,10,10,0.15)' },
   browseBtnText: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.5)', letterSpacing: 2 },
+
+  // Browse screen
+  browseContainer: { flex: 1, backgroundColor: PAPER },
+  browseNav: {
+    flexDirection: 'row', padding: 16, borderBottomWidth: 2, borderBottomColor: INK,
+    backgroundColor: PAPER, gap: 12, alignItems: 'center',
+  },
+  browseBack: { fontFamily: MONO, fontSize: 10, color: INK, letterSpacing: 2 },
+  browseSearchInput: {
+    flex: 1, fontFamily: MONO, fontSize: 12, color: INK,
+    borderWidth: 2, borderColor: INK, paddingHorizontal: 12, paddingVertical: 8,
+  },
+  browseRow: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(10,10,10,0.08)', gap: 12,
+  },
+  browseRowLeft: { flex: 1 },
+  browseBrand: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginBottom: 2 },
+  browseModel: { fontFamily: MONO, fontSize: 14, fontWeight: '700', color: INK, letterSpacing: 0 },
+  browseCatBadge: { backgroundColor: INK, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4, alignSelf: 'flex-start' },
+  browseCatText: { fontFamily: MONO, fontSize: 8, color: PAPER, letterSpacing: 1 },
+  browsePrice: { fontFamily: MONO, fontSize: 11, color: 'rgba(10,10,10,0.45)', marginTop: 2 },
+  browseAddBtn: { width: 36, height: 36, backgroundColor: INK, alignItems: 'center', justifyContent: 'center' },
+  browseAddText: { fontFamily: MONO, fontSize: 18, color: PAPER, fontWeight: '900', lineHeight: 20 },
 
   // Results
   resultsHeader: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 20 },

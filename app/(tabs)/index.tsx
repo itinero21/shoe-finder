@@ -285,8 +285,8 @@ export default function ClosetScreen() {
       {/* Header */}
       <View style={s.header}>
         <View>
-          <Text style={s.eyebrow}>// THE CLOSET</Text>
-          <Text style={s.title}>YOUR SHOES{'\n'}ARE ALIVE.</Text>
+          <Text style={s.eyebrow}>YOUR CLOSET</Text>
+          <Text style={s.title}>YOUR{'\n'}ROTATION.</Text>
         </View>
         <View style={s.headerRight}>
           <View style={s.headerBtns}>
@@ -307,9 +307,9 @@ export default function ClosetScreen() {
             onPress={() => { setShowGraveyard(!showGraveyard); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
             style={s.graveyardBtn}
           >
-            <Ionicons name={showGraveyard ? 'shirt-outline' : 'skull-outline'} size={16} color={showGraveyard ? ACCENT : INK} />
+            <Ionicons name={showGraveyard ? 'shirt-outline' : 'archive-outline'} size={16} color={showGraveyard ? ACCENT : INK} />
             <Text style={[s.graveyardBtnText, showGraveyard && { color: ACCENT }]}>
-              {showGraveyard ? 'LIVING' : `GRAVEYARD (${memorials.length})`}
+              {showGraveyard ? 'ACTIVE' : `RETIRED (${memorials.length})`}
             </Text>
           </TouchableOpacity>
         </View>
@@ -318,7 +318,7 @@ export default function ClosetScreen() {
       {/* Daily Brief */}
       {dailyLine && !showGraveyard && (
         <View style={s.briefCard}>
-          <Text style={s.briefSpeaker}>{dailySpeaker ?? 'A SHOE'} SAYS:</Text>
+          <Text style={s.briefSpeaker}>{dailySpeaker?.toUpperCase() ?? 'YOUR CLOSET'}</Text>
           <Text style={s.briefLine}>"{dailyLine}"</Text>
         </View>
       )}
@@ -328,149 +328,11 @@ export default function ClosetScreen() {
         {/* ── SHOE OF THE DAY ───────────────────────────────────── */}
         {!showGraveyard && shoeOfDay && (
           <View style={s.advisorCard}>
-            <Text style={s.advisorLabel}>// TODAY'S PICK</Text>
+            <Text style={s.advisorLabel}>TODAY'S PICK</Text>
             <Text style={s.advisorText}>{shoeOfDay.reason}</Text>
             {weather && <Text style={s.advisorWeather}>{weather.summary}</Text>}
             {shoeOfDay.warnings.map((w, i) => (
               <Text key={i} style={s.advisorWarning}>⚠ {w}</Text>
-            ))}
-          </View>
-        )}
-
-        {/* ── ROTATION ADVICE ───────────────────────────────────── */}
-        {!showGraveyard && rotationAdvice.length > 0 && (
-          <View style={s.rotationCard}>
-            <Text style={s.rotationText}>{rotationAdvice}</Text>
-          </View>
-        )}
-
-        {/* ── HEALTH ALERTS ─────────────────────────────────────── */}
-        {!showGraveyard && healthReports.filter(r => r.retireWarning || r.loadWarning).map(r => (
-          <View key={r.shoeId} style={s.healthAlert}>
-            {r.retireWarning && <Text style={s.healthAlertText}>🪦 {r.retireWarning}</Text>}
-            {r.loadWarning && <Text style={s.healthAlertText}>⚡ {r.loadWarning}</Text>}
-            {r.restrictions.length > 0 && (
-              <Text style={s.healthRestriction}>{r.restrictions[0]}</Text>
-            )}
-            {r.costPerMile != null && r.totalMiles > 50 && (
-              <Text style={s.costPerMile}>${r.costPerMile.toFixed(2)}/mi</Text>
-            )}
-          </View>
-        ))}
-
-        {/* ── PAIN PATTERNS ─────────────────────────────────────── */}
-        {!showGraveyard && painPatterns.length > 0 && (
-          <View style={s.painCard}>
-            <Text style={s.painLabel}>// PATTERN DETECTED</Text>
-            {painPatterns.slice(0, 2).map((p, i) => (
-              <Text key={i} style={s.painText}>{p.pattern}</Text>
-            ))}
-          </View>
-        )}
-
-        {/* ── SHOE READINESS ──────────────────────────────────────── */}
-        {!showGraveyard && readinessScores.length > 0 && (
-          <View style={s.readinessSection}>
-            <Text style={s.readinessTitle}>// SHOE READINESS</Text>
-            {readinessScores.map(r => (
-              <View key={r.shoeId} style={s.readinessRow}>
-                <View style={s.readinessLeft}>
-                  <Text style={s.readinessName}>{r.shoeName}</Text>
-                  <Text style={s.readinessLabel}>{r.label}</Text>
-                </View>
-                <View style={s.readinessRight}>
-                  <Text style={[s.readinessScore, {
-                    color: r.score >= 75 ? '#16A34A' : r.score >= 50 ? '#D97706' : ACCENT,
-                  }]}>{r.score}%</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* ── SHOE CHEMISTRY ────────────────────────────────────── */}
-        {!showGraveyard && chemistry.length > 0 && (
-          <View style={s.chemistrySection}>
-            <Text style={s.chemistryTitle}>// ROTATION CHEMISTRY</Text>
-            {chemistry.slice(0, 3).map((c, i) => (
-              <View key={i} style={[s.chemistryRow, {
-                borderLeftColor: c.compatibility === 'excellent' ? '#16A34A' : c.compatibility === 'good' ? '#2563EB' : ACCENT,
-              }]}>
-                <Text style={s.chemistryPair}>{c.shoe1} + {c.shoe2}</Text>
-                <Text style={[s.chemistryLabel, {
-                  color: c.compatibility === 'excellent' ? '#16A34A' : c.compatibility === 'good' ? '#2563EB' : ACCENT,
-                }]}>{c.compatibility.toUpperCase()}</Text>
-                <Text style={s.chemistryReason}>{c.reason}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* ── SHOE FUND ─────────────────────────────────────────── */}
-        {!showGraveyard && activeShoes.length > 0 && (
-          <View style={s.fundSection}>
-            <Text style={s.fundTitle}>// SHOE FUND</Text>
-            <View style={s.fundCard}>
-              {lastContribution !== null && (
-                <View style={s.fundContribBadge}>
-                  <Text style={s.fundContribText}>+${lastContribution.toFixed(3)} JUST ADDED FROM YOUR RUN</Text>
-                </View>
-              )}
-              <View style={s.fundTopRow}>
-                <View>
-                  <Text style={s.fundBalance}>${shoeFund.balance.toFixed(2)}</Text>
-                  <Text style={s.fundBalanceLabel}>SAVED</Text>
-                </View>
-                {shoeFund.targetName && shoeFund.targetPrice && (
-                  <View style={s.fundGoalBadge}>
-                    <Text style={s.fundGoalBadgeLabel}>GOAL</Text>
-                    <Text style={s.fundGoalBadgeName} numberOfLines={1}>{shoeFund.targetName.toUpperCase()}</Text>
-                    <Text style={s.fundGoalBadgePrice}>${shoeFund.targetPrice}</Text>
-                  </View>
-                )}
-              </View>
-              {shoeFund.targetPrice && shoeFund.targetPrice > 0 && (
-                <>
-                  <View style={s.fundBar}>
-                    <View style={[s.fundBarFill, { width: `${Math.min(100, (shoeFund.balance / shoeFund.targetPrice) * 100)}%` as any }]} />
-                  </View>
-                  <Text style={s.fundProgress}>
-                    {Math.round(Math.min(100, (shoeFund.balance / shoeFund.targetPrice) * 100))}% FUNDED · ${Math.max(0, shoeFund.targetPrice - shoeFund.balance).toFixed(2)} TO GO
-                  </Text>
-                </>
-              )}
-              {!shoeFund.targetName && (
-                <Text style={s.fundHint}>Every mile you run builds this fund. Set a goal from DRAFT NIGHT on any twilight shoe.</Text>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* ── SHOE AWARDS ───────────────────────────────────────── */}
-        {!showGraveyard && shoeAwards.length > 0 && (
-          <View style={s.awardsSection}>
-            <Text style={s.awardsTitle}>// SHOE WRAPPED</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.awardsScroll}>
-              {shoeAwards.map(a => (
-                <View key={a.id} style={s.awardCard}>
-                  <Text style={s.awardTitle}>{a.title.toUpperCase()}</Text>
-                  <Text style={s.awardShoe}>{a.shoeName}</Text>
-                  <Text style={s.awardDetail}>{a.detail}</Text>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* ── BAD PURCHASES ─────────────────────────────────────── */}
-        {!showGraveyard && badPurchases.length > 0 && (
-          <View style={s.badPurchaseSection}>
-            <Text style={s.badPurchaseTitle}>// PURCHASE REVIEW</Text>
-            {badPurchases.map(b => (
-              <View key={b.shoeId} style={s.badPurchaseCard}>
-                <Text style={s.badPurchaseName}>{b.shoeName}</Text>
-                <Text style={s.badPurchaseReason}>{b.reason}</Text>
-              </View>
             ))}
           </View>
         )}
@@ -546,8 +408,8 @@ export default function ClosetScreen() {
                         return (
                         <Text style={s.relationshipText}>
                             {jealous
-                              ? `JEALOUS OF ${otherShoe.model.toUpperCase()} GETTING MORE RUNS LATELY`
-                              : `GOOD TEAMMATES WITH ${otherShoe.model.toUpperCase()}`}
+                              ? `USED LESS THAN ${otherShoe.model.toUpperCase()} RECENTLY`
+                              : `PAIRS WELL WITH ${otherShoe.model.toUpperCase()}`}
                           </Text>
                         );
                       })()}
@@ -767,6 +629,144 @@ export default function ClosetScreen() {
               })
             )}
           </>
+        )}
+
+        {/* ── SHOE FUND ─────────────────────────────────────────── */}
+        {!showGraveyard && activeShoes.length > 0 && (
+          <View style={s.fundSection}>
+            <Text style={s.fundTitle}>SHOE FUND</Text>
+            <View style={s.fundCard}>
+              {lastContribution !== null && (
+                <View style={s.fundContribBadge}>
+                  <Text style={s.fundContribText}>+${lastContribution.toFixed(3)} JUST ADDED FROM YOUR RUN</Text>
+                </View>
+              )}
+              <View style={s.fundTopRow}>
+                <View>
+                  <Text style={s.fundBalance}>${shoeFund.balance.toFixed(2)}</Text>
+                  <Text style={s.fundBalanceLabel}>SAVED</Text>
+                </View>
+                {shoeFund.targetName && shoeFund.targetPrice && (
+                  <View style={s.fundGoalBadge}>
+                    <Text style={s.fundGoalBadgeLabel}>GOAL</Text>
+                    <Text style={s.fundGoalBadgeName} numberOfLines={1}>{shoeFund.targetName.toUpperCase()}</Text>
+                    <Text style={s.fundGoalBadgePrice}>${shoeFund.targetPrice}</Text>
+                  </View>
+                )}
+              </View>
+              {shoeFund.targetPrice && shoeFund.targetPrice > 0 && (
+                <>
+                  <View style={s.fundBar}>
+                    <View style={[s.fundBarFill, { width: `${Math.min(100, (shoeFund.balance / shoeFund.targetPrice) * 100)}%` as any }]} />
+                  </View>
+                  <Text style={s.fundProgress}>
+                    {Math.round(Math.min(100, (shoeFund.balance / shoeFund.targetPrice) * 100))}% FUNDED · ${Math.max(0, shoeFund.targetPrice - shoeFund.balance).toFixed(2)} TO GO
+                  </Text>
+                </>
+              )}
+              {!shoeFund.targetName && (
+                <Text style={s.fundHint}>Every mile you run builds this fund. Set a goal from DRAFT NIGHT on any twilight shoe.</Text>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* ── SHOE READINESS ──────────────────────────────────────── */}
+        {!showGraveyard && readinessScores.length > 0 && (
+          <View style={s.readinessSection}>
+            <Text style={s.readinessTitle}>READINESS</Text>
+            {readinessScores.map(r => (
+              <View key={r.shoeId} style={s.readinessRow}>
+                <View style={s.readinessLeft}>
+                  <Text style={s.readinessName}>{r.shoeName}</Text>
+                  <Text style={s.readinessLabel}>{r.label}</Text>
+                </View>
+                <View style={s.readinessRight}>
+                  <Text style={[s.readinessScore, {
+                    color: r.score >= 75 ? '#16A34A' : r.score >= 50 ? '#D97706' : ACCENT,
+                  }]}>{r.score}%</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* ── SHOE CHEMISTRY ────────────────────────────────────── */}
+        {!showGraveyard && chemistry.length > 0 && (
+          <View style={s.chemistrySection}>
+            <Text style={s.chemistryTitle}>ROTATION</Text>
+            {chemistry.slice(0, 3).map((c, i) => (
+              <View key={i} style={[s.chemistryRow, {
+                borderLeftColor: c.compatibility === 'excellent' ? '#16A34A' : c.compatibility === 'good' ? '#2563EB' : ACCENT,
+              }]}>
+                <Text style={s.chemistryPair}>{c.shoe1} + {c.shoe2}</Text>
+                <Text style={[s.chemistryLabel, {
+                  color: c.compatibility === 'excellent' ? '#16A34A' : c.compatibility === 'good' ? '#2563EB' : ACCENT,
+                }]}>{c.compatibility.toUpperCase()}</Text>
+                <Text style={s.chemistryReason}>{c.reason}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* ── HEALTH ALERTS ─────────────────────────────────────── */}
+        {!showGraveyard && healthReports.filter(r => r.retireWarning || r.loadWarning).map(r => (
+          <View key={r.shoeId} style={s.healthAlert}>
+            {r.retireWarning && <Text style={s.healthAlertText}>{r.retireWarning}</Text>}
+            {r.loadWarning && <Text style={s.healthAlertText}>{r.loadWarning}</Text>}
+            {r.restrictions.length > 0 && (
+              <Text style={s.healthRestriction}>{r.restrictions[0]}</Text>
+            )}
+            {r.costPerMile != null && r.totalMiles > 50 && (
+              <Text style={s.costPerMile}>${r.costPerMile.toFixed(2)}/mi</Text>
+            )}
+          </View>
+        ))}
+
+        {/* ── ROTATION ADVICE ───────────────────────────────────── */}
+        {!showGraveyard && rotationAdvice.length > 0 && (
+          <View style={s.rotationCard}>
+            <Text style={s.rotationText}>{rotationAdvice}</Text>
+          </View>
+        )}
+
+        {/* ── PAIN PATTERNS ─────────────────────────────────────── */}
+        {!showGraveyard && painPatterns.length > 0 && (
+          <View style={s.painCard}>
+            <Text style={s.painLabel}>PATTERN DETECTED</Text>
+            {painPatterns.slice(0, 2).map((p, i) => (
+              <Text key={i} style={s.painText}>{p.pattern}</Text>
+            ))}
+          </View>
+        )}
+
+        {/* ── SHOE AWARDS ───────────────────────────────────────── */}
+        {!showGraveyard && shoeAwards.length > 0 && (
+          <View style={s.awardsSection}>
+            <Text style={s.awardsTitle}>YEAR IN REVIEW</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.awardsScroll}>
+              {shoeAwards.map(a => (
+                <View key={a.id} style={s.awardCard}>
+                  <Text style={s.awardTitle}>{a.title.toUpperCase()}</Text>
+                  <Text style={s.awardShoe}>{a.shoeName}</Text>
+                  <Text style={s.awardDetail}>{a.detail}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* ── BAD PURCHASES ─────────────────────────────────────── */}
+        {!showGraveyard && badPurchases.length > 0 && (
+          <View style={s.badPurchaseSection}>
+            <Text style={s.badPurchaseTitle}>PURCHASE REVIEW</Text>
+            {badPurchases.map(b => (
+              <View key={b.shoeId} style={s.badPurchaseCard}>
+                <Text style={s.badPurchaseName}>{b.shoeName}</Text>
+                <Text style={s.badPurchaseReason}>{b.reason}</Text>
+              </View>
+            ))}
+          </View>
         )}
 
         {/* ── GRAVEYARD ─────────────────────────────────────────────── */}
