@@ -194,7 +194,7 @@ export default function ScanScreen() {
                 style={s.priceInput}
                 value={purchasePrice}
                 onChangeText={setPurchasePrice}
-                placeholder={`${shoe.price_usd ?? '—'}`}
+                placeholder="0.00"
                 placeholderTextColor="rgba(244,241,234,0.25)"
                 keyboardType="decimal-pad"
                 returnKeyType="done"
@@ -410,9 +410,6 @@ export default function ScanScreen() {
                 <View style={s.browseCatBadge}>
                   <Text style={s.browseCatText}>{getCategoryLabel(shoe.category)}</Text>
                 </View>
-                {shoe.price_usd != null && (
-                  <Text style={s.browsePrice}>${shoe.price_usd}</Text>
-                )}
               </View>
               <View style={s.browseAddBtn}>
                 <Text style={s.browseAddText}>+</Text>
