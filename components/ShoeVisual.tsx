@@ -3,10 +3,9 @@
  *
  * Every shoe in the database gets a unique, procedurally-generated side
  * profile built from its REAL specs:
- *   - heel / forefoot stack height  → midsole geometry
- *   - drop                          → heel-to-toe slope
+ *   - heel / forefoot stack height  → midsole thickness
  *   - rocker                        → toe spring curve
- *   - cushioning level              → sidewall bulge
+ *   - cushioning level              → collar height
  *   - brand                         → color system
  *   - model id hash                 → per-model hue variation
  *
@@ -14,17 +13,18 @@
  * compression creases appear in the sidewall, the outsole tread wears
  * away at strike zones, the upper fades, and scuffs accumulate.
  *
- * Style: soft clay / Spline-3D — radial highlights, soft ground shadow,
- * no hard outlines.
+ * The silhouette is traced from canonical running-shoe proportions
+ * (heel counter → achilles notch → collar → tongue → vamp → toe wrap),
+ * verified visually, with spec-driven scaling kept within safe bounds.
  */
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, View } from 'react-native';
 import Svg, {
-  Path, Ellipse, Rect, Defs, LinearGradient, RadialGradient, Stop, G, Line,
+  Path, Ellipse, Rect, Defs, LinearGradient, RadialGradient, Stop, Line,
 } from 'react-native-svg';
 import { Shoe } from '../app/data/shoes';
 
-// ── Brand color systems (primary upper, accent, laces) ─────────────────────
+// ── Brand color systems (primary upper, accent, dark shade) ────────────────
 interface BrandPalette { upper: string; accent: string; dark: string }
 
 const BRAND_PALETTES: Record<string, BrandPalette> = {
@@ -71,7 +71,6 @@ function mix(a: string, b: string, t: number): string {
   return rgbToHex(r1 + (r2 - r1) * t, g1 + (g2 - g1) * t, b1 + (b2 - b1) * t);
 }
 
-/** Lighten a hex color */
 function lighten(hex: string, t: number): string { return mix(hex, '#FFFFFF', t); }
 
 // Worn-out target tones
@@ -93,7 +92,7 @@ export function ShoeVisual({ shoe, wearPct = 0, width = 280, animated = true }: 
 
   // ── Palette (per-model hue nudge via seed) ────────────────────────────────
   const base = BRAND_PALETTES[shoe.brand] ?? DEFAULT_PALETTE;
-  const hueNudge = ((seed % 7) - 3) * 0.03; // -0.09 .. +0.09
+  const hueNudge = ((seed % 7) - 3) * 0.03;
   const upperFresh = hueNudge >= 0 ? lighten(base.upper, hueNudge) : mix(base.upper, base.dark, -hueNudge * 2);
   const upperColor   = mix(upperFresh, WORN_UPPER, wear * 0.5);
   const upperDark    = mix(base.dark, WORN_UPPER, wear * 0.45);
@@ -102,96 +101,109 @@ export function ShoeVisual({ shoe, wearPct = 0, width = 280, animated = true }: 
   const midsoleColor = mix(midsoleFresh, WORN_MIDSOLE, wear * 0.6);
   const outsoleColor = mix('#2B2B2B', '#4A453C', wear * 0.5);
 
-  // ── Geometry from real specs ──────────────────────────────────────────────
+  // ── Geometry: canonical silhouette scaled by real specs ──────────────────
   const VB_W = 320;
   const VB_H = 190;
-  const GROUND = 158;
+  const G = 158;
 
   const heelMm = shoe.specs?.stack_heel_mm ?? 34;
   const foreMm = shoe.specs?.stack_forefoot_mm ?? 26;
   const rocker = shoe.biomech?.rocker ?? 5;
   const cushion = shoe.biomech?.cushioning_level ?? 6;
 
-  // Foam compresses as it wears — heel takes the most load
-  const heelCompress = 1 - 0.30 * wear;
-  const foreCompress = 1 - 0.18 * wear;
-  const k = 1.35; // mm → px
-  const hs = Math.max(18, Math.min(70, heelMm * k)) * heelCompress;   // heel stack px
-  const fs = Math.max(12, Math.min(52, foreMm * k)) * foreCompress;   // forefoot stack px
+  const hsF = Math.max(0.75, Math.min(1.35, heelMm / 36)) * (1 - 0.28 * wear);
+  const toeSpring = 4 + rocker * 1.7;
+  const heelBite = G - 38 * hsF;
+  const midBite  = G - 30 * hsF + 2;
+  const ballBite = G - toeSpring * 0.5 - 21 * Math.max(0.7, Math.min(1.3, foreMm / 26)) * (1 - 0.16 * wear);
+  const toeBite  = ballBite + 6;
+  const tipTopY  = G - toeSpring - 10;
+  const tipBotY  = G - toeSpring;
+  const collarH  = 52 + cushion * 1.6;
+  const colY     = heelBite - collarH;
+  const tongueY  = colY - 4;
 
-  // Rocker → toe spring
-  const toeLift = 4 + rocker * 2.0;
-  // Cushion → sidewall bulge
-  const bulge = 2 + cushion * 1.1;
+  // Upper: heel counter → achilles notch → collar → tongue → vamp → toe wrap
+  const upperPath = `M 54 ${heelBite}
+    C 46 ${heelBite - collarH * 0.35}, 46 ${colY + 22}, 56 ${colY + 8}
+    C 61 ${colY + 1}, 70 ${colY - 2}, 80 ${colY}
+    C 88 ${colY + 1}, 94 ${colY + 5}, 99 ${colY + 11}
+    C 103 ${colY + 16}, 106 ${colY + 14}, 110 ${tongueY + 6}
+    C 115 ${tongueY + 1}, 124 ${tongueY}, 133 ${tongueY + 1}
+    C 141 ${tongueY + 2}, 146 ${tongueY + 6}, 152 ${tongueY + 12}
+    C 176 ${colY + collarH * 0.52}, 214 ${ballBite - 26}, 247 ${ballBite - 15}
+    C 264 ${ballBite - 10}, 277 ${toeBite - 12}, 283 ${toeBite - 4}
+    C 286 ${toeBite}, 284 ${toeBite + 1}, 281 ${toeBite + 1}
+    C 220 ${ballBite + 2}, 130 ${midBite}, 54 ${heelBite} Z`;
 
-  // Key X positions
-  const heelBackX = 34;
-  const toeTipX = 292;
-  const midX = 160;
+  // Midsole: bite line → rounded nose → ground bottom → heel flare
+  const midsolePath = `M 54 ${heelBite}
+    C 130 ${midBite}, 220 ${ballBite + 2}, 281 ${toeBite + 1}
+    C 287 ${toeBite + 2}, 290 ${tipTopY + 6}, 290 ${tipTopY + 10}
+    C 290 ${tipBotY - 2}, 287 ${tipBotY + 1}, 281 ${tipBotY + 2}
+    C 258 ${tipBotY + 4}, 238 ${tipBotY + 6}, 210 ${G - toeSpring * 0.42}
+    C 165 ${G - toeSpring * 0.12}, 120 ${G + 1}, 66 ${G}
+    C 54 ${G}, 46 ${G - 2}, 44 ${G - 7}
+    C 41 ${G - 20}, 43 ${heelBite + 14}, 54 ${heelBite} Z`;
 
-  // Midsole outline (organic clay blob)
-  const heelTopY = GROUND - hs;
-  const foreTopY = GROUND - toeLift - fs;
-  const toeBottomY = GROUND - toeLift;
+  // Outsole: dark strip along the bottom
+  const outsolePath = `M 44 ${G - 7}
+    C 46 ${G - 2}, 54 ${G}, 66 ${G}
+    C 120 ${G + 1}, 165 ${G - toeSpring * 0.12}, 210 ${G - toeSpring * 0.42}
+    C 238 ${tipBotY + 6}, 258 ${tipBotY + 4}, 281 ${tipBotY + 2}
+    L 281 ${tipBotY + 5}
+    C 258 ${tipBotY + 7}, 238 ${tipBotY + 9}, 210 ${G + 3 - toeSpring * 0.42}
+    C 165 ${G + 3 - toeSpring * 0.12}, 120 ${G + 5}, 66 ${G + 4}
+    C 52 ${G + 4}, 44 ${G + 1}, 44 ${G - 7} Z`;
 
-  const midsolePath = `
-    M ${heelBackX + 8} ${GROUND}
-    C ${heelBackX - bulge} ${GROUND - hs * 0.25}, ${heelBackX - bulge * 0.5} ${heelTopY + hs * 0.25}, ${heelBackX + 14} ${heelTopY}
-    C ${midX - 30} ${heelTopY - 3}, ${midX + 20} ${foreTopY + (heelTopY - foreTopY) * 0.35}, ${toeTipX - 60} ${foreTopY}
-    C ${toeTipX - 24} ${foreTopY + 2}, ${toeTipX - 4} ${toeBottomY - fs * 0.55}, ${toeTipX} ${toeBottomY - 4}
-    C ${toeTipX} ${toeBottomY + 2}, ${toeTipX - 16} ${toeBottomY + 6}, ${toeTipX - 34} ${toeBottomY + 6}
-    C ${midX + 40} ${GROUND - 2 + toeLift * 0.12}, ${midX - 10} ${GROUND + 1}, ${heelBackX + 8} ${GROUND}
-    Z
-  `;
+  // Accent swoosh on the quarter panel
+  const swooshPath = `M 96 ${heelBite - 8} C 130 ${heelBite - 20}, 168 ${ballBite - 34}, 212 ${ballBite - 22}
+    C 176 ${ballBite - 22}, 132 ${heelBite - 8}, 100 ${heelBite - 1}`;
 
-  // Upper outline — sits on the midsole top line
-  const collarH = 34 + cushion * 1.2;
-  const collarTopY = heelTopY - collarH;
-  const upperPath = `
-    M ${heelBackX + 14} ${heelTopY + 2}
-    C ${heelBackX + 8} ${heelTopY - collarH * 0.55}, ${heelBackX + 18} ${collarTopY + 4}, ${heelBackX + 42} ${collarTopY}
-    C ${heelBackX + 66} ${collarTopY - 2}, ${heelBackX + 76} ${collarTopY + 10}, ${heelBackX + 88} ${collarTopY + 20}
-    C ${midX + 10} ${collarTopY + 44}, ${midX + 42} ${foreTopY - 26}, ${toeTipX - 66} ${foreTopY - 14}
-    C ${toeTipX - 40} ${foreTopY - 8}, ${toeTipX - 26} ${foreTopY - 4}, ${toeTipX - 60} ${foreTopY}
-    C ${midX + 20} ${foreTopY + (heelTopY - foreTopY) * 0.35}, ${midX - 30} ${heelTopY - 3}, ${heelBackX + 14} ${heelTopY + 2}
-    Z
-  `;
+  // Midsole accent streak
+  const streakPath = `M 58 ${heelBite + (G - heelBite) * 0.5} C 130 ${midBite + (G - midBite) * 0.55}, 210 ${ballBite + 8}, 268 ${toeBite + 5}`;
 
-  // Collar opening (ankle hole)
-  const collarCx = heelBackX + 52;
-  const collarCy = collarTopY + 7;
+  // Heel logo dot
+  const heelDotPath = `M 52 ${colY + 26} q -7 2 -6 9 q 1 6 8 5 q 6 -1 5 -8 q -1 -6 -7 -6`;
 
-  // Lace crossings over the instep
-  const laceCount = 4;
-  const laces = Array.from({ length: laceCount }, (_, i) => {
-    const t = i / (laceCount - 1);
-    const x1 = heelBackX + 92 + t * 62;
-    const y1 = collarTopY + 24 + t * ((foreTopY - 18) - (collarTopY + 24)) - 4;
-    return { x1, y1: y1 - 3, x2: x1 + 18, y2: y1 + 9 };
+  // Laces along the vamp
+  const laces = Array.from({ length: 4 }, (_, i) => {
+    const t = i / 3;
+    const lx = 158 + t * 60;
+    const ly = (tongueY + 22) + t * ((ballBite - 12) - (tongueY + 22));
+    return { x1: lx, y1: ly - 1, x2: lx + 12, y2: ly + 5 };
   });
+  const laceColor = mix(lighten(base.upper, 0.6), WORN_UPPER, wear * 0.4);
 
-  // Outsole tread lugs — wear away at heel + forefoot strike zones first
-  const lugs = Array.from({ length: 11 }, (_, i) => {
-    const t = i / 10;
-    const x = heelBackX + 16 + t * (toeTipX - 60 - heelBackX);
-    const y = GROUND - 1 + (x > midX ? -((x - midX) / (toeTipX - midX)) * toeLift * 0.85 : 0);
-    // strike zones: heel (t<0.25) and forefoot (t>0.6) wear first
-    const strikeZone = t < 0.25 || t > 0.6;
-    const lugWear = strikeZone ? wear * 1.35 : wear * 0.6;
-    const h = Math.max(0.5, 4.5 * (1 - Math.min(1, lugWear)));
-    return { x, y, h, opacity: Math.max(0.15, 1 - lugWear * 0.8) };
+  // Tread lugs — anchored to the outsole bottom, wear away at strike zones
+  const soleBottomY = (x: number) => {
+    if (x <= 66) return G + 4;
+    if (x <= 210) { const t2 = (x - 66) / 144; return G + 4 - t2 * t2 * (toeSpring * 0.42 + 1); }
+    const t3 = (x - 210) / 71;
+    return (G + 3 - toeSpring * 0.42) + t3 * ((tipBotY + 5) - (G + 3 - toeSpring * 0.42));
+  };
+  const lugs = Array.from({ length: 10 }, (_, i) => {
+    const t = i / 9;
+    const x = 56 + t * 218;
+    const strike = t < 0.28 || t > 0.62;   // heel + forefoot strike zones wear first
+    const lugWear = strike ? wear * 1.35 : wear * 0.6;
+    return {
+      x,
+      y: soleBottomY(x + 5) - 1.5,
+      h: Math.max(0.6, 3.6 * (1 - Math.min(1, lugWear))),
+      opacity: Math.max(0.25, 1 - lugWear * 0.7),
+    };
   });
 
   // Compression creases — appear in the sidewall as foam breaks down
   const creaseCount = wear <= 0.2 ? 0 : Math.min(5, Math.floor((wear - 0.2) / 0.16) + 1);
   const creases = Array.from({ length: creaseCount }, (_, i) => {
-    const cx = heelBackX + 30 + ((seed >> (i * 3)) % 40) + i * 26;
-    const topY = heelTopY + (foreTopY - heelTopY) * ((cx - heelBackX) / (toeTipX - heelBackX)) * 0.5;
-    const depth = hs * (0.35 + 0.3 * wear);
-    return `M ${cx} ${topY + 4} Q ${cx - 4} ${topY + depth * 0.5}, ${cx + 2} ${topY + depth}`;
+    const cx = 66 + ((seed >> (i * 3)) % 30) + i * 34;
+    const topY = heelBite + (midBite - heelBite) * Math.min(1, (cx - 54) / 160) + 3;
+    const d = (G - topY) * (0.45 + 0.25 * wear);
+    return `M ${cx} ${topY} Q ${cx - 4} ${topY + d * 0.5}, ${cx + 2} ${topY + d}`;
   });
 
-  // Scuffs
   const toeScuffOpacity = wear > 0.4 ? (wear - 0.4) * 0.5 : 0;
   const heelScuffOpacity = wear > 0.6 ? (wear - 0.6) * 0.6 : 0;
   const dirtOpacity = wear * 0.30;
@@ -221,11 +233,11 @@ export function ShoeVisual({ shoe, wearPct = 0, width = 280, animated = true }: 
   return (
     <View style={{ width, height, alignItems: 'center', justifyContent: 'center' }}>
       {/* Ground shadow */}
-      <Animated.View style={{ position: 'absolute', bottom: height * 0.055, transform: [{ scaleX: shadowScale }] }}>
-        <Svg width={width * 0.8} height={height * 0.14} viewBox="0 0 100 20">
+      <Animated.View style={{ position: 'absolute', bottom: height * 0.04, transform: [{ scaleX: shadowScale }] }}>
+        <Svg width={width * 0.8} height={height * 0.12} viewBox="0 0 100 20">
           <Defs>
             <RadialGradient id={`shadow_${gid}`} cx="50%" cy="50%" rx="50%" ry="50%">
-              <Stop offset="0%" stopColor="#0A0A0A" stopOpacity={0.22 + wear * 0.06} />
+              <Stop offset="0%" stopColor="#0A0A0A" stopOpacity={0.20 + wear * 0.06} />
               <Stop offset="100%" stopColor="#0A0A0A" stopOpacity="0" />
             </RadialGradient>
           </Defs>
@@ -236,21 +248,18 @@ export function ShoeVisual({ shoe, wearPct = 0, width = 280, animated = true }: 
       <Animated.View style={{ transform: [{ translateY }] }}>
         <Svg width={width} height={height} viewBox={`0 0 ${VB_W} ${VB_H}`}>
           <Defs>
-            {/* Clay sheen on the upper */}
             <LinearGradient id={`upper_${gid}`} x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0%" stopColor={lighten(upperColor, 0.30)} />
-              <Stop offset="45%" stopColor={upperColor} />
-              <Stop offset="100%" stopColor={mix(upperColor, upperDark, 0.5)} />
+              <Stop offset="0%" stopColor={lighten(upperColor, 0.28)} />
+              <Stop offset="50%" stopColor={upperColor} />
+              <Stop offset="100%" stopColor={mix(upperColor, upperDark, 0.55)} />
             </LinearGradient>
-            {/* Soft midsole gradient */}
             <LinearGradient id={`mid_${gid}`} x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0%" stopColor={lighten(midsoleColor, 0.35)} />
+              <Stop offset="0%" stopColor={lighten(midsoleColor, 0.4)} />
               <Stop offset="60%" stopColor={midsoleColor} />
               <Stop offset="100%" stopColor={mix(midsoleColor, '#9A937F', 0.35 + wear * 0.3)} />
             </LinearGradient>
-            {/* Top-light highlight for the clay look */}
-            <RadialGradient id={`sheen_${gid}`} cx="35%" cy="18%" rx="55%" ry="45%">
-              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.34 - wear * 0.2} />
+            <RadialGradient id={`sheen_${gid}`} cx="30%" cy="20%" rx="60%" ry="55%">
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={Math.max(0, 0.32 - wear * 0.2)} />
               <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
             </RadialGradient>
           </Defs>
@@ -260,10 +269,9 @@ export function ShoeVisual({ shoe, wearPct = 0, width = 280, animated = true }: 
 
           {/* Accent streak along the midsole sidewall */}
           <Path
-            d={`M ${heelBackX + 18} ${heelTopY + hs * 0.45}
-                C ${midX - 20} ${heelTopY + hs * 0.4}, ${midX + 40} ${foreTopY + fs * 0.55}, ${toeTipX - 44} ${foreTopY + fs * 0.5}`}
+            d={streakPath}
             stroke={accentColor}
-            strokeWidth={3.5 - wear * 1.5}
+            strokeWidth={3.4 - wear * 1.4}
             strokeLinecap="round"
             fill="none"
             opacity={0.85 - wear * 0.35}
@@ -275,28 +283,20 @@ export function ShoeVisual({ shoe, wearPct = 0, width = 280, animated = true }: 
               key={`crease_${i}`}
               d={d}
               stroke={mix('#8A8272', '#5E594D', wear)}
-              strokeWidth={1.2}
+              strokeWidth={1.3}
               strokeLinecap="round"
               fill="none"
-              opacity={0.25 + wear * 0.4}
+              opacity={0.3 + wear * 0.4}
             />
           ))}
 
-          {/* OUTSOLE */}
-          <Path
-            d={`M ${heelBackX + 8} ${GROUND}
-                C ${midX - 10} ${GROUND + 1}, ${midX + 40} ${GROUND - 2 + toeLift * 0.12}, ${toeTipX - 34} ${toeBottomY + 6}
-                L ${toeTipX - 34} ${toeBottomY + 9}
-                C ${midX + 40} ${GROUND + 2 + toeLift * 0.12}, ${midX - 10} ${GROUND + 5}, ${heelBackX + 8} ${GROUND + 4}
-                Z`}
-            fill={outsoleColor}
-          />
-          {/* Tread lugs — wear away at strike zones */}
+          {/* OUTSOLE + tread lugs */}
+          <Path d={outsolePath} fill={outsoleColor} />
           {lugs.map((l, i) => (
             <Rect
               key={`lug_${i}`}
-              x={l.x} y={l.y + 3} width={9} height={l.h}
-              rx={1.5}
+              x={l.x} y={l.y} width={10} height={l.h}
+              rx={1.4}
               fill={outsoleColor}
               opacity={l.opacity}
             />
@@ -305,72 +305,49 @@ export function ShoeVisual({ shoe, wearPct = 0, width = 280, animated = true }: 
           {/* UPPER */}
           <Path d={upperPath} fill={`url(#upper_${gid})`} />
 
+          {/* Accent swoosh on the quarter panel */}
+          <Path d={swooshPath} fill={accentColor} opacity={0.9 - wear * 0.3} />
+
           {/* Collar opening */}
-          <Ellipse cx={collarCx} cy={collarCy} rx={22} ry={8} fill={mix(upperDark, '#0A0A0A', 0.4)} opacity={0.9} />
-          <Ellipse cx={collarCx} cy={collarCy - 1.5} rx={22} ry={8} fill="none" stroke={lighten(upperColor, 0.25)} strokeWidth={2} opacity={0.6} />
-
-          {/* Heel tab */}
-          <Path
-            d={`M ${heelBackX + 26} ${collarTopY + 3} q -7 -8 -1 -14 q 7 -4 11 3 q 3 6 -4 11`}
-            fill={accentColor}
-            opacity={0.9 - wear * 0.3}
+          <Ellipse
+            cx={76} cy={colY + 7} rx={14} ry={5}
+            fill="rgba(10,10,20,0.75)"
+            transform={`rotate(6 76 ${colY + 7})`}
           />
 
-          {/* Eyestay panel + laces */}
-          <Path
-            d={`M ${heelBackX + 86} ${collarTopY + 18}
-                C ${midX + 8} ${collarTopY + 42}, ${midX + 36} ${foreTopY - 24}, ${toeTipX - 72} ${foreTopY - 13}
-                L ${toeTipX - 78} ${foreTopY - 6}
-                C ${midX + 26} ${foreTopY - 14}, ${midX - 2} ${collarTopY + 52}, ${heelBackX + 80} ${collarTopY + 28}
-                Z`}
-            fill={mix(upperDark, upperColor, 0.3)}
-            opacity={0.8}
-          />
+          {/* Heel logo dot */}
+          <Path d={heelDotPath} fill={accentColor} opacity={0.9 - wear * 0.3} />
+
+          {/* Laces */}
           {laces.map((l, i) => (
             <Line
               key={`lace_${i}`}
               x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
-              stroke={mix(lighten(upperColor, 0.55), WORN_UPPER, wear * 0.4)}
-              strokeWidth={3.4}
+              stroke={laceColor}
+              strokeWidth={3}
               strokeLinecap="round"
             />
           ))}
 
-          {/* Brand accent dot (logo mark) */}
-          <Ellipse
-            cx={heelBackX + 52} cy={heelTopY - collarH * 0.42}
-            rx={6} ry={6}
-            fill={accentColor}
-            opacity={0.95 - wear * 0.3}
-          />
-
-          {/* Toe cap shading */}
-          <Path
-            d={`M ${toeTipX - 66} ${foreTopY - 14}
-                C ${toeTipX - 40} ${foreTopY - 8}, ${toeTipX - 26} ${foreTopY - 4}, ${toeTipX - 60} ${foreTopY}
-                C ${toeTipX - 72} ${foreTopY - 2}, ${toeTipX - 74} ${foreTopY - 8}, ${toeTipX - 66} ${foreTopY - 14} Z`}
-            fill={upperDark}
-            opacity={0.35}
-          />
-
           {/* Scuffs */}
           {toeScuffOpacity > 0 && (
-            <G opacity={toeScuffOpacity}>
-              <Ellipse cx={toeTipX - 52} cy={foreTopY - 4} rx={14} ry={5} fill="#57503F" transform={`rotate(-12 ${toeTipX - 52} ${foreTopY - 4})`} />
-              <Ellipse cx={toeTipX - 40} cy={foreTopY - 1} rx={8} ry={3} fill="#3E382B" />
-            </G>
+            <Ellipse
+              cx={262} cy={toeBite - 8} rx={13} ry={5}
+              fill="#57503F"
+              opacity={toeScuffOpacity}
+              transform={`rotate(14 262 ${toeBite - 8})`}
+            />
           )}
           {heelScuffOpacity > 0 && (
-            <Ellipse cx={heelBackX + 16} cy={heelTopY + hs * 0.55} rx={7} ry={11} fill="#57503F" opacity={heelScuffOpacity} />
+            <Ellipse cx={49} cy={heelBite + 16} rx={6} ry={10} fill="#57503F" opacity={heelScuffOpacity} />
           )}
 
           {/* Dirt line along the bottom edge */}
           {dirtOpacity > 0.02 && (
             <Path
-              d={`M ${heelBackX + 10} ${GROUND - 4}
-                  C ${midX - 10} ${GROUND - 3}, ${midX + 40} ${GROUND - 6 + toeLift * 0.12}, ${toeTipX - 36} ${toeBottomY + 2}`}
+              d={`M 60 ${G - 3} C 130 ${G - 2}, 200 ${G - toeSpring * 0.35 - 2}, 270 ${tipBotY + 1}`}
               stroke="#5E5647"
-              strokeWidth={5}
+              strokeWidth={4}
               strokeLinecap="round"
               fill="none"
               opacity={dirtOpacity}
