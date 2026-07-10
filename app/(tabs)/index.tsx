@@ -52,6 +52,8 @@ import {
   getDecompressionState,
 } from '../utils/shoeFundEngine';
 import { setShoeFundGoal } from '../utils/userProfile';
+import { ShoeVisual, getBrandColor } from '../../components/ShoeVisual';
+import { RunnerLoop } from '../../components/RunnerLoop';
 import { RetirementCeremony } from '../../components/RetirementCeremony';
 import { HallOfFame } from '../../components/HallOfFame';
 import { FamilyTree } from '../../components/FamilyTree';
@@ -381,6 +383,11 @@ export default function ClosetScreen() {
                         </View>
                       </View>
 
+                      {/* Generative shoe render — ages with real wear */}
+                      <View style={s.shoeVisualWrap}>
+                        <ShoeVisual shoe={shoe} wearPct={char.lifePct} width={250} />
+                      </View>
+
                       {/* Brand + model */}
                       <View style={s.identityBlock}>
                         <Text style={s.brand}>{shoe.brand.toUpperCase()}</Text>
@@ -440,15 +447,35 @@ export default function ClosetScreen() {
                         </View>
                       </View>
 
-                      {/* Foam Decompression */}
+                      {/* Foam Decompression — live runner shows the gait on this foam */}
                       {(() => {
                         const decomp = getDecompressionState(char);
                         if (!decomp.recovering) return null;
+                        // Foam feel right now = long-term wear AND short-term compression
+                        const foamNow = Math.round(freshness * (decomp.pctRecovered / 100));
                         return (
                           <View style={s.decompSection}>
                             <View style={s.decompHeader}>
                               <Text style={s.decompLabel}>FOAM RECOVERING</Text>
                               <Text style={s.decompTime}>{decomp.hoursRemaining}H LEFT</Text>
+                            </View>
+                            <View style={s.decompRunnerRow}>
+                              <RunnerLoop
+                                freshness={foamNow}
+                                shoeColor={getBrandColor(shoe.brand)}
+                                size={92}
+                                variant={char.personalitySeed > 0.5 ? 'w' : 'm'}
+                              />
+                              <View style={s.decompRunnerInfo}>
+                                <Text style={s.decompRunnerText}>
+                                  {foamNow >= 70
+                                    ? 'FOAM IS BOUNCING BACK. STRIDE LOOKS SPRINGY.'
+                                    : foamNow >= 40
+                                    ? 'MIDSOLE STILL COMPRESSED. STRIDE IS FLATTER.'
+                                    : 'FOAM IS BOTTOMED OUT. EVERY STEP LANDS HEAVY.'}
+                                </Text>
+                                <Text style={s.decompRunnerPct}>{decomp.pctRecovered}% RECOVERED</Text>
+                              </View>
                             </View>
                             <View style={s.decompBar}>
                               <View style={[s.decompBarFill, { width: `${decomp.pctRecovered}%` as any }]} />
@@ -1002,7 +1029,13 @@ const s = StyleSheet.create({
   soundtrackBeat: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.55)', backgroundColor: 'rgba(10,10,10,0.05)', paddingHorizontal: 7, paddingVertical: 4, borderRadius: 2 },
 
   // Foam Decompression
-  decompSection: { marginBottom: 10 },
+  shoeVisualWrap: { alignItems: 'center', marginBottom: 4, marginTop: -6 },
+
+  decompSection: { marginBottom: 10, backgroundColor: 'rgba(6,182,212,0.06)', borderRadius: 10, padding: 10 },
+  decompRunnerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  decompRunnerInfo: { flex: 1 },
+  decompRunnerText: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.55)', letterSpacing: 0.8, lineHeight: 13, marginBottom: 4 },
+  decompRunnerPct: { fontFamily: MONO, fontSize: 10, color: '#06B6D4', fontWeight: '900', letterSpacing: 1 },
   decompHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
   decompLabel: { fontFamily: MONO, fontSize: 8, color: '#06B6D4', letterSpacing: 1.5 },
   decompTime: { fontFamily: MONO, fontSize: 8, color: '#06B6D4', fontWeight: '700' },

@@ -8826,5 +8826,600 @@ export const SHOES: Shoe[] = [
     ],
     "summary": "Pro-grade max-cushion trail ultra.",
     "avoid_for_conditions": []
+  },
+  {
+    "id": "brooks_hyperion_gts_3",
+    "brand": "Brooks",
+    "model": "Hyperion GTS 3",
+    "year": 2026,
+    "release_date": "2026-08-15",
+    "price_usd": 170,
+    "category": "stability_lightweight",
+    "use_cases": [
+      "tempo",
+      "daily_versatile",
+      "race_5k_10k"
+    ],
+    "specs": {
+      "weight_oz": 7.9,
+      "drop_mm": 8,
+      "stack_heel_mm": 34,
+      "stack_forefoot_mm": 26,
+      "widths": [
+        "regular",
+        "wide"
+      ]
+    },
+    "biomech": {
+      "stability_level": "guidance",
+      "torsional_rigidity": 6,
+      "heel_counter_rigidity": 6,
+      "midsole_flexibility": 6,
+      "cushioning_level": 6,
+      "cushioning_firmness": 6,
+      "energy_return": 8,
+      "rocker": 6,
+      "toe_box_width": 5,
+      "upper_softness": 6,
+      "removable_insole": true,
+      "midfoot_support": true,
+      "wide_base": false
+    },
+    "tech": [
+      "DNA FLASH v2 nitrogen foam",
+      "GuideRails holistic support",
+      "Speed-knit mesh upper",
+      "RoadTack rubber"
+    ],
+    "good_for_conditions": [
+      "overpronation_mild",
+      "neutral_arch",
+      "flat_feet_flexible"
+    ],
+    "avoid_for_conditions": [
+      "overpronation_severe"
+    ],
+    "summary": "Rare breed: a true lightweight tempo shoe with guidance. Fall 2026."
+  },
+  {
+    "id": "hoka_mach_8",
+    "brand": "HOKA",
+    "model": "Mach 8",
+    "year": 2026,
+    "release_date": "2026-09-01",
+    "price_usd": 145,
+    "category": "lightweight_daily",
+    "use_cases": [
+      "daily_versatile",
+      "tempo",
+      "daily_easy"
+    ],
+    "specs": {
+      "weight_oz": 8.1,
+      "drop_mm": 5,
+      "stack_heel_mm": 38,
+      "stack_forefoot_mm": 33,
+      "widths": [
+        "regular",
+        "wide"
+      ]
+    },
+    "biomech": {
+      "stability_level": "neutral",
+      "torsional_rigidity": 5,
+      "heel_counter_rigidity": 5,
+      "midsole_flexibility": 6,
+      "cushioning_level": 7,
+      "cushioning_firmness": 4,
+      "energy_return": 8,
+      "rocker": 7,
+      "toe_box_width": 5,
+      "upper_softness": 7,
+      "removable_insole": true,
+      "midfoot_support": false,
+      "wide_base": true
+    },
+    "tech": [
+      "Supercritical EVA dual-layer",
+      "Early-stage MetaRocker",
+      "Creel jacquard upper",
+      "Zonal rubber outsole"
+    ],
+    "good_for_conditions": [
+      "neutral_arch",
+      "knee_pain",
+      "high_arches"
+    ],
+    "avoid_for_conditions": [
+      "overpronation_severe"
+    ],
+    "summary": "The do-everything trainer, now lighter with more bounce. Sept 2026."
+  },
+  {
+    "id": "asics_novablast_6",
+    "brand": "ASICS",
+    "model": "Novablast 6",
+    "year": 2026,
+    "release_date": "2026-10-01",
+    "price_usd": 150,
+    "category": "neutral_daily",
+    "use_cases": [
+      "daily_versatile",
+      "long_run",
+      "tempo",
+      "daily_easy"
+    ],
+    "specs": {
+      "weight_oz": 8.8,
+      "drop_mm": 8,
+      "stack_heel_mm": 42,
+      "stack_forefoot_mm": 34,
+      "widths": [
+        "regular",
+        "wide"
+      ]
+    },
+    "biomech": {
+      "stability_level": "neutral",
+      "torsional_rigidity": 5,
+      "heel_counter_rigidity": 6,
+      "midsole_flexibility": 5,
+      "cushioning_level": 8,
+      "cushioning_firmness": 4,
+      "energy_return": 8,
+      "rocker": 6,
+      "toe_box_width": 6,
+      "upper_softness": 7,
+      "removable_insole": true,
+      "midfoot_support": false,
+      "wide_base": true
+    },
+    "tech": [
+      "FF BLAST MAX foam",
+      "Trampoline-inspired outsole geometry",
+      "Woven engineered upper",
+      "AHARPLUS heel rubber"
+    ],
+    "good_for_conditions": [
+      "neutral_arch",
+      "high_arches",
+      "underpronation",
+      "wide_feet"
+    ],
+    "avoid_for_conditions": [
+      "overpronation_severe",
+      "flat_feet_rigid"
+    ],
+    "summary": "The people's bouncy trainer, generation six. Oct 2026."
+  },
+  {
+    "id": "saucony_endorphin_speed_6",
+    "brand": "Saucony",
+    "model": "Endorphin Speed 6",
+    "year": 2026,
+    "release_date": "2026-09-15",
+    "price_usd": 180,
+    "category": "super_trainer",
+    "use_cases": [
+      "tempo",
+      "race_half",
+      "long_run",
+      "daily_versatile"
+    ],
+    "specs": {
+      "weight_oz": 8.0,
+      "drop_mm": 8,
+      "stack_heel_mm": 40,
+      "stack_forefoot_mm": 32,
+      "widths": [
+        "regular",
+        "wide"
+      ]
+    },
+    "biomech": {
+      "stability_level": "neutral",
+      "torsional_rigidity": 7,
+      "heel_counter_rigidity": 5,
+      "midsole_flexibility": 4,
+      "cushioning_level": 7,
+      "cushioning_firmness": 5,
+      "energy_return": 9,
+      "rocker": 8,
+      "toe_box_width": 5,
+      "upper_softness": 6,
+      "removable_insole": true,
+      "midfoot_support": false,
+      "wide_base": false
+    },
+    "tech": [
+      "PWRRUN PB PEBA foam",
+      "Winged nylon plate",
+      "SPEEDROLL geometry",
+      "Single-layer mesh upper"
+    ],
+    "good_for_conditions": [
+      "neutral_arch",
+      "high_arches"
+    ],
+    "avoid_for_conditions": [
+      "overpronation_severe",
+      "plantar_fasciitis"
+    ],
+    "summary": "The benchmark plated trainer gets a softer, wider platform. Sept 2026."
+  },
+  {
+    "id": "nb_fuelcell_propel_v6",
+    "brand": "New Balance",
+    "model": "FuelCell Propel v6",
+    "year": 2026,
+    "release_date": "2026-08-01",
+    "price_usd": 110,
+    "category": "neutral_daily",
+    "use_cases": [
+      "daily_versatile",
+      "tempo",
+      "daily_easy"
+    ],
+    "specs": {
+      "weight_oz": 9.3,
+      "drop_mm": 6,
+      "stack_heel_mm": 36,
+      "stack_forefoot_mm": 30,
+      "widths": [
+        "regular",
+        "wide"
+      ]
+    },
+    "biomech": {
+      "stability_level": "neutral",
+      "torsional_rigidity": 5,
+      "heel_counter_rigidity": 6,
+      "midsole_flexibility": 5,
+      "cushioning_level": 7,
+      "cushioning_firmness": 4,
+      "energy_return": 7,
+      "rocker": 6,
+      "toe_box_width": 5,
+      "upper_softness": 6,
+      "removable_insole": true,
+      "midfoot_support": false,
+      "wide_base": false
+    },
+    "tech": [
+      "FuelCell nitrogen-infused foam",
+      "TPU plate embedded",
+      "Engineered mesh upper",
+      "NDurance rubber"
+    ],
+    "good_for_conditions": [
+      "neutral_arch",
+      "knee_pain"
+    ],
+    "avoid_for_conditions": [
+      "overpronation_severe"
+    ],
+    "summary": "A plated trainer at $110 — the best value-per-mile in the lineup. Aug 2026."
+  },
+  {
+    "id": "on_cloudboom_max",
+    "brand": "On",
+    "model": "Cloudboom Max",
+    "year": 2026,
+    "release_date": "2026-11-01",
+    "price_usd": 230,
+    "category": "super_trainer",
+    "use_cases": [
+      "long_run",
+      "tempo",
+      "race_marathon",
+      "daily_versatile"
+    ],
+    "specs": {
+      "weight_oz": 9.6,
+      "drop_mm": 6,
+      "stack_heel_mm": 45,
+      "stack_forefoot_mm": 39,
+      "widths": [
+        "regular"
+      ]
+    },
+    "biomech": {
+      "stability_level": "neutral",
+      "torsional_rigidity": 8,
+      "heel_counter_rigidity": 6,
+      "midsole_flexibility": 3,
+      "cushioning_level": 9,
+      "cushioning_firmness": 4,
+      "energy_return": 9,
+      "rocker": 8,
+      "toe_box_width": 4,
+      "upper_softness": 6,
+      "removable_insole": false,
+      "midfoot_support": false,
+      "wide_base": true
+    },
+    "tech": [
+      "Helion HF hyper foam, dual layer",
+      "Carbon Speedboard",
+      "CloudTec Phase midsole",
+      "Ultralight woven upper"
+    ],
+    "good_for_conditions": [
+      "neutral_arch",
+      "high_arches"
+    ],
+    "avoid_for_conditions": [
+      "overpronation_severe",
+      "wide_feet"
+    ],
+    "summary": "On's max-stack carbon super trainer for marathon blocks. Nov 2026."
+  },
+  {
+    "id": "mizuno_wave_neo_wind_2",
+    "brand": "Mizuno",
+    "model": "Wave Neo Wind 2",
+    "year": 2026,
+    "release_date": "2026-09-01",
+    "price_usd": 160,
+    "category": "lightweight_daily",
+    "use_cases": [
+      "daily_versatile",
+      "tempo",
+      "daily_easy"
+    ],
+    "specs": {
+      "weight_oz": 8.4,
+      "drop_mm": 8,
+      "stack_heel_mm": 37,
+      "stack_forefoot_mm": 29,
+      "widths": [
+        "regular"
+      ]
+    },
+    "biomech": {
+      "stability_level": "neutral",
+      "torsional_rigidity": 5,
+      "heel_counter_rigidity": 5,
+      "midsole_flexibility": 6,
+      "cushioning_level": 7,
+      "cushioning_firmness": 4,
+      "energy_return": 7,
+      "rocker": 6,
+      "toe_box_width": 5,
+      "upper_softness": 8,
+      "removable_insole": true,
+      "midfoot_support": false,
+      "wide_base": false
+    },
+    "tech": [
+      "ENERZY NXT plant-based foam",
+      "Undyed knit upper, zero water waste",
+      "Carbon-neutral production",
+      "Bio-based Wave plate"
+    ],
+    "good_for_conditions": [
+      "neutral_arch",
+      "high_arches"
+    ],
+    "avoid_for_conditions": [
+      "overpronation_severe"
+    ],
+    "summary": "The sustainability flagship — plant-based foam, undyed knit. Sept 2026."
+  },
+  {
+    "id": "altra_vanish_carbon_3",
+    "brand": "Altra",
+    "model": "Vanish Carbon 3",
+    "year": 2026,
+    "release_date": "2026-10-15",
+    "price_usd": 260,
+    "category": "carbon_racer",
+    "use_cases": [
+      "race_marathon",
+      "race_half",
+      "tempo"
+    ],
+    "specs": {
+      "weight_oz": 7.4,
+      "drop_mm": 0,
+      "stack_heel_mm": 36,
+      "stack_forefoot_mm": 36,
+      "widths": [
+        "regular"
+      ]
+    },
+    "biomech": {
+      "stability_level": "neutral",
+      "torsional_rigidity": 8,
+      "heel_counter_rigidity": 4,
+      "midsole_flexibility": 3,
+      "cushioning_level": 7,
+      "cushioning_firmness": 6,
+      "energy_return": 9,
+      "rocker": 7,
+      "toe_box_width": 9,
+      "upper_softness": 5,
+      "removable_insole": false,
+      "midfoot_support": false,
+      "wide_base": true
+    },
+    "tech": [
+      "EGO PRO supercritical foam",
+      "Full-length carbon plate",
+      "FootShape toe box",
+      "Zero-drop balanced cushioning"
+    ],
+    "good_for_conditions": [
+      "neutral_arch",
+      "wide_feet",
+      "bunions"
+    ],
+    "avoid_for_conditions": [
+      "achilles_tendinitis",
+      "overpronation_severe"
+    ],
+    "summary": "The only wide-toe-box zero-drop carbon racer that's actually fast. Oct 2026."
+  },
+  {
+    "id": "topo_specter_3",
+    "brand": "Topo",
+    "model": "Specter 3",
+    "year": 2026,
+    "release_date": "2026-08-15",
+    "price_usd": 165,
+    "category": "super_trainer",
+    "use_cases": [
+      "tempo",
+      "long_run",
+      "daily_versatile"
+    ],
+    "specs": {
+      "weight_oz": 8.6,
+      "drop_mm": 5,
+      "stack_heel_mm": 38,
+      "stack_forefoot_mm": 33,
+      "widths": [
+        "regular",
+        "wide"
+      ]
+    },
+    "biomech": {
+      "stability_level": "neutral",
+      "torsional_rigidity": 6,
+      "heel_counter_rigidity": 5,
+      "midsole_flexibility": 5,
+      "cushioning_level": 7,
+      "cushioning_firmness": 4,
+      "energy_return": 8,
+      "rocker": 6,
+      "toe_box_width": 8,
+      "upper_softness": 7,
+      "removable_insole": true,
+      "midfoot_support": false,
+      "wide_base": true
+    },
+    "tech": [
+      "PEBAX supercritical midsole",
+      "Anatomical toe box",
+      "Engineered mesh upper",
+      "Full-contact outsole"
+    ],
+    "good_for_conditions": [
+      "neutral_arch",
+      "wide_feet",
+      "bunions",
+      "plantar_fasciitis"
+    ],
+    "avoid_for_conditions": [
+      "overpronation_severe"
+    ],
+    "summary": "PEBA-powered tempo shoe with room for your toes. Aug 2026."
+  },
+  {
+    "id": "puma_fast_rb_nitro_elite",
+    "brand": "PUMA",
+    "model": "Fast-RB Nitro Elite",
+    "year": 2026,
+    "release_date": "2026-12-01",
+    "price_usd": 300,
+    "category": "carbon_racer",
+    "use_cases": [
+      "race_marathon",
+      "race_half"
+    ],
+    "specs": {
+      "weight_oz": 6.2,
+      "drop_mm": 6,
+      "stack_heel_mm": 40,
+      "stack_forefoot_mm": 34,
+      "widths": [
+        "regular"
+      ]
+    },
+    "biomech": {
+      "stability_level": "neutral",
+      "torsional_rigidity": 9,
+      "heel_counter_rigidity": 3,
+      "midsole_flexibility": 2,
+      "cushioning_level": 8,
+      "cushioning_firmness": 5,
+      "energy_return": 10,
+      "rocker": 9,
+      "toe_box_width": 4,
+      "upper_softness": 4,
+      "removable_insole": false,
+      "midfoot_support": false,
+      "wide_base": false
+    },
+    "tech": [
+      "Aliphatic TPU A-TPU foam",
+      "Dual PWRPLATE carbon system",
+      "Ultraweave race upper",
+      "PUMAGRIP ATR outsole"
+    ],
+    "good_for_conditions": [
+      "neutral_arch",
+      "high_arches"
+    ],
+    "avoid_for_conditions": [
+      "overpronation_severe",
+      "overpronation_mild",
+      "plantar_fasciitis",
+      "wide_feet"
+    ],
+    "summary": "PUMA's radical A-TPU race weapon. Elite legs only. Dec 2026."
+  },
+  {
+    "id": "salomon_slab_phantasm_3",
+    "brand": "Salomon",
+    "model": "S/Lab Phantasm 3",
+    "year": 2026,
+    "release_date": "2026-09-15",
+    "price_usd": 250,
+    "category": "carbon_racer",
+    "use_cases": [
+      "race_marathon",
+      "race_half",
+      "tempo"
+    ],
+    "specs": {
+      "weight_oz": 6.9,
+      "drop_mm": 8,
+      "stack_heel_mm": 39,
+      "stack_forefoot_mm": 31,
+      "widths": [
+        "regular"
+      ]
+    },
+    "biomech": {
+      "stability_level": "neutral",
+      "torsional_rigidity": 8,
+      "heel_counter_rigidity": 4,
+      "midsole_flexibility": 3,
+      "cushioning_level": 7,
+      "cushioning_firmness": 6,
+      "energy_return": 9,
+      "rocker": 8,
+      "toe_box_width": 4,
+      "upper_softness": 5,
+      "removable_insole": false,
+      "midfoot_support": false,
+      "wide_base": false
+    },
+    "tech": [
+      "EnergyFOAM PEBA blend",
+      "Full carbon plate",
+      "Matryx race upper",
+      "Road-tuned Contagrip"
+    ],
+    "good_for_conditions": [
+      "neutral_arch",
+      "high_arches"
+    ],
+    "avoid_for_conditions": [
+      "overpronation_severe",
+      "wide_feet"
+    ],
+    "summary": "Salomon's road racing flagship — trail DNA, road speed. Sept 2026."
   }
 ];

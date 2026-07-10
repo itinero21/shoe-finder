@@ -17,6 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Quiz } from '../../components/Quiz';
+import { ShoeVisual } from '../../components/ShoeVisual';
+import { RunnerLoop } from '../../components/RunnerLoop';
 import { WhyNotModal } from '../../components/WhyNotModal';
 import { SHOES , Shoe } from '../data/shoes';
 import { QuizAnswers, getRecommendations, ScoredShoe } from '../utils/scoring';
@@ -147,6 +149,9 @@ export default function ScanScreen() {
           <View style={s.detailHero}>
             <Text style={s.detailBrand}>{shoe.brand.toUpperCase()}</Text>
             <Text style={s.detailModel} numberOfLines={1} adjustsFontSizeToFit>{shoe.model}</Text>
+            <View style={s.detailVisual}>
+              <ShoeVisual shoe={shoe} wearPct={0} width={SCREEN_W - 80} />
+            </View>
             <Text style={s.detailTagline}>{shoe.summary}</Text>
           </View>
 
@@ -266,6 +271,9 @@ export default function ScanScreen() {
                 <Text style={s.primaryMatchLabel}>{compat}% COMPATIBILITY</Text>
                 <Text style={s.primaryBrand}>{primary.brand.toUpperCase()}</Text>
                 <Text style={s.primaryModel} numberOfLines={1} adjustsFontSizeToFit>{primary.model}</Text>
+                <View style={s.primaryVisual}>
+                  <ShoeVisual shoe={primary} wearPct={0} width={SCREEN_W - 110} />
+                </View>
                 <Text style={s.primaryTagline}>{primary.summary}</Text>
 
                 <View style={s.statsGrid}>
@@ -404,6 +412,7 @@ export default function ScanScreen() {
               }}
               style={({ pressed }) => [s.browseRow, pressed && { opacity: 0.8 }]}
             >
+              <ShoeVisual shoe={shoe} wearPct={0} width={72} animated={false} />
               <View style={s.browseRowLeft}>
                 <Text style={s.browseBrand}>{shoe.brand.toUpperCase()}</Text>
                 <Text style={s.browseModel}>{shoe.model}</Text>
@@ -429,6 +438,9 @@ export default function ScanScreen() {
           <Text style={s.splashEyebrow}>// ADD / SHOE SCOUT</Text>
           <Text style={s.splashTitle} numberOfLines={1} adjustsFontSizeToFit>ADD A CHARACTER.</Text>
           <Text style={s.splashSub}>Answer the fit protocol. Choose the shoe. Let the story begin.</Text>
+          <View style={s.splashRunner}>
+            <RunnerLoop freshness={100} shoeColor={ACCENT} size={130} />
+          </View>
         </View>
 
         <View style={s.splashActions}>
@@ -475,6 +487,7 @@ const s = StyleSheet.create({
   // Splash
   splashSafe: { flex: 1, paddingHorizontal: 24, justifyContent: 'space-between' },
   splashTop: { flex: 1, justifyContent: 'center' },
+  splashRunner: { alignItems: 'center', marginTop: 24 },
   splashEyebrow: { fontFamily: MONO, fontSize: 10, color: ACCENT, letterSpacing: 3, marginBottom: 16 },
   splashTitle: {
     fontWeight: '900',
@@ -618,6 +631,8 @@ const s = StyleSheet.create({
 
   // Detail
   detailHero: { backgroundColor: INK, padding: 24, paddingBottom: 32 },
+  detailVisual: { alignItems: 'center', marginVertical: 8 },
+  primaryVisual: { alignItems: 'center', marginVertical: 4 },
   detailBrand: { fontFamily: MONO, fontSize: 11, color: 'rgba(244,241,234,0.5)', letterSpacing: 3, marginBottom: 6 },
   detailModel: {
     fontFamily: MONO,
