@@ -17,8 +17,8 @@
  * (heel counter → achilles notch → collar → tongue → vamp → toe wrap),
  * verified visually, with spec-driven scaling kept within safe bounds.
  */
-import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, View } from 'react-native';
+import React from 'react';
+import { View } from 'react-native';
 import Svg, {
   Path, Ellipse, Rect, Defs, LinearGradient, RadialGradient, Stop, Line,
 } from 'react-native-svg';
@@ -82,11 +82,9 @@ export interface ShoeVisualProps {
   /** 0 = brand new, 100 = fully spent */
   wearPct?: number;
   width?: number;
-  /** subtle idle float animation */
-  animated?: boolean;
 }
 
-export function ShoeVisual({ shoe, wearPct = 0, width = 280, animated = true }: ShoeVisualProps) {
+export function ShoeVisual({ shoe, wearPct = 0, width = 280 }: ShoeVisualProps) {
   const wear = Math.max(0, Math.min(100, wearPct)) / 100;
   const seed = hashId(shoe.id);
 
@@ -208,32 +206,13 @@ export function ShoeVisual({ shoe, wearPct = 0, width = 280, animated = true }: 
   const heelScuffOpacity = wear > 0.6 ? (wear - 0.6) * 0.6 : 0;
   const dirtOpacity = wear * 0.30;
 
-  // ── Idle float animation ──────────────────────────────────────────────────
-  const float = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (!animated) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(float, { toValue: 1, duration: 2600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(float, { toValue: 0, duration: 2600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [animated, float]);
-
-  // Worn shoes sit heavier — less float
-  const floatRange = 4 * (1 - wear * 0.75);
-  const translateY = float.interpolate({ inputRange: [0, 1], outputRange: [0, -floatRange] });
-  const shadowScale = float.interpolate({ inputRange: [0, 1], outputRange: [1, 0.94] });
-
   const height = width * (VB_H / VB_W);
   const gid = shoe.id.replace(/[^a-zA-Z0-9]/g, '');
 
   return (
     <View style={{ width, height, alignItems: 'center', justifyContent: 'center' }}>
       {/* Ground shadow */}
-      <Animated.View style={{ position: 'absolute', bottom: height * 0.04, transform: [{ scaleX: shadowScale }] }}>
+      <View style={{ position: 'absolute', bottom: height * 0.04 }}>
         <Svg width={width * 0.8} height={height * 0.12} viewBox="0 0 100 20">
           <Defs>
             <RadialGradient id={`shadow_${gid}`} cx="50%" cy="50%" rx="50%" ry="50%">
@@ -243,9 +222,9 @@ export function ShoeVisual({ shoe, wearPct = 0, width = 280, animated = true }: 
           </Defs>
           <Ellipse cx="50" cy="10" rx="48" ry="8" fill={`url(#shadow_${gid})`} />
         </Svg>
-      </Animated.View>
+      </View>
 
-      <Animated.View style={{ transform: [{ translateY }] }}>
+      <View>
         <Svg width={width} height={height} viewBox={`0 0 ${VB_W} ${VB_H}`}>
           <Defs>
             <LinearGradient id={`upper_${gid}`} x1="0" y1="0" x2="0" y2="1">
@@ -357,7 +336,7 @@ export function ShoeVisual({ shoe, wearPct = 0, width = 280, animated = true }: 
           {/* Clay sheen overlay */}
           <Path d={upperPath} fill={`url(#sheen_${gid})`} />
         </Svg>
-      </Animated.View>
+      </View>
     </View>
   );
 }

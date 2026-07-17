@@ -30,11 +30,13 @@ import { createLivingShoe, updateShoeAfterRun, computeLifeStage } from '../utils
 import { generateDialogue, generateDailyBrief } from '../utils/dialogueEngine';
 import { findTodaysMemories, ClosetMemory } from '../utils/closetRemembers';
 import { getTodaysWeather, TodaysWeather } from '../services/weatherService';
-import { getShoeOfTheDay, getRotationAnalysis, ShoeRecommendation } from '../utils/dailyShoeAdvisor';
-import { generateAllHealthReports, ShoeHealthReport } from '../utils/shoeLifeIntelligence';
-import { detectPainPatterns, PainPattern } from '../utils/painPatternDetector';
 import {
-  computeShoeReadiness, ShoeReadiness,
+  getShoeOfTheDay, getRotationAnalysis, ShoeRecommendation,
+  generateAllHealthReports, ShoeHealthReport,
+  detectPainPatterns, PainPattern,
+  getReadinessScores, ShoeReadiness,
+} from '../intelligence/bridge';
+import {
   detectBadPurchases, BadPurchase,
   analyzeRotationChemistry, ShoeChemistry,
 } from '../utils/shoeIntelligence';
@@ -227,10 +229,10 @@ export default function ClosetScreen() {
       const todaysMemories = findTodaysMemories(allRuns, updated, memos, shoeDataMap);
       setMemories(todaysMemories);
 
-      // Weather + Shoe of the Day
+      // Weather + Shoe of the Day (Intelligence Engine v2.1)
       getTodaysWeather().then(w => {
         setWeather(w);
-        const rec = getShoeOfTheDay(updated, shoeDataMap, allRuns, w);
+        const rec = getShoeOfTheDay(updated, shoeDataMap, allRuns, w, profile);
         setShoeOfDay(rec);
       }).catch(() => {});
 
@@ -246,18 +248,12 @@ export default function ClosetScreen() {
       const rotation = getRotationAnalysis(updated, shoeDataMap, allRuns);
       setRotationAdvice(rotation.advice);
 
-      // Shoe readiness scores (computed after weather arrives)
+      // Shoe readiness scores (Intelligence Engine v2.1, weather-aware)
       getTodaysWeather().then(w => {
-        const scores = updated
-          .filter(c => c.lifeStage !== 'departed')
-          .map(c => {
-            const sd = shoeDataMap[c.shoeId];
-            return sd ? computeShoeReadiness(c, sd, allRuns, w, updated) : null;
-          })
-          .filter(Boolean)
-          .sort((a, b) => b!.score - a!.score) as ShoeReadiness[];
-        setReadinessScores(scores);
-      }).catch(() => {});
+        setReadinessScores(getReadinessScores(updated, shoeDataMap, allRuns, w, profile));
+      }).catch(() => {
+        setReadinessScores(getReadinessScores(updated, shoeDataMap, allRuns, null, profile));
+      });
 
       // Bad purchases + chemistry
       setBadPurchases(detectBadPurchases(updated, shoeDataMap, allRuns));

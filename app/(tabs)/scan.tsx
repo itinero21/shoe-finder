@@ -412,7 +412,7 @@ export default function ScanScreen() {
               }}
               style={({ pressed }) => [s.browseRow, pressed && { opacity: 0.8 }]}
             >
-              <ShoeVisual shoe={shoe} wearPct={0} width={72} animated={false} />
+              <ShoeVisual shoe={shoe} wearPct={0} width={72} />
               <View style={s.browseRowLeft}>
                 <Text style={s.browseBrand}>{shoe.brand.toUpperCase()}</Text>
                 <Text style={s.browseModel}>{shoe.model}</Text>
