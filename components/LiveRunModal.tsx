@@ -36,7 +36,7 @@ import { addMiles, getUserProfile } from '../app/utils/userProfile';
 import { getFavorites } from '../app/utils/storage';
 import { getStravaTokens, uploadRunToStrava, StravaTokens } from '../app/services/stravaService';
 import { getWatchStatus } from '../app/services/watchService';
-import { SHOES } from '../app/data/shoes';
+import { ALL_TRACKABLE_SHOES as SHOES } from '../app/data/shoes';
 import { Run, RunTerrain, RunPurpose } from '../app/types/run';
 import { Coordinate } from '../app/types/territory';
 import { calcMatchQuality } from '../app/utils/matchQuality';

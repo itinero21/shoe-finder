@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { SHOES } from '../app/data/shoes';
+import { ALL_TRACKABLE_SHOES as SHOES } from '../app/data/shoes';
 import { addToFavorites } from '../app/utils/storage';
 
 const { width } = Dimensions.get('window');

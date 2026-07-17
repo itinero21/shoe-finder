@@ -20,7 +20,9 @@ import { Quiz } from '../../components/Quiz';
 import { ShoeVisual } from '../../components/ShoeVisual';
 import { RunnerLoop } from '../../components/RunnerLoop';
 import { WhyNotModal } from '../../components/WhyNotModal';
-import { SHOES , Shoe } from '../data/shoes';
+// Quiz recommendations use SHOES (current market only); browse-to-add uses the
+// full trackable catalog so owners of legacy or preordered models can add them.
+import { SHOES, ALL_TRACKABLE_SHOES, Shoe } from '../data/shoes';
 import { QuizAnswers, getRecommendations, ScoredShoe } from '../utils/scoring';
 import { addToFavorites } from '../utils/storage';
 import { getUserProfile } from '../utils/userProfile';
@@ -112,12 +114,19 @@ export default function ScanScreen() {
 
   const browsedShoes = React.useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return [...SHOES].sort((a, b) => a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model));
-    return SHOES.filter(s =>
+    const pool = ALL_TRACKABLE_SHOES;
+    const matched = !q ? [...pool] : pool.filter(s =>
       s.brand.toLowerCase().includes(q) ||
       s.model.toLowerCase().includes(q) ||
       getCategoryLabel(s.category).toLowerCase().includes(q)
-    ).sort((a, b) => a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model));
+    );
+    // Current-market shoes first, then upcoming, then legacy
+    const statusRank = (s: Shoe) =>
+      s.market_status === 'legacy' ? 2 : s.market_status === 'upcoming' || s.market_status === 'preorder' ? 1 : 0;
+    return matched.sort((a, b) =>
+      statusRank(a) - statusRank(b) ||
+      a.brand.localeCompare(b.brand) ||
+      a.model.localeCompare(b.model));
   }, [searchQuery]);
 
   // ── Quiz ────────────────────────────────────────────────
@@ -416,8 +425,20 @@ export default function ScanScreen() {
               <View style={s.browseRowLeft}>
                 <Text style={s.browseBrand}>{shoe.brand.toUpperCase()}</Text>
                 <Text style={s.browseModel}>{shoe.model}</Text>
-                <View style={s.browseCatBadge}>
-                  <Text style={s.browseCatText}>{getCategoryLabel(shoe.category)}</Text>
+                <View style={s.browseBadgeRow}>
+                  <View style={s.browseCatBadge}>
+                    <Text style={s.browseCatText}>{getCategoryLabel(shoe.category)}</Text>
+                  </View>
+                  {shoe.market_status === 'legacy' && (
+                    <View style={[s.browseCatBadge, s.browseLegacyBadge]}>
+                      <Text style={[s.browseCatText, s.browseLegacyText]}>OLDER MODEL</Text>
+                    </View>
+                  )}
+                  {(shoe.market_status === 'upcoming' || shoe.market_status === 'preorder') && (
+                    <View style={[s.browseCatBadge, s.browseUpcomingBadge]}>
+                      <Text style={[s.browseCatText, s.browseUpcomingText]}>COMING SOON</Text>
+                    </View>
+                  )}
                 </View>
               </View>
               <View style={s.browseAddBtn}>
@@ -532,6 +553,11 @@ const s = StyleSheet.create({
   browseModel: { fontFamily: MONO, fontSize: 14, fontWeight: '700', color: INK, letterSpacing: 0 },
   browseCatBadge: { backgroundColor: INK, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4, alignSelf: 'flex-start' },
   browseCatText: { fontFamily: MONO, fontSize: 8, color: PAPER, letterSpacing: 1 },
+  browseBadgeRow: { flexDirection: 'row', gap: 4, alignItems: 'center' },
+  browseLegacyBadge: { backgroundColor: 'rgba(10,10,10,0.08)' },
+  browseLegacyText: { color: 'rgba(10,10,10,0.55)' },
+  browseUpcomingBadge: { backgroundColor: LIME },
+  browseUpcomingText: { color: INK },
   browsePrice: { fontFamily: MONO, fontSize: 11, color: 'rgba(10,10,10,0.45)', marginTop: 2 },
   browseAddBtn: { width: 36, height: 36, backgroundColor: INK, alignItems: 'center', justifyContent: 'center' },
   browseAddText: { fontFamily: MONO, fontSize: 18, color: PAPER, fontWeight: '900', lineHeight: 20 },

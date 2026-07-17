@@ -24,7 +24,7 @@ import { Platform } from 'react-native';
 import { saveRun, getRuns } from '../utils/runStorage';
 import { addMiles } from '../utils/userProfile';
 import { Run, RunTerrain, RunPurpose } from '../types/run';
-import { SHOES } from '../data/shoes';
+import { ALL_TRACKABLE_SHOES as SHOES } from '../data/shoes';
 import { calcMatchQuality } from '../utils/matchQuality';
 
 const HEALTH_LAST_SYNC = 'stride_health_last_sync_v1';

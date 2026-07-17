@@ -11,7 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SHOES, Shoe } from '../data/shoes';
+import { ALL_TRACKABLE_SHOES as SHOES, Shoe } from '../data/shoes';
 import { getFavorites } from '../utils/storage';
 import { getRuns } from '../utils/runStorage';
 import { Run } from '../types/run';

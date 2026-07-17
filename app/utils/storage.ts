@@ -50,7 +50,7 @@ export const addToFavorites = async (shoeId: string): Promise<void> => {
       import('./characterStorage').then(async ({ getLivingShoe, saveLivingShoe }) => {
         const existing = await getLivingShoe(shoeId);
         if (!existing) {
-          const { SHOES } = await import('../data/shoes');
+          const { ALL_TRACKABLE_SHOES: SHOES } = await import('../data/shoes');
           const { createLivingShoe } = await import('./characterEngine');
           const { getUserProfile } = await import('./userProfile');
           const shoe = SHOES.find(s => s.id === shoeId);

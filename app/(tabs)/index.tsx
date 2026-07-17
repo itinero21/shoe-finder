@@ -13,7 +13,10 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SHOES, Shoe } from '../data/shoes';
+// Ownership lookups use the full trackable catalog (current + upcoming + legacy)
+// so users who own an older model never lose tracking. Recommendation pools
+// (draft picks) stay on CURRENT_SHOES — only buyable shoes get suggested.
+import { ALL_TRACKABLE_SHOES as SHOES, CURRENT_SHOES, Shoe } from '../data/shoes';
 import { getFavorites, removeFromFavorites } from '../utils/storage';
 import { getRuns } from '../utils/runStorage';
 import { Run } from '../types/run';
@@ -355,7 +358,7 @@ export default function ClosetScreen() {
                 const shoe = SHOES.find(s => s.id === char.shoeId);
                 if (!shoe) return null;
                 const stageColor = STAGE_COLORS[char.lifeStage];
-                const story = buildShoeStoryProfile(char, shoe, runs, livingShoes, SHOES);
+                const story = buildShoeStoryProfile(char, shoe, runs, livingShoes, CURRENT_SHOES);
                 const nextLockedAchievement = story.achievements.find(a => !a.unlocked);
                 const displayMood = computeStoryMoodOverride(char.mood, story.streak);
                 const freshness = computeFreshnessScore(char.lifePct);

@@ -14,7 +14,9 @@
  * from their own comfort history, and wires foam decompression state
  * into every daily decision.
  */
-import { SHOES, Shoe } from '../data/shoes';
+// Owned shoes may be legacy or preordered models, so the engine's catalog is
+// the full trackable set — decisions only ever run over shoes the user owns.
+import { ALL_TRACKABLE_SHOES as SHOES, Shoe } from '../data/shoes';
 import { Run } from '../types/run';
 import { LivingShoe } from '../types/character';
 import { UserProfile } from '../utils/userProfile';

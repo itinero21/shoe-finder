@@ -77,6 +77,24 @@ function widthsFor(shoe: Shoe): Width[] {
   return out.length ? [...new Set(out)] : ['standard'];
 }
 
+/**
+ * v5 database ships audit metadata: data_confidence tells us how much of the
+ * profile is verified vs carried forward, and market_status separates buyable
+ * shoes from announced or legacy ones. Both flow into engine confidence.
+ */
+function confidenceFor(shoe: Shoe): number {
+  const base: Record<string, number> = {
+    official_specs: 0.85,
+    official_model_provisional_specs: 0.7,
+    carried_forward: 0.7,
+    announced_provisional: 0.5,
+    legacy_original: 0.65,
+  };
+  let c = base[shoe.data_confidence ?? ''] ?? 0.75;
+  if (shoe.market_status === 'upcoming' || shoe.market_status === 'preorder') c = Math.min(c, 0.55);
+  return c;
+}
+
 /** Convert a STRIDE database shoe into a universal ShoeProfile. */
 export function adaptShoe(shoe: Shoe): ShoeProfile {
   const b = shoe.biomech;
@@ -114,8 +132,8 @@ export function adaptShoe(shoe: Shoe): ShoeProfile {
     durabilityBaselineKm: durabilityKmFor(shoe),
     price: shoe.price_usd,
     currency: 'USD',
-    dataConfidence: 0.75,
-    sourceTags: ['stride-db'],
+    dataConfidence: confidenceFor(shoe),
+    sourceTags: ['stride-db', shoe.market_status ?? 'available'],
   };
 }
 

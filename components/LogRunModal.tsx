@@ -12,7 +12,7 @@ import { saveRun, getRuns } from '../app/utils/runStorage';
 import { Run, RunTerrain, RunPurpose, MatchQuality } from '../app/types/run';
 import { calcMatchQuality, MATCH_LABELS } from '../app/utils/matchQuality';
 import { addMiles, getUserProfile } from '../app/utils/userProfile';
-import { SHOES, Shoe } from '../app/data/shoes';
+import { ALL_TRACKABLE_SHOES as SHOES, Shoe } from '../app/data/shoes';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
