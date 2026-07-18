@@ -21,6 +21,18 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, View, StyleSheet } from 'react-native';
 
+// ── Brand colors (used to paint the runner's shoes) ─────────────────────────
+const BRAND_COLORS: Record<string, string> = {
+  'Brooks': '#2E5FDB', 'HOKA': '#F26B3A', 'ASICS': '#2B4FA8', 'Saucony': '#1E8A6E',
+  'New Balance': '#6E7480', 'On': '#E8E5DE', 'Mizuno': '#1C6FB8', 'Altra': '#0F8B8D',
+  'Topo': '#77803C', 'PUMA': '#1A1A1A', 'Salomon': '#232830',
+};
+
+/** Primary brand color — paints the runner's shoe */
+export function getBrandColor(brand: string): string {
+  return BRAND_COLORS[brand] ?? '#FF3D00';
+}
+
 const CLAY       = '#EAE3D5';
 const CLAY_BACK  = '#CFC6B3';  // back limbs, pushed back in depth
 const CLAY_DARK  = '#B8AE99';

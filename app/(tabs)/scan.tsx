@@ -17,7 +17,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Quiz } from '../../components/Quiz';
-import { ShoeVisual } from '../../components/ShoeVisual';
 import { RunnerLoop } from '../../components/RunnerLoop';
 import { WhyNotModal } from '../../components/WhyNotModal';
 // Quiz recommendations use SHOES (current market only); browse-to-add uses the
@@ -161,9 +160,6 @@ export default function ScanScreen() {
           <View style={s.detailHero}>
             <Text style={s.detailBrand}>{shoe.brand.toUpperCase()}</Text>
             <Text style={s.detailModel} numberOfLines={1} adjustsFontSizeToFit>{shoe.model}</Text>
-            <View style={s.detailVisual}>
-              <ShoeVisual shoe={shoe} wearPct={0} width={SCREEN_W - 80} />
-            </View>
             <Text style={s.detailTagline}>{shoe.summary}</Text>
           </View>
 
@@ -283,9 +279,6 @@ export default function ScanScreen() {
                 <Text style={s.primaryMatchLabel}>{compat}% COMPATIBILITY</Text>
                 <Text style={s.primaryBrand}>{primary.brand.toUpperCase()}</Text>
                 <Text style={s.primaryModel} numberOfLines={1} adjustsFontSizeToFit>{primary.model}</Text>
-                <View style={s.primaryVisual}>
-                  <ShoeVisual shoe={primary} wearPct={0} width={SCREEN_W - 110} />
-                </View>
                 <Text style={s.primaryTagline}>{primary.summary}</Text>
 
                 <View style={s.statsGrid}>
@@ -425,7 +418,6 @@ export default function ScanScreen() {
               }}
               style={({ pressed }) => [s.browseRow, pressed && { opacity: 0.8 }]}
             >
-              <ShoeVisual shoe={shoe} wearPct={0} width={72} />
               <View style={s.browseRowLeft}>
                 <Text style={s.browseBrand}>{shoe.brand.toUpperCase()}</Text>
                 <Text style={s.browseModel}>{shoe.model}</Text>
@@ -661,13 +653,6 @@ const s = StyleSheet.create({
 
   // Detail
   detailHero: { backgroundColor: INK, padding: 24, paddingBottom: 32 },
-  // Paper panel behind the render — dark colorways (PUMA, Salomon) would
-  // otherwise disappear into the ink hero background
-  detailVisual: {
-    alignItems: 'center', marginVertical: 12,
-    backgroundColor: PAPER, borderRadius: 16, paddingVertical: 10, alignSelf: 'stretch',
-  },
-  primaryVisual: { alignItems: 'center', marginVertical: 4 },
   detailBrand: { fontFamily: MONO, fontSize: 11, color: 'rgba(244,241,234,0.5)', letterSpacing: 3, marginBottom: 6 },
   detailModel: {
     fontFamily: MONO,

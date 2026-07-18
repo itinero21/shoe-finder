@@ -61,8 +61,7 @@ import {
   getDecompressionState,
 } from '../utils/shoeFundEngine';
 import { setShoeFundGoal } from '../utils/userProfile';
-import { ShoeVisual, getBrandColor } from '../../components/ShoeVisual';
-import { RunnerLoop } from '../../components/RunnerLoop';
+import { RunnerLoop, getBrandColor } from '../../components/RunnerLoop';
 import { RetirementCeremony } from '../../components/RetirementCeremony';
 import { HallOfFame } from '../../components/HallOfFame';
 import { FamilyTree } from '../../components/FamilyTree';
@@ -429,11 +428,6 @@ export default function ClosetScreen() {
                         </View>
                       </View>
 
-                      {/* Generative shoe render — ages with real wear */}
-                      <View style={s.shoeVisualWrap}>
-                        <ShoeVisual shoe={shoe} wearPct={char.lifePct} width={250} />
-                      </View>
-
                       {/* Brand + model */}
                       <View style={s.identityBlock}>
                         <Text style={s.brand}>{shoe.brand.toUpperCase()}</Text>
@@ -754,11 +748,9 @@ export default function ClosetScreen() {
               </Text>
             )}
             {nextShoe.picks.map(pick => {
-              const pickShoe = SHOES.find(sh => sh.id === pick.shoeId);
               const isGoal = shoeFund.targetShoeId === pick.shoeId;
               return (
                 <View key={pick.shoeId} style={s.marketCard}>
-                  {pickShoe && <ShoeVisual shoe={pickShoe} wearPct={0} width={84} />}
                   <View style={s.marketInfo}>
                     <Text style={s.marketBrand}>{pick.brand.toUpperCase()}</Text>
                     <Text style={s.marketModel}>{pick.model}</Text>
@@ -1181,8 +1173,6 @@ const s = StyleSheet.create({
   soundtrackBeat: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.55)', backgroundColor: 'rgba(10,10,10,0.05)', paddingHorizontal: 7, paddingVertical: 4, borderRadius: 2 },
 
   // Foam Decompression
-  shoeVisualWrap: { alignItems: 'center', marginBottom: 4, marginTop: -6 },
-
   decompSection: { marginBottom: 10, backgroundColor: 'rgba(6,182,212,0.06)', borderRadius: 10, padding: 10 },
   decompRunnerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
   decompRunnerInfo: { flex: 1 },
