@@ -80,7 +80,7 @@ const STEP_BUDGET: SingleStep = {
   id: 'price_range',
   question: 'What is your budget for this shoe?',
   subtext: "We'll prioritize shoes in your range. This also seeds your Shoe Fund — every mile chips away at the cost.",
-  badge: '// ECONOMIC ANCHOR',
+  badge: 'ECONOMIC ANCHOR',
   options: [
     { value: 'budget',  label: 'Under $100',    sublabel: 'Best value picks, no-frills performance' },
     { value: 'mid',     label: '$100 – $160',   sublabel: 'The sweet spot — most great shoes live here' },
@@ -109,7 +109,7 @@ const STEP_PRIORITY: SingleStep = {
   id: 'priority',
   question: 'What matters most for this shoe?',
   subtext: 'This is the real fitter question. It tells us whether to protect, comfort, speed up, or save money.',
-  badge: '// FITTER MODE',
+  badge: 'FITTER MODE',
   options: [
     { value: 'comfort', label: 'Maximum Comfort', sublabel: 'I want the shoe that feels best' },
     { value: 'injury_prevention', label: 'Injury Protection', sublabel: 'I want the safest option for pain/history' },
@@ -126,7 +126,7 @@ const STEP_CURRENT_SHOE: SingleStep = {
   id: 'current_shoe_feel',
   question: 'Which shoe feels closest to what you like?',
   subtext: 'This improves accuracy because previous shoe preference is often stronger than arch tests. Pick “None” if unsure.',
-  badge: '// SHOE DNA',
+  badge: 'SHOE DNA',
   options: [
     { value: 'none', label: 'None / Not Sure', sublabel: 'Use biomechanics only' },
     { value: 'ghost', label: 'Brooks Ghost / similar', sublabel: 'Reliable traditional daily trainer' },
@@ -151,7 +151,7 @@ const STEP_WEEKLY_MILEAGE: SingleStep = {
   id: 'weekly_mileage',
   question: 'How much do you run per week?',
   subtext: 'A 5 km/week beginner and a 70 km/week runner should not get the same recommendation.',
-  badge: '// LOAD MATCH',
+  badge: 'LOAD MATCH',
   options: [
     { value: 'low', label: '0–10 km / week', sublabel: 'New runner, casual, or restart' },
     { value: 'moderate', label: '10–30 km / week', sublabel: 'Regular recreational running' },
@@ -180,7 +180,7 @@ const STEP_COMFORT: SingleStep = {
   id: 'comfort_pref',
   question: 'How should your shoes feel underfoot?',
   subtext: 'Comfort preference is the strongest predictor of which shoe works for you (Nigg, 2015).',
-  badge: '// #1 PREDICTOR',
+  badge: '#1 PREDICTOR',
   options: [
     { value: 'soft', label: 'Soft & Plush', sublabel: 'Cloud-like, lots of cushion' },
     { value: 'medium', label: 'Balanced Feel', sublabel: 'Not too soft, not too hard' },
@@ -193,7 +193,7 @@ const STEP_WEIGHT: SingleStep = {
   id: 'body_weight',
   question: 'What is your weight range?',
   subtext: 'Body weight directly affects which cushioning density and midsole is safest.',
-  badge: '// MIDSOLE MATCH',
+  badge: 'MIDSOLE MATCH',
   options: [
     { value: 'light', label: 'Under 60 kg', sublabel: '132 lbs and under' },
     { value: 'medium', label: '60 – 80 kg', sublabel: '132 – 176 lbs' },
@@ -208,7 +208,7 @@ const STEP_PRONATION: SingleStep = {
   id: 'pronation',
   question: 'How does your foot roll when you run?',
   subtext: 'Pronation determines whether you need stability features. Check the wear pattern on old shoes: inside-heel wear = overpronation, outside-heel wear = supination.',
-  badge: '// STABILITY MATCH',
+  badge: 'STABILITY MATCH',
   options: [
     { value: 'overpronate_severe', label: 'Rolls In a Lot', sublabel: 'Severe overpronation, ankle clearly collapses inward' },
     { value: 'overpronate_mild', label: 'Rolls In Slightly', sublabel: 'Mild overpronation, common pattern' },
@@ -243,7 +243,7 @@ const STEP_INJURY_HISTORY: MultiStep = {
   id: 'injury_history',
   question: 'Any injury in the last 12 months?',
   subtext: "Past injury is the #1 predictor of future injury — we'll build in prevention.",
-  badge: '// #1 RISK FACTOR',
+  badge: '#1 RISK FACTOR',
   noneValue: 'none',
   options: [
     { value: 'none', label: 'No History', sublabel: 'Clean bill of health' },
@@ -275,7 +275,7 @@ const STEP_FOOT_WIDTH: SingleStep = {
   id: 'foot_width',
   question: 'How wide is your foot?',
   subtext: 'Width fit is critical for long-run comfort — affects blisters and fatigue.',
-  badge: '// 95% OF EXPERTS RATE CRITICAL',
+  badge: 'EXPERT-RATED CRITICAL',
   options: [
     { value: 'narrow', label: 'Narrow', sublabel: 'Slim, tapered fit' },
     { value: 'regular', label: 'Regular / Medium', sublabel: 'Standard width' },

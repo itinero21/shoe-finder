@@ -100,7 +100,7 @@ export default function ScanScreen() {
       }
       setPurchasePrice('');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Welcome to the Closet', 'This shoe is alive now. Go meet it in THE CLOSET.');
+      Alert.alert('Added to your closet', 'Track its miles, health, and cost from the Closet tab.');
     } catch {
       /* ignore */
     }
@@ -460,8 +460,8 @@ export default function ScanScreen() {
     <View style={[s.fill, { backgroundColor: PAPER }]}>
       <View style={[s.splashSafe, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 100 }]}>
         <View style={s.splashTop}>
-          <Text style={s.splashEyebrow}>// ADD / SHOE SCOUT</Text>
-          <Text style={s.splashTitle} numberOfLines={1} adjustsFontSizeToFit>ADD A CHARACTER.</Text>
+          <Text style={s.splashEyebrow}>SHOE SCOUT</Text>
+          <Text style={s.splashTitle} numberOfLines={1} adjustsFontSizeToFit>ADD A SHOE.</Text>
           <Text style={s.splashSub}>Answer the fit protocol. Choose the shoe. Let the story begin.</Text>
           <View style={s.splashRunner}>
             <RunnerLoop freshness={100} shoeColor={ACCENT} size={130} />
@@ -661,7 +661,12 @@ const s = StyleSheet.create({
 
   // Detail
   detailHero: { backgroundColor: INK, padding: 24, paddingBottom: 32 },
-  detailVisual: { alignItems: 'center', marginVertical: 8 },
+  // Paper panel behind the render — dark colorways (PUMA, Salomon) would
+  // otherwise disappear into the ink hero background
+  detailVisual: {
+    alignItems: 'center', marginVertical: 12,
+    backgroundColor: PAPER, borderRadius: 16, paddingVertical: 10, alignSelf: 'stretch',
+  },
   primaryVisual: { alignItems: 'center', marginVertical: 4 },
   detailBrand: { fontFamily: MONO, fontSize: 11, color: 'rgba(244,241,234,0.5)', letterSpacing: 3, marginBottom: 6 },
   detailModel: {

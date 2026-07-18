@@ -216,7 +216,7 @@ export function WatchConnectModal({ visible, onClose }: Props) {
         {/* Header */}
         <View style={s.header}>
           <View>
-            <Text style={s.eyebrow}>// STRIDE · WEARABLES</Text>
+            <Text style={s.eyebrow}>STRIDE WEARABLES</Text>
             <Text style={s.title}>YOUR WATCHES.</Text>
           </View>
           <TouchableOpacity onPress={onClose} style={s.closeBtn}>

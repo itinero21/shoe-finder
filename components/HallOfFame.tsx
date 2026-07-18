@@ -62,16 +62,16 @@ export const HallOfFame: React.FC<HallOfFameProps> = ({
     : null;
 
   const plaques: Plaque[] = [
-    { icon: '🏃', title: 'LIFETIME DISTANCE', value: `${Math.round(totalMiles)} mi`, detail: `Across ${allShoes.length} shoes` },
-    { icon: '👟', title: 'SHOES ACTIVE', value: String(totalShoesActive), detail: 'Currently in the closet' },
-    { icon: '🪦', title: 'SHOES RETIRED', value: String(totalShoesRetired), detail: 'Resting in the graveyard' },
-    { icon: '📊', title: 'TOTAL RUNS', value: String(totalRuns), detail: 'Every step counts' },
+    { icon: 'walk-outline', title: 'LIFETIME DISTANCE', value: `${Math.round(totalMiles)} mi`, detail: `Across ${allShoes.length} shoes` },
+    { icon: 'footsteps-outline', title: 'SHOES ACTIVE', value: String(totalShoesActive), detail: 'Currently in the closet' },
+    { icon: 'archive-outline', title: 'SHOES RETIRED', value: String(totalShoesRetired), detail: 'Retired with honors' },
+    { icon: 'stats-chart-outline', title: 'TOTAL RUNS', value: String(totalRuns), detail: 'Every step counts' },
   ];
 
-  if (longest) plaques.push({ icon: '🛣️', title: 'MOST MILES', value: `${Math.round(longest.miles)} mi`, detail: longest.name });
-  if (mostLoyal) plaques.push({ icon: '💛', title: 'MOST LOYAL', value: `${mostLoyal.runs} runs`, detail: mostLoyal.name });
-  if (fastest && fastest.runs > 0) plaques.push({ icon: '⚡', title: 'LONGEST AVG', value: `${(fastest.miles / fastest.runs).toFixed(1)} mi/run`, detail: fastest.name });
-  if (mostMemorable) plaques.push({ icon: '⭐', title: 'HIGHEST RATED', value: '★'.repeat(mostMemorable.rating), detail: `${mostMemorable.brand} ${mostMemorable.model}` });
+  if (longest) plaques.push({ icon: 'map-outline', title: 'MOST MILES', value: `${Math.round(longest.miles)} mi`, detail: longest.name });
+  if (mostLoyal) plaques.push({ icon: 'heart-outline', title: 'MOST LOYAL', value: `${mostLoyal.runs} runs`, detail: mostLoyal.name });
+  if (fastest && fastest.runs > 0) plaques.push({ icon: 'flash-outline', title: 'LONGEST AVG', value: `${(fastest.miles / fastest.runs).toFixed(1)} mi/run`, detail: fastest.name });
+  if (mostMemorable) plaques.push({ icon: 'star-outline', title: 'HIGHEST RATED', value: '★'.repeat(mostMemorable.rating), detail: `${mostMemorable.brand} ${mostMemorable.model}` });
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
@@ -89,7 +89,7 @@ export const HallOfFame: React.FC<HallOfFameProps> = ({
 
           {plaques.map((p, i) => (
             <View key={i} style={s.plaque}>
-              <Text style={s.plaqueIcon}>{p.icon}</Text>
+              <Ionicons name={p.icon as any} size={20} color={ACCENT} style={s.plaqueIcon as any} />
               <View style={s.plaqueContent}>
                 <Text style={s.plaqueTitle}>{p.title}</Text>
                 <Text style={s.plaqueValue}>{p.value}</Text>
@@ -120,7 +120,7 @@ const s = StyleSheet.create({
   subtitle: { fontFamily: MONO, fontSize: 11, color: 'rgba(10,10,10,0.5)', marginBottom: 24, lineHeight: 17 },
 
   plaque: { flexDirection: 'row', alignItems: 'center', gap: 16, borderWidth: 2, borderColor: INK, borderRadius: 2, padding: 16, marginBottom: 12 },
-  plaqueIcon: { fontSize: 28 },
+  plaqueIcon: { marginTop: 2 },
   plaqueContent: { flex: 1 },
   plaqueTitle: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginBottom: 4 },
   plaqueValue: { fontSize: 22, fontWeight: '900', color: INK, letterSpacing: -0.5, marginBottom: 2 },

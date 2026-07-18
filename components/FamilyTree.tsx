@@ -53,7 +53,7 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({
       <SafeAreaView style={s.container}>
         <View style={s.header}>
           <View>
-            <Text style={s.eyebrow}>// LINEAGE LEDGER</Text>
+            <Text style={s.eyebrow}>LINEAGE</Text>
             <Text style={s.title}>FAMILY TREE</Text>
           </View>
           <TouchableOpacity onPress={onClose} style={s.closeBtn}>
@@ -85,7 +85,7 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({
 
           {chains.map((chain, chainIndex) => (
             <View key={`chain-${chainIndex}`} style={s.chain}>
-              <Text style={s.chainLabel}>// CHAIN {String(chainIndex + 1).padStart(2, '0')}</Text>
+              <Text style={s.chainLabel}>CHAIN {String(chainIndex + 1).padStart(2, '0')}</Text>
               <View style={s.chainRail}>
                 {chain.map((node, nodeIndex) => (
                   <View key={node.shoeId}>
@@ -226,7 +226,7 @@ function LineageNode({ node, position, total }: { node: TreeNode; position: numb
 
         {node.inheritedMemory && (
           <View style={s.inherited}>
-            <Text style={s.inheritedLabel}>// INHERITED MEMORY</Text>
+            <Text style={s.inheritedLabel}>INHERITED MEMORY</Text>
             <Text style={s.inheritedText}>{node.inheritedMemory.toUpperCase()}</Text>
           </View>
         )}

@@ -528,7 +528,7 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
             {/* Header */}
             <View style={s.summaryHeader}>
               <View>
-                <Text style={s.summaryEyebrow}>// RUN COMPLETE</Text>
+                <Text style={s.summaryEyebrow}>RUN COMPLETE</Text>
                 <Text style={s.summaryTitle}>NICE WORK.</Text>
               </View>
               {stravaUploading && (
@@ -652,9 +652,9 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
               <Text style={s.sectionLbl}>HOW DID IT FEEL?</Text>
               <View style={s.feelRow}>
                 {([
-                  { val: 1, label: '💀 DEAD',   desc: 'Struggled' },
-                  { val: 2, label: '😐 OKAY',   desc: 'Got through it' },
-                  { val: 3, label: '⚡ FRESH',  desc: 'Could do more' },
+                  { val: 1, label: 'DEAD',  desc: 'Struggled' },
+                  { val: 2, label: 'OKAY',  desc: 'Got through it' },
+                  { val: 3, label: 'FRESH', desc: 'Could do more' },
                 ] as { val: 1|2|3; label: string; desc: string }[]).map(f => (
                   <TouchableOpacity
                     key={f.val}

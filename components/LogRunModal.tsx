@@ -143,7 +143,7 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
         {/* Header */}
         <View style={s.header}>
           <View style={{ flex: 1 }}>
-            <Text style={s.eyebrow}>// LOG RUN</Text>
+            <Text style={s.eyebrow}>LOG RUN</Text>
             <Text style={s.headerShoe}>{shoeName}</Text>
           </View>
           <View style={s.headerRight}>

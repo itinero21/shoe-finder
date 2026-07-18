@@ -119,7 +119,7 @@ export const RetirementCeremony: React.FC<RetirementCeremonyProps> = ({
       <SafeAreaView style={s.container}>
         <View style={s.header}>
           <View>
-            <Text style={s.eyebrow}>// RETIREMENT REPORT</Text>
+            <Text style={s.eyebrow}>RETIREMENT REPORT</Text>
             <Text style={s.title}>{phase === 'report' ? 'FINAL AUDIT' : phase === 'record' ? 'THE RECORD' : 'TRANSFER'}</Text>
           </View>
           <TouchableOpacity onPress={onCancel} style={s.closeBtn}>
@@ -161,8 +161,8 @@ export const RetirementCeremony: React.FC<RetirementCeremonyProps> = ({
                 <Stat value={longRun ? `${(longRun.distanceKm * 0.621371).toFixed(1)}` : '0'} label="LONGEST MI" />
               </View>
 
-              <ReportCard label="// VALUE VERDICT" title={valueGrade} body={valueBody(valueGrade, shoe.model)} color={costPerKm && costPerKm <= 0.18 ? GREEN : AMBER} />
-              <ReportCard label="// LAST WORDS" title="FINAL LINE" body={`"${lastWords.toUpperCase()}"`} color={ACCENT} />
+              <ReportCard label="VALUE VERDICT" title={valueGrade} body={valueBody(valueGrade, shoe.model)} color={costPerKm && costPerKm <= 0.18 ? GREEN : AMBER} />
+              <ReportCard label="LAST WORDS" title="FINAL LINE" body={`"${lastWords.toUpperCase()}"`} color={ACCENT} />
 
               <TouchableOpacity
                 onPress={() => { setPhase('record'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
@@ -175,7 +175,7 @@ export const RetirementCeremony: React.FC<RetirementCeremonyProps> = ({
 
           {phase === 'record' && (
             <>
-              <Text style={s.sectionLabel}>// WHY IT ENDS</Text>
+              <Text style={s.sectionLabel}>WHY IT ENDS</Text>
               <View style={s.causeRow}>
                 {['MIDSOLE FATIGUE', 'OUTSOLE WORN', 'UPPER DAMAGE', 'UPGRADED', 'WALKING ONLY', 'OTHER'].map(c => (
                   <TouchableOpacity
@@ -188,7 +188,7 @@ export const RetirementCeremony: React.FC<RetirementCeremonyProps> = ({
                 ))}
               </View>
 
-              <Text style={s.sectionLabel}>// EPITAPH</Text>
+              <Text style={s.sectionLabel}>EPITAPH</Text>
               <TextInput
                 style={s.epitaphInput}
                 value={epitaph}
@@ -199,7 +199,7 @@ export const RetirementCeremony: React.FC<RetirementCeremonyProps> = ({
                 multiline
               />
 
-              <Text style={s.sectionLabel}>// BUY AGAIN</Text>
+              <Text style={s.sectionLabel}>BUY AGAIN</Text>
               <View style={s.buyRow}>
                 <TouchableOpacity onPress={() => setBuyAgain(true)} style={[s.buyBtn, buyAgain && s.buyBtnActive]}>
                   <Text style={[s.buyBtnText, buyAgain && s.buyBtnTextActive]}>YES</Text>
@@ -209,7 +209,7 @@ export const RetirementCeremony: React.FC<RetirementCeremonyProps> = ({
                 </TouchableOpacity>
               </View>
 
-              <Text style={s.sectionLabel}>// RATING</Text>
+              <Text style={s.sectionLabel}>RATING</Text>
               <View style={s.ratingRow}>
                 {([1, 2, 3, 4, 5] as const).map(n => (
                   <TouchableOpacity key={n} onPress={() => setRating(n)} style={[s.ratingBox, rating >= n && s.ratingBoxActive]}>
@@ -220,7 +220,7 @@ export const RetirementCeremony: React.FC<RetirementCeremonyProps> = ({
 
               {character.moments.length > 0 && (
                 <View style={s.memoryPanel}>
-                  <Text style={s.memoryTitle}>// BEST RECORDS</Text>
+                  <Text style={s.memoryTitle}>BEST RECORDS</Text>
                   {character.moments.slice(0, 4).map(m => (
                     <View key={m.type} style={s.memoryRow}>
                       <Text style={s.memoryDate}>{m.date.slice(0, 10)}</Text>
@@ -246,7 +246,7 @@ export const RetirementCeremony: React.FC<RetirementCeremonyProps> = ({
           {phase === 'heir' && (
             <>
               <ReportCard
-                label="// TRANSFER LOGIC"
+                label="NEXT IN LINE"
                 title="PASS ONE THING ON"
                 body={`${shoe.model.toUpperCase()} CAN PASS ITS ARCHETYPE, MEMORY, AND ${Math.round(miles)} MILES OF HISTORY TO THE NEXT SHOE.`}
                 color={ACCENT}
