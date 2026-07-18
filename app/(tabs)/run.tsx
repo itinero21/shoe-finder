@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ALL_TRACKABLE_SHOES as SHOES, Shoe } from '../data/shoes';
 import { getFavorites } from '../utils/storage';
-import { getRuns } from '../utils/runStorage';
+import { getRuns, updateRun } from '../utils/runStorage';
 import { Run } from '../types/run';
 import { connectStrava, getStravaTokens, syncStravaActivities } from '../services/stravaService';
 import { LiveRunModal } from '../../components/LiveRunModal';
@@ -47,6 +47,7 @@ export default function RunScreen() {
   const [livingShoes, setLivingShoes] = useState<LivingShoe[]>([]);
   const [stravaConnected, setStravaConnected] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [justRated, setJustRated] = useState(false);
 
   // Modals
   const [showLiveRun, setShowLiveRun] = useState(false);
@@ -81,6 +82,22 @@ export default function RunScreen() {
       })
     : null;
 
+  // Learning Engine: ask "how did the shoe feel?" for any recent unrated run —
+  // including runs imported from Strava / Apple Health that never got a prompt
+  const unratedRun = !justRated && recentRun && recentRun.feel5 == null &&
+    Date.now() - new Date(recentRun.date).getTime() < 48 * 3600000
+    ? recentRun : null;
+
+  const handleQuickRate = async (f5: 1 | 2 | 3 | 4 | 5) => {
+    if (!unratedRun) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const legacy = (f5 >= 4 ? 3 : f5 === 3 ? 2 : 1) as 1 | 2 | 3;
+    await updateRun(unratedRun.id, { feel5: f5, feel: legacy }).catch(() => {});
+    setJustRated(true);
+    const allRuns = await getRuns();
+    setRuns(allRuns.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+  };
+
   const handleSync = async () => {
     setSyncing(true);
     await syncStravaActivities({}).catch(() => {});
@@ -100,7 +117,7 @@ export default function RunScreen() {
     <SafeAreaView style={s.container}>
       <View style={s.header}>
         <View>
-          <Text style={s.eyebrow}>// RUN CONTROL</Text>
+          <Text style={s.eyebrow}>RUN CONTROL</Text>
           <Text style={s.title}>RUN.</Text>
         </View>
         <View style={s.headerStat}>
@@ -110,6 +127,26 @@ export default function RunScreen() {
       </View>
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        {/* Learning Engine: one-tap rating for the latest unrated run */}
+        {unratedRun && recentShoe && (
+          <View style={s.rateCard}>
+            <Text style={s.rateLabel}>HOW DID THE {recentShoe.model.toUpperCase()} FEEL?</Text>
+            <Text style={s.rateSub}>
+              {unratedRun.distanceKm.toFixed(1)} KM · {unratedRun.source === 'strava' ? 'FROM STRAVA' : unratedRun.source === 'apple_health' ? 'FROM APPLE HEALTH' : 'RECENT RUN'} — ONE TAP TRAINS YOUR SHOE DNA
+            </Text>
+            <View style={s.rateRow}>
+              {([
+                { v: 1, l: 'AWFUL' }, { v: 2, l: 'POOR' }, { v: 3, l: 'AVG' },
+                { v: 4, l: 'GOOD' }, { v: 5, l: 'PERFECT' },
+              ] as { v: 1|2|3|4|5; l: string }[]).map(o => (
+                <TouchableOpacity key={o.v} onPress={() => handleQuickRate(o.v)} style={s.rateChip}>
+                  <Text style={s.rateChipText}>{o.l}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* Start a live GPS run */}
         <TouchableOpacity
           style={s.heroWrap}
@@ -123,7 +160,7 @@ export default function RunScreen() {
                 <Ionicons name="navigate-outline" size={26} color={PAPER} />
               </View>
               <View style={s.heroMeta}>
-                <Text style={s.heroLabel}>// GPS SESSION</Text>
+                <Text style={s.heroLabel}>GPS SESSION</Text>
                 <Text style={s.heroTitle}>START LIVE RUN</Text>
               </View>
               <Ionicons name="arrow-forward" size={22} color={PAPER} />
@@ -152,7 +189,7 @@ export default function RunScreen() {
         {favoriteShoes.length > 0 && (
           <View style={s.section}>
             <View style={s.sectionHead}>
-              <Text style={s.sectionLabel}>// MANUAL LOG</Text>
+              <Text style={s.sectionLabel}>MANUAL LOG</Text>
               <Text style={s.sectionSub}>PICK THE SHOE YOU WORE</Text>
             </View>
             {favoriteShoes.map(shoe => {
@@ -195,7 +232,7 @@ export default function RunScreen() {
 
         <View style={s.section}>
           <View style={s.sectionHead}>
-            <Text style={s.sectionLabel}>// CONNECTIONS</Text>
+            <Text style={s.sectionLabel}>CONNECTIONS</Text>
             <Text style={s.sectionSub}>IMPORT RUNS WITHOUT LOSING THE STORY</Text>
           </View>
 
@@ -248,7 +285,7 @@ export default function RunScreen() {
           <View style={s.reactionWrap}>
             <View style={s.reactionShadow} />
             <View style={s.reactionCard}>
-              <Text style={s.reactionLabel}>// LAST RUN / {recentShoe.brand.toUpperCase()} {recentShoe.model.toUpperCase()}</Text>
+              <Text style={s.reactionLabel}>LAST RUN — {recentShoe.brand.toUpperCase()} {recentShoe.model.toUpperCase()}</Text>
               <Text style={s.reactionLine}>"{postRunLine.text}"</Text>
               <Text style={s.reactionMeta}>
                 {(recentRun!.distanceKm * 0.621371).toFixed(1)} MI / {recentRun!.date.slice(0, 10)}
@@ -355,4 +392,10 @@ const s = StyleSheet.create({
   empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 40 },
   emptyTitle: { fontFamily: MONO, fontSize: 18, fontWeight: '900', color: INK, marginBottom: 8, letterSpacing: 0 },
   emptySub: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.4)', textAlign: 'center', lineHeight: 17 },
+  rateCard: { borderWidth: 2, borderColor: INK, borderRadius: 2, padding: 14, marginBottom: 16, backgroundColor: '#FFFFFF' },
+  rateLabel: { fontFamily: MONO, fontSize: 11, fontWeight: '900', color: INK, letterSpacing: 1, marginBottom: 4 },
+  rateSub: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.45)', letterSpacing: 0.5, marginBottom: 10, lineHeight: 12 },
+  rateRow: { flexDirection: 'row', gap: 6 },
+  rateChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderWidth: 2, borderColor: 'rgba(10,10,10,0.25)', borderRadius: 2 },
+  rateChipText: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: INK, letterSpacing: 0.5 },
 });

@@ -84,6 +84,59 @@ function bodyDNA(runs: Run[]): GenomeInsight[] {
     }
   }
 
+  // Fatigue response: how runs feel on the 3rd+ consecutive day
+  const byDate = new Map(sorted.map(r => [r.date.slice(0, 10), r]));
+  const streakFeels: number[] = [];
+  const restedFeels: number[] = [];
+  for (const r of sorted) {
+    const f = r.feel5 ?? (r.feel === 3 ? 5 : r.feel === 2 ? 3 : r.feel === 1 ? 2 : undefined);
+    if (f == null) continue;
+    const d = new Date(r.date);
+    const prev1 = new Date(d.getTime() - 86400000).toISOString().slice(0, 10);
+    const prev2 = new Date(d.getTime() - 2 * 86400000).toISOString().slice(0, 10);
+    if (byDate.has(prev1) && byDate.has(prev2)) streakFeels.push(f);
+    else restedFeels.push(f);
+  }
+  if (streakFeels.length >= 3 && restedFeels.length >= 3) {
+    const streakAvg = streakFeels.reduce((a, b) => a + b, 0) / streakFeels.length;
+    const restedAvg = restedFeels.reduce((a, b) => a + b, 0) / restedFeels.length;
+    const drop = restedAvg - streakAvg;
+    out.push({
+      dimension: 'body',
+      label: 'FATIGUE RESPONSE',
+      value: drop < 0.4 ? 'RESILIENT' : drop < 1 ? 'NORMAL' : 'REST-SENSITIVE',
+      detail: drop < 0.4
+        ? 'Back-to-back days barely dent how your runs feel.'
+        : `Runs on a 3rd straight day rate ${drop.toFixed(1)} points lower — rest days pay you back.`,
+    });
+  }
+
+  // Temperature response: comfort in warm months vs cold months (month proxy)
+  const warm = (m: number) => m >= 5 && m <= 8;   // Jun–Sep
+  const cold = (m: number) => m <= 1 || m === 11; // Dec–Feb
+  const warmFeels: number[] = [];
+  const coldFeels: number[] = [];
+  for (const r of runs) {
+    const f = r.feel5 ?? (r.feel === 3 ? 5 : r.feel === 2 ? 3 : r.feel === 1 ? 2 : undefined);
+    if (f == null) continue;
+    const m = new Date(r.date).getMonth();
+    if (warm(m)) warmFeels.push(f);
+    else if (cold(m)) coldFeels.push(f);
+  }
+  if (warmFeels.length >= 5 && coldFeels.length >= 5) {
+    const wAvg = warmFeels.reduce((a, b) => a + b, 0) / warmFeels.length;
+    const cAvg = coldFeels.reduce((a, b) => a + b, 0) / coldFeels.length;
+    const diff = wAvg - cAvg;
+    if (Math.abs(diff) >= 0.4) {
+      out.push({
+        dimension: 'body',
+        label: 'TEMPERATURE RESPONSE',
+        value: diff > 0 ? 'RUNS BETTER WARM' : 'RUNS BETTER COLD',
+        detail: `Your runs rate ${Math.abs(diff).toFixed(1)} points higher in ${diff > 0 ? 'summer' : 'winter'} months.`,
+      });
+    }
+  }
+
   // Issue susceptibility: reports per 100 km
   const totalKm = runs.reduce((s, r) => s + r.distanceKm, 0);
   const issueRuns = runs.filter(r => (r.issues?.length ?? 0) > 0 || r.feel === 1 || (r.feel5 != null && r.feel5 <= 2));
@@ -138,6 +191,43 @@ function trainingDNA(runs: Run[]): GenomeInsight[] {
       value: m <= 1.2 ? 'NEAR-DAILY' : m <= 2.2 ? 'EVERY OTHER DAY' : `EVERY ${Math.round(m)} DAYS`,
       detail: `Median spacing between runs: ${m.toFixed(1)} days.`,
     });
+  }
+
+  // Hard-session spacing: how you naturally space intense work
+  const hard = sorted.filter(r => HARD_PURPOSES.has(r.purpose ?? ''));
+  if (hard.length >= 4) {
+    const hardGaps: number[] = [];
+    for (let i = 0; i < hard.length - 1; i++) hardGaps.push(daysBetween(hard[i]!.date, hard[i + 1]!.date));
+    const m = median(hardGaps);
+    out.push({
+      dimension: 'training',
+      label: 'HARD-SESSION SPACING',
+      value: `EVERY ${Math.round(m)} DAYS`,
+      detail: `You naturally leave ~${m.toFixed(1)} days between hard efforts.`,
+    });
+  }
+
+  // Race prep style: volume in the 7 days before races vs your normal week
+  const races = sorted.filter(r => r.purpose === 'race');
+  if (races.length >= 2 && sorted.length >= 15) {
+    const weeklyAvg = sorted.reduce((s, r) => s + r.distanceKm, 0) /
+      Math.max(1, daysBetween(sorted[0]!.date, sorted[sorted.length - 1]!.date) / 7);
+    const preRaceKms = races.map(race =>
+      sorted.filter(r =>
+        r.id !== race.id &&
+        new Date(r.date) < new Date(race.date) &&
+        daysBetween(r.date, race.date) <= 7
+      ).reduce((s, r) => s + r.distanceKm, 0));
+    const preAvg = preRaceKms.reduce((a, b) => a + b, 0) / preRaceKms.length;
+    if (weeklyAvg > 5) {
+      const ratio = preAvg / weeklyAvg;
+      out.push({
+        dimension: 'training',
+        label: 'RACE PREP STYLE',
+        value: ratio < 0.6 ? 'DEEP TAPER' : ratio < 0.9 ? 'LIGHT TAPER' : 'TRAINS THROUGH',
+        detail: `Race weeks run at ${Math.round(ratio * 100)}% of your normal volume (${races.length} races).`,
+      });
+    }
   }
 
   // Best month: highest-volume calendar month
@@ -213,6 +303,48 @@ function behaviorDNA(runs: Run[], livingShoes: LivingShoe[], memorials: ShoeMemo
           detail: `Top shoe carries ${Math.round(share * 100)}% of recent mileage — healthy spread.`,
         });
       }
+    }
+  }
+
+  // Distance by temperature band: do cool months pull longer runs? (month proxy)
+  const coolKm: number[] = [];
+  const warmKm: number[] = [];
+  for (const r of runs) {
+    const m = new Date(r.date).getMonth();
+    if (m >= 5 && m <= 8) warmKm.push(r.distanceKm);
+    else if (m <= 2 || m >= 9) coolKm.push(r.distanceKm);
+  }
+  if (coolKm.length >= 6 && warmKm.length >= 6) {
+    const coolAvg = coolKm.reduce((a, b) => a + b, 0) / coolKm.length;
+    const warmAvg = warmKm.reduce((a, b) => a + b, 0) / warmKm.length;
+    if (Math.abs(coolAvg - warmAvg) / Math.max(coolAvg, warmAvg) >= 0.2) {
+      const cooler = coolAvg > warmAvg;
+      out.push({
+        dimension: 'behavior',
+        label: 'DISTANCE PATTERN',
+        value: cooler ? 'FARTHER WHEN COOL' : 'FARTHER WHEN WARM',
+        detail: `Average run: ${coolAvg.toFixed(1)} km in cool months vs ${warmAvg.toFixed(1)} km in summer.`,
+      });
+    }
+  }
+
+  // Most consistent season: which quarter holds the most runs
+  const bySeason: Record<string, number> = {};
+  const seasonOf = (m: number) => (m <= 1 || m === 11 ? 'WINTER' : m <= 4 ? 'SPRING' : m <= 7 ? 'SUMMER' : 'FALL');
+  for (const r of runs) {
+    const sName = seasonOf(new Date(r.date).getMonth());
+    bySeason[sName] = (bySeason[sName] ?? 0) + 1;
+  }
+  const seasons = Object.entries(bySeason);
+  if (seasons.length >= 3 && runs.length >= 20) {
+    const [topSeason, count] = seasons.sort((a, b) => b[1] - a[1])[0]!;
+    if (count / runs.length >= 0.35) {
+      out.push({
+        dimension: 'behavior',
+        label: 'MOST CONSISTENT SEASON',
+        value: topSeason,
+        detail: `${Math.round((count / runs.length) * 100)}% of your runs happen in ${topSeason.toLowerCase()}.`,
+      });
     }
   }
 

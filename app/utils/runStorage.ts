@@ -64,6 +64,18 @@ export async function deleteRun(runId: string): Promise<void> {
   }
 }
 
+/** Patch a saved run — used by the Learning Engine to rate imported runs */
+export async function updateRun(runId: string, patch: Partial<Run>): Promise<void> {
+  try {
+    const runs = await getRuns();
+    const updated = runs.map(r => (r.id === runId ? { ...r, ...patch } : r));
+    await AsyncStorage.setItem(RUNS_KEY, JSON.stringify(updated));
+  } catch (error) {
+    console.error('Error updating run:', error);
+    throw error;
+  }
+}
+
 /** Replace entire runs array — used by seeder/cleanup utilities */
 export async function saveRuns(runs: Run[]): Promise<void> {
   try {

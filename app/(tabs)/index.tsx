@@ -250,7 +250,14 @@ export default function ClosetScreen() {
 
       // Running Genome (Engine 1) + Next Shoe marketplace (Engine 6)
       setGenome(getRunningGenome(updated, allRuns, memos));
-      setNextShoe(getNextShoeAdvice(updated, allRuns, profile));
+      // Marketplace respects the stated budget from the quiz, if any
+      const quizRaw = await AsyncStorage.getItem('stride_quiz_answers_v1');
+      let budget: number | undefined;
+      try {
+        const pr = quizRaw ? (JSON.parse(quizRaw).price_range as string | undefined) : undefined;
+        budget = pr === 'budget' ? 110 : pr === 'mid' ? 170 : pr === 'premium' ? 230 : undefined;
+      } catch { /* no quiz yet */ }
+      setNextShoe(getNextShoeAdvice(updated, allRuns, profile, budget));
 
       // Health reports
       const reports = generateAllHealthReports(updated, shoeDataMap, allRuns);
@@ -789,7 +796,7 @@ export default function ClosetScreen() {
           <View style={s.genomeSection}>
             <Text style={s.genomeTitle}>RUNNING GENOME</Text>
             <Text style={s.genomeSub}>LEARNED FROM YOUR RUNS. NEVER ASKED.</Text>
-            {genome.slice(0, 7).map((g, i) => (
+            {genome.slice(0, 9).map((g, i) => (
               <View key={`${g.label}-${i}`} style={s.genomeRow}>
                 <View style={s.genomeLeft}>
                   <Text style={s.genomeDim}>{g.dimension.toUpperCase()} DNA</Text>

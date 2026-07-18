@@ -421,10 +421,10 @@ export function detectPainPatterns(
       .map(id => shoeData[id]?.model)
       .filter((x): x is string => !!x)
       .slice(0, 2);
-    // Run-level pain is proxied from feel === 1 ("dead"), so speak in feel terms
+    // 'other' collects general pain reports and legacy low-feel runs
     const pattern =
       p.area === 'other'
-        ? `Dead-feeling runs cluster${names.length ? ` in ${names.join(' and ')}` : ''}, usually around ${p.minDistanceKm ?? '?'} km or later.`
+        ? `Pain or rough-feeling runs cluster${names.length ? ` in ${names.join(' and ')}` : ''}, usually around ${p.minDistanceKm ?? '?'} km or later.`
         : `${p.statement}${names.length ? ` Mostly in ${names.join(' and ')}.` : ''}`;
 
     return {
@@ -525,6 +525,8 @@ export function getNextShoeAdvice(
   livingShoes: LivingShoe[],
   runs: Run[],
   profile?: UserProfile | null,
+  /** Max price from the runner's stated budget range (quiz); undefined = no cap */
+  budget?: number,
 ): { retiringName: string | null; picks: NextShoePick[] } {
   const active = livingShoes.filter(c => c.lifeStage !== 'departed');
   if (active.length === 0) return { retiringName: null, picks: [] };
@@ -543,7 +545,7 @@ export function getNextShoeAdvice(
   const retiringOwned = owned.find(o => o.id === retiring.shoeId);
   if (!retiringOwned) return { retiringName: null, picks: [] };
 
-  const recs = recommendReplacements(retiringOwned, buyable, owned, input.recentRuns, input.runner);
+  const recs = recommendReplacements(retiringOwned, buyable, owned, input.recentRuns, input.runner, budget);
 
   // Annualized mileage for yearly-cost estimates
   const yearAgo = Date.now() - 365 * 86400000;
