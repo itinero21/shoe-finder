@@ -51,6 +51,9 @@ export default function ScanScreen() {
   const [isBeginnerMode, setIsBeginnerMode] = useState(false);
   const [purchasePrice, setPurchasePrice] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  // Explicit navigation origin for the detail view — inferring it from
+  // recs.length breaks once a user has quiz results AND uses browse.
+  const [detailFrom, setDetailFrom] = useState<'results' | 'browse'>('results');
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -143,7 +146,7 @@ export default function ScanScreen() {
   // ── Detail ──────────────────────────────────────────────
   if (mode === 'detail' && selectedShoe) {
     const shoe = selectedShoe;
-    const fromBrowse = recs.length === 0;
+    const fromBrowse = detailFrom === 'browse';
     return (
       <View style={[s.fill, { backgroundColor: PAPER }]}>
         <View style={[s.navBar, { paddingTop: insets.top + 8 }]}>
@@ -300,7 +303,7 @@ export default function ScanScreen() {
                 </View>
 
                 <Pressable
-                  onPress={() => { setSelectedShoe(primary); setMode('detail'); }}
+                  onPress={() => { setSelectedShoe(primary); setDetailFrom('results'); setMode('detail'); }}
                   style={({ pressed }) => [s.inspectBtn, pressed && { opacity: 0.85 }]}
                 >
                   <View style={s.inspectBtnShadow} />
@@ -321,7 +324,7 @@ export default function ScanScreen() {
               {secondary.map((shoe, i) => (
                 <Pressable
                   key={shoe.id}
-                  onPress={() => { setSelectedShoe(shoe); setMode('detail'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                  onPress={() => { setSelectedShoe(shoe); setDetailFrom('results'); setMode('detail'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
                   style={({ pressed }) => [s.secCardWrap, pressed && { opacity: 0.9 }]}
                 >
                   <View style={s.secCardShadow} />
@@ -417,6 +420,7 @@ export default function ScanScreen() {
             <Pressable
               onPress={() => {
                 setSelectedShoe({ ...shoe, score: 0, reasons: [] } as ScoredShoe);
+                setDetailFrom('browse');
                 setMode('detail');
               }}
               style={({ pressed }) => [s.browseRow, pressed && { opacity: 0.8 }]}

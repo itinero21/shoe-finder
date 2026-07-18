@@ -41,6 +41,8 @@ export interface ShoeRecommendation {
   reason: string;
   score: number;
   warnings: string[];
+  /** 0-100 — how much history and verified data back this pick */
+  confidence: number;
 }
 
 export interface ShoeReadiness {
@@ -235,6 +237,7 @@ export function getShoeOfTheDay(
       ...(result.safetyNotice ? [result.safetyNotice] : []),
       ...rec.cautions,
     ].slice(0, 3),
+    confidence: rec.confidence,
   };
 }
 
@@ -289,20 +292,21 @@ export function getReadinessScores(
     ...result.avoid,
   ];
   const seen = new Set<string>();
+  const topId = result.recommended?.shoeId;
 
   return all
     .filter(d => (seen.has(d.shoeId) ? false : (seen.add(d.shoeId), true)))
-    .map((d, i) => {
-      const shoe = shoeData[d.profileId];
-      return {
-        shoeId: d.shoeId,
-        shoeName: shoe ? `${shoe.brand} ${shoe.model}` : d.profileId,
-        score: d.readiness,
-        label: label(d, i === 0 && d.allowed),
-        factors: d.reasons.slice(0, 3),
-      };
-    })
-    .sort((a, b) => b.score - a.score);
+    .map(d => ({
+      decision: d,
+      shoeId: d.shoeId,
+      shoeName: shoeData[d.profileId] ? `${shoeData[d.profileId]!.brand} ${shoeData[d.profileId]!.model}` : d.profileId,
+      score: d.readiness,
+      label: label(d, d.shoeId === topId),
+      factors: d.reasons.slice(0, 3),
+    }))
+    // Usable shoes always rank above blocked ones, whatever their raw score
+    .sort((a, b) => Number(b.decision.allowed) - Number(a.decision.allowed) || b.score - a.score)
+    .map(({ decision: _d, ...rest }) => rest);
 }
 
 export function generateAllHealthReports(

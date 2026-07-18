@@ -329,7 +329,10 @@ export default function ClosetScreen() {
         {/* ── SHOE OF THE DAY ───────────────────────────────────── */}
         {!showGraveyard && shoeOfDay && (
           <View style={s.advisorCard}>
-            <Text style={s.advisorLabel}>TODAY'S PICK</Text>
+            <View style={s.advisorHeader}>
+              <Text style={s.advisorLabel}>TODAY'S PICK</Text>
+              <Text style={s.advisorConfidence}>CONFIDENCE {shoeOfDay.confidence}%</Text>
+            </View>
             <Text style={s.advisorText}>{shoeOfDay.reason}</Text>
             {weather && <Text style={s.advisorWeather}>{weather.summary}</Text>}
             {shoeOfDay.warnings.map((w, i) => (
@@ -919,7 +922,9 @@ const s = StyleSheet.create({
 
   // Intelligence cards
   advisorCard: { marginHorizontal: 16, marginTop: 16, backgroundColor: '#16A34A', padding: 16, borderRadius: 2 },
-  advisorLabel: { fontFamily: MONO, fontSize: 8, color: 'rgba(255,255,255,0.5)', letterSpacing: 2, marginBottom: 8 },
+  advisorLabel: { fontFamily: MONO, fontSize: 8, color: 'rgba(255,255,255,0.5)', letterSpacing: 2 },
+  advisorHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  advisorConfidence: { fontFamily: MONO, fontSize: 8, color: LIME, letterSpacing: 1.5 },
   advisorText: { fontSize: 15, fontWeight: '700', color: '#fff', lineHeight: 22, marginBottom: 6 },
   advisorWeather: { fontFamily: MONO, fontSize: 10, color: 'rgba(255,255,255,0.6)', marginBottom: 4 },
   advisorWarning: { fontFamily: MONO, fontSize: 10, color: '#FBBF24', marginTop: 4 },

@@ -36,10 +36,14 @@ function rotation(shoe: OwnedShoe, input: EngineInput) {
   return total ? clamp(100 - (own / total) * 80) : 70;
 }
 
-function decision(shoe: OwnedShoe, p: ShoeProfile, input: EngineInput): ShoeDecision {
+function decision(
+  shoe: OwnedShoe,
+  p: ShoeProfile,
+  input: EngineInput,
+  load: ReturnType<typeof calculateLoadState>,
+): ShoeDecision {
   const life = assessLifecycle(p, shoe, input.recentRuns, input.runner);
   const ev = evidenceForShoe(shoe.id, input.recentRuns, input.today);
-  const load = calculateLoadState(input.recentRuns, input.today);
   const intent = input.plannedRun.intent;
   const hardSession = ['race', 'tempo', 'intervals'].includes(intent);
 
@@ -121,10 +125,12 @@ function decision(shoe: OwnedShoe, p: ShoeProfile, input: EngineInput): ShoeDeci
 
 export function recommendShoeForToday(input: EngineInput): DailyRecommendation {
   const profiles = new Map(input.catalog.map(x => [x.id, x]));
+  // Load state is a property of the runner's week, not of any shoe — compute once
+  const load = calculateLoadState(input.recentRuns, input.today);
   const xs = input.ownedShoes
     .map(s => {
       const p = profiles.get(s.profileId);
-      return p ? decision(s, p, input) : undefined;
+      return p ? decision(s, p, input, load) : undefined;
     })
     .filter((x): x is ShoeDecision => !!x)
     .sort((a, b) =>
@@ -132,7 +138,6 @@ export function recommendShoeForToday(input: EngineInput): DailyRecommendation {
 
   const good = xs.filter(x => x.allowed);
   const recommended = good[0];
-  const load = calculateLoadState(input.recentRuns, input.today);
   const severe = Object.values(input.runner.currentPain).some(v => (v ?? 0) >= 7);
 
   return {
