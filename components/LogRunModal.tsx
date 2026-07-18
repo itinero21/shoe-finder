@@ -9,7 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveRun, getRuns } from '../app/utils/runStorage';
-import { Run, RunTerrain, RunPurpose, MatchQuality } from '../app/types/run';
+import { Run, RunTerrain, RunPurpose, MatchQuality, RunIssue } from '../app/types/run';
 import { calcMatchQuality, MATCH_LABELS } from '../app/utils/matchQuality';
 import { addMiles, getUserProfile } from '../app/utils/userProfile';
 import { ALL_TRACKABLE_SHOES as SHOES, Shoe } from '../app/data/shoes';
@@ -45,18 +45,36 @@ const PURPOSE_OPTIONS: { value: RunPurpose; label: string; sublabel: string }[] 
   { value: 'walk',     label: 'Walk',     sublabel: 'Walking / hiking' },
 ];
 
+// Learning Engine: 5-point feel — every answer trains Runner DNA + Shoe DNA
 const FEEL_OPTIONS = [
-  { value: 1 as const, label: 'DEAD',  color: ACCENT },
-  { value: 2 as const, label: 'OKAY',  color: '#D97706' },
-  { value: 3 as const, label: 'FRESH', color: '#16A34A' },
+  { value: 1 as const, label: 'AWFUL',   color: ACCENT },
+  { value: 2 as const, label: 'POOR',    color: '#EA580C' },
+  { value: 3 as const, label: 'AVERAGE', color: '#D97706' },
+  { value: 4 as const, label: 'GOOD',    color: '#2563EB' },
+  { value: 5 as const, label: 'PERFECT', color: '#16A34A' },
 ];
+
+const ISSUE_OPTIONS: { value: RunIssue; label: string }[] = [
+  { value: 'pain',         label: 'PAIN' },
+  { value: 'hot_spots',    label: 'HOT SPOTS' },
+  { value: 'blisters',     label: 'BLISTERS' },
+  { value: 'too_soft',     label: 'TOO SOFT' },
+  { value: 'too_firm',     label: 'TOO FIRM' },
+  { value: 'heel_slip',    label: 'HEEL SLIP' },
+  { value: 'toe_pressure', label: 'TOE PRESSURE' },
+];
+
+/** Collapse the 5-point scale onto the legacy 3-point field for old consumers */
+const toLegacyFeel = (f5: 1 | 2 | 3 | 4 | 5 | undefined): 1 | 2 | 3 | undefined =>
+  f5 == null ? undefined : f5 >= 4 ? 3 : f5 === 3 ? 2 : 1;
 
 export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: LogRunModalProps) {
   const [distance, setDistance] = useState('');
   const [duration, setDuration] = useState('');
   const [terrain, setTerrain] = useState<RunTerrain>('road');
   const [purpose, setPurpose] = useState<RunPurpose>('easy');
-  const [feel, setFeel] = useState<1 | 2 | 3 | undefined>(undefined);
+  const [feel5, setFeel5] = useState<1 | 2 | 3 | 4 | 5 | undefined>(undefined);
+  const [issues, setIssues] = useState<RunIssue[]>([]);
   const [notes, setNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -85,7 +103,9 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
       distanceKm: distNum,
       date: new Date().toISOString(),
       notes: notes.trim() || undefined,
-      feel,
+      feel: toLegacyFeel(feel5),
+      feel5,
+      issues: issues.length ? issues : undefined,
       terrain,
       purpose,
       durationMinutes: parseFloat(duration) || undefined,
@@ -125,7 +145,8 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
       setDuration('');
       setTerrain('road');
       setPurpose('easy');
-      setFeel(undefined);
+      setFeel5(undefined);
+      setIssues([]);
       setNotes('');
 
       onSaved();
@@ -227,18 +248,38 @@ export function LogRunModal({ visible, shoeId, shoeName, onClose, onSaved }: Log
           </View>
           )}
 
-          {/* Feel */}
+          {/* Feel — Learning Engine */}
           <Text style={s.sectionLabel}>HOW DID THE SHOE FEEL?</Text>
           <View style={s.feelRow}>
             {FEEL_OPTIONS.map(opt => (
               <TouchableOpacity
                 key={opt.value}
-                onPress={() => { setFeel(feel === opt.value ? undefined : opt.value); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
-                style={[s.feelChip, feel === opt.value && { borderColor: opt.color, backgroundColor: opt.color + '15' }]}
+                onPress={() => { setFeel5(feel5 === opt.value ? undefined : opt.value); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                style={[s.feelChip, feel5 === opt.value && { borderColor: opt.color, backgroundColor: opt.color + '15' }]}
               >
-                <Text style={[s.feelLabel, feel === opt.value && { color: opt.color }]}>{opt.label}</Text>
+                <Text style={[s.feelLabel, feel5 === opt.value && { color: opt.color }]}>{opt.label}</Text>
               </TouchableOpacity>
             ))}
+          </View>
+
+          {/* Optional issues — one tap each, trains the engine */}
+          <Text style={s.sectionLabel}>ANY ISSUES? (OPTIONAL)</Text>
+          <View style={s.issueRow}>
+            {ISSUE_OPTIONS.map(opt => {
+              const active = issues.includes(opt.value);
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  onPress={() => {
+                    setIssues(active ? issues.filter(i => i !== opt.value) : [...issues, opt.value]);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  style={[s.issueChip, active && s.issueChipActive]}
+                >
+                  <Text style={[s.issueLabel, active && s.issueLabelActive]}>{opt.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           {/* Notes */}
@@ -324,9 +365,14 @@ const s = StyleSheet.create({
   bonusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   bonusStar: { fontSize: 10, color: INK },
   bonusText: { fontFamily: MONO, fontSize: 9, color: INK, flex: 1 },
-  feelRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  feelRow: { flexDirection: 'row', gap: 6, marginBottom: 20 },
   feelChip: { flex: 1, alignItems: 'center', paddingVertical: 12, borderWidth: 2, borderColor: 'rgba(10,10,10,0.2)', borderRadius: 2 },
-  feelLabel: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.5)', letterSpacing: 1 },
+  feelLabel: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.5)', letterSpacing: 0.5 },
+  issueRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  issueChip: { paddingHorizontal: 10, paddingVertical: 8, borderWidth: 2, borderColor: 'rgba(10,10,10,0.2)', borderRadius: 2 },
+  issueChipActive: { borderColor: ACCENT, backgroundColor: 'rgba(255,61,0,0.08)' },
+  issueLabel: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.5)', letterSpacing: 1 },
+  issueLabelActive: { color: ACCENT },
   notesInput: { borderWidth: 2, borderColor: 'rgba(10,10,10,0.2)', borderRadius: 2, padding: 14, fontSize: 13, color: INK, fontFamily: MONO, minHeight: 80, textAlignVertical: 'top', marginBottom: 24 },
   saveBtnWrap: { position: 'relative' },
   saveBtnShadow: { position: 'absolute', top: 5, left: 5, right: -5, bottom: -5, backgroundColor: INK, borderRadius: 2 },

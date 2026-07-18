@@ -5,13 +5,26 @@ export type RunPurpose = 'easy' | 'tempo' | 'long' | 'race' | 'recovery' | 'spee
 export type MatchQuality = 'perfect' | 'good' | 'neutral' | 'poor' | 'abuse';
 export type RunSource = 'manual' | 'strava' | 'apple_health' | 'garmin';
 
+/** Learning Engine — optional one-tap issue reports after a run */
+export type RunIssue =
+  | 'pain'
+  | 'hot_spots'
+  | 'blisters'
+  | 'too_soft'
+  | 'too_firm'
+  | 'heel_slip'
+  | 'toe_pressure';
+
 export type Run = {
   id: string;
   shoeId: string;
   distanceKm: number;
   date: string;
   notes?: string;
-  feel?: 1 | 2 | 3; // 1 = dead, 2 = okay, 3 = fresh
+  feel?: 1 | 2 | 3; // legacy 3-point scale, kept for old runs
+  // Learning Engine (v3): 5-point shoe feel + optional issues
+  feel5?: 1 | 2 | 3 | 4 | 5; // 1 = awful, 5 = perfect
+  issues?: RunIssue[];
   // v2 fields
   terrain?: RunTerrain;
   purpose?: RunPurpose;

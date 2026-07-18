@@ -37,7 +37,7 @@ import { getFavorites } from '../app/utils/storage';
 import { getStravaTokens, uploadRunToStrava, StravaTokens } from '../app/services/stravaService';
 import { getWatchStatus } from '../app/services/watchService';
 import { ALL_TRACKABLE_SHOES as SHOES } from '../app/data/shoes';
-import { Run, RunTerrain, RunPurpose } from '../app/types/run';
+import { Run, RunTerrain, RunPurpose, RunIssue } from '../app/types/run';
 import { Coordinate } from '../app/types/territory';
 import { calcMatchQuality } from '../app/utils/matchQuality';
 import { StravaMark } from './BrandMarks';
@@ -210,7 +210,8 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
   const [selectedShoe, setSelectedShoe] = useState('');
   const [terrain, setTerrain]           = useState<RunTerrain>('road');
   const [purpose, setPurpose]           = useState<RunPurpose>('easy');
-  const [feel, setFeel]                 = useState<1|2|3>(2);
+  const [feel5, setFeel5]               = useState<1|2|3|4|5>(3);
+  const [issues, setIssues]             = useState<RunIssue[]>([]);
   const [notes, setNotes]               = useState('');
   const [closetIds, setClosetIds]       = useState<string[]>([]);
 
@@ -427,7 +428,9 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
         date:            new Date().toISOString(),
         terrain,
         purpose,
-        feel,
+        feel:            (feel5 >= 4 ? 3 : feel5 === 3 ? 2 : 1) as 1|2|3,
+        feel5,
+        issues:          issues.length ? issues : undefined,
         notes:           notes.trim() || undefined,
         durationMinutes: Math.round(elapsed / 60),
         match_quality:   mq,
@@ -505,7 +508,8 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
     setTrace([]);
     setSplits([]);
     setNotes('');
-    setFeel(2);
+    setFeel5(3);
+    setIssues([]);
     setStravaUploadDone(null);
     setStravaUploading(false);
     elapsedRef.current   = 0;
@@ -652,19 +656,41 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
               <Text style={s.sectionLbl}>HOW DID IT FEEL?</Text>
               <View style={s.feelRow}>
                 {([
-                  { val: 1, label: 'DEAD',  desc: 'Struggled' },
-                  { val: 2, label: 'OKAY',  desc: 'Got through it' },
-                  { val: 3, label: 'FRESH', desc: 'Could do more' },
-                ] as { val: 1|2|3; label: string; desc: string }[]).map(f => (
+                  { val: 1, label: 'AWFUL',   desc: 'Never again' },
+                  { val: 2, label: 'POOR',    desc: 'Rough ride' },
+                  { val: 3, label: 'AVERAGE', desc: 'Did the job' },
+                  { val: 4, label: 'GOOD',    desc: 'Felt right' },
+                  { val: 5, label: 'PERFECT', desc: 'Dialed in' },
+                ] as { val: 1|2|3|4|5; label: string; desc: string }[]).map(f => (
                   <TouchableOpacity
                     key={f.val}
-                    onPress={() => { Haptics.selectionAsync(); setFeel(f.val); }}
-                    style={[s.feelCard, feel === f.val && s.feelCardActive]}
+                    onPress={() => { Haptics.selectionAsync(); setFeel5(f.val); }}
+                    style={[s.feelCard, feel5 === f.val && s.feelCardActive]}
                   >
-                    <Text style={[s.feelLabel, feel === f.val && { color: LIME }]}>{f.label}</Text>
+                    <Text style={[s.feelLabel, feel5 === f.val && { color: LIME }]}>{f.label}</Text>
                     <Text style={s.feelDesc}>{f.desc}</Text>
                   </TouchableOpacity>
                 ))}
+              </View>
+
+              {/* Optional issues — trains the Learning Engine */}
+              <View style={s.issueRowLive}>
+                {([
+                  { v: 'pain', l: 'PAIN' }, { v: 'hot_spots', l: 'HOT SPOTS' }, { v: 'blisters', l: 'BLISTERS' },
+                  { v: 'too_soft', l: 'TOO SOFT' }, { v: 'too_firm', l: 'TOO FIRM' },
+                  { v: 'heel_slip', l: 'HEEL SLIP' }, { v: 'toe_pressure', l: 'TOE PRESSURE' },
+                ] as { v: RunIssue; l: string }[]).map(o => {
+                  const active = issues.includes(o.v);
+                  return (
+                    <TouchableOpacity
+                      key={o.v}
+                      onPress={() => setIssues(active ? issues.filter(i => i !== o.v) : [...issues, o.v])}
+                      style={[s.issueChipLive, active && s.issueChipLiveActive]}
+                    >
+                      <Text style={[s.issueLabelLive, active && { color: ACCENT }]}>{o.l}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
 
               {/* Notes */}
@@ -1097,6 +1123,10 @@ const s = StyleSheet.create({
   feelCardActive: { borderColor: LIME, backgroundColor: 'rgba(212,255,0,0.08)' },
   feelLabel:     { fontFamily: MONO, fontSize: 10, fontWeight: '700', color: 'rgba(244,241,234,0.55)', textAlign: 'center' },
   feelDesc:      { fontFamily: MONO, fontSize: 8, color: 'rgba(244,241,234,0.3)', textAlign: 'center' },
+  issueRowLive:  { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10, marginBottom: 4 },
+  issueChipLive: { paddingHorizontal: 8, paddingVertical: 6, borderWidth: 1.5, borderColor: 'rgba(244,241,234,0.2)', borderRadius: 2 },
+  issueChipLiveActive: { borderColor: ACCENT, backgroundColor: 'rgba(255,61,0,0.1)' },
+  issueLabelLive: { fontFamily: MONO, fontSize: 7, color: 'rgba(244,241,234,0.45)', letterSpacing: 1 },
 
   // Notes input
   notesInput: {

@@ -38,7 +38,11 @@ import {
   generateAllHealthReports, ShoeHealthReport,
   detectPainPatterns, PainPattern,
   getReadinessScores, ShoeReadiness,
+  getDailyDecision, DailyDecision,
+  getRunningGenome,
+  getNextShoeAdvice, NextShoePick,
 } from '../intelligence/bridge';
+import { GenomeInsight } from '../intelligence/genome';
 import {
   detectBadPurchases, BadPurchase,
   analyzeRotationChemistry, ShoeChemistry,
@@ -127,6 +131,9 @@ export default function ClosetScreen() {
   const [showFamilyTree, setShowFamilyTree] = useState(false);
   const [, setMinuteTick] = useState(0);
   const [lastContribution, setLastContribution] = useState<number | null>(null);
+  const [dailyDecision, setDailyDecision] = useState<DailyDecision | null>(null);
+  const [genome, setGenome] = useState<GenomeInsight[]>([]);
+  const [nextShoe, setNextShoe] = useState<{ retiringName: string | null; picks: NextShoePick[] }>({ retiringName: null, picks: [] });
 
   // Force re-render every 60s so foam decompression countdowns stay current
   useEffect(() => {
@@ -232,12 +239,18 @@ export default function ClosetScreen() {
       const todaysMemories = findTodaysMemories(allRuns, updated, memos, shoeDataMap);
       setMemories(todaysMemories);
 
-      // Weather + Shoe of the Day (Intelligence Engine v2.1)
+      // Weather + Shoe of the Day + Decision Center (Engine 3)
       getTodaysWeather().then(w => {
         setWeather(w);
-        const rec = getShoeOfTheDay(updated, shoeDataMap, allRuns, w, profile);
-        setShoeOfDay(rec);
-      }).catch(() => {});
+        setShoeOfDay(getShoeOfTheDay(updated, shoeDataMap, allRuns, w, profile));
+        setDailyDecision(allRuns.length >= 3 ? getDailyDecision(allRuns, w) : null);
+      }).catch(() => {
+        setDailyDecision(allRuns.length >= 3 ? getDailyDecision(allRuns, null) : null);
+      });
+
+      // Running Genome (Engine 1) + Next Shoe marketplace (Engine 6)
+      setGenome(getRunningGenome(updated, allRuns, memos));
+      setNextShoe(getNextShoeAdvice(updated, allRuns, profile));
 
       // Health reports
       const reports = generateAllHealthReports(updated, shoeDataMap, allRuns);
@@ -338,6 +351,30 @@ export default function ClosetScreen() {
             {shoeOfDay.warnings.map((w, i) => (
               <Text key={i} style={s.advisorWarning}>⚠ {w}</Text>
             ))}
+
+            {/* Decision Center — Today's Body / Risk / Opportunity */}
+            {dailyDecision && (
+              <View style={s.decisionBlock}>
+                <View style={s.decisionRow}>
+                  <Text style={s.decisionKey}>BODY</Text>
+                  <Text style={s.decisionVal}>{dailyDecision.body.label}</Text>
+                  <Text style={s.decisionDetail} numberOfLines={2}>{dailyDecision.body.detail}</Text>
+                </View>
+                <View style={s.decisionRow}>
+                  <Text style={s.decisionKey}>RISK</Text>
+                  <Text style={[s.decisionVal, dailyDecision.risk.elevated && { color: ACCENT }]}>
+                    {dailyDecision.risk.label}
+                  </Text>
+                  <Text style={s.decisionDetail} numberOfLines={2}>{dailyDecision.risk.detail}</Text>
+                </View>
+                <View style={[s.decisionRow, { borderBottomWidth: 0 }]}>
+                  <Text style={s.decisionKey}>TODAY</Text>
+                  <Text style={[s.decisionDetail, { flex: 1, color: LIME }]} numberOfLines={3}>
+                    {dailyDecision.opportunity}
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
@@ -700,6 +737,73 @@ export default function ClosetScreen() {
           </View>
         )}
 
+        {/* ── NEXT SHOE — Marketplace Engine ─────────────────────── */}
+        {!showGraveyard && nextShoe.picks.length > 0 && (
+          <View style={s.marketSection}>
+            <Text style={s.marketTitle}>NEXT SHOE</Text>
+            {nextShoe.retiringName && (
+              <Text style={s.marketSub}>
+                {nextShoe.retiringName.toUpperCase()} IS PAST MIDLIFE. THREE SUCCESSORS, ARGUED HONESTLY:
+              </Text>
+            )}
+            {nextShoe.picks.map(pick => {
+              const pickShoe = SHOES.find(sh => sh.id === pick.shoeId);
+              const isGoal = shoeFund.targetShoeId === pick.shoeId;
+              return (
+                <View key={pick.shoeId} style={s.marketCard}>
+                  {pickShoe && <ShoeVisual shoe={pickShoe} wearPct={0} width={84} />}
+                  <View style={s.marketInfo}>
+                    <Text style={s.marketBrand}>{pick.brand.toUpperCase()}</Text>
+                    <Text style={s.marketModel}>{pick.model}</Text>
+                    <Text style={s.marketReason} numberOfLines={2}>{pick.reason}</Text>
+                    <View style={s.marketStatsRow}>
+                      <Text style={s.marketStat}>${pick.price}</Text>
+                      <Text style={s.marketStatDim}>~{pick.expectedMiles} MI LIFE</Text>
+                      {pick.estYearlyCost != null && (
+                        <Text style={s.marketStatDim}>${pick.estYearlyCost}/YR</Text>
+                      )}
+                      <Text style={s.marketConfidence}>{pick.confidence}% CONF</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShoeFundGoal(pick.price, `${pick.brand} ${pick.model}`, pick.shoeId).then(() => {
+                        setShoeFund(prev => ({ ...prev, targetPrice: pick.price, targetName: `${pick.brand} ${pick.model}`, targetShoeId: pick.shoeId }));
+                      }).catch(() => {});
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    }}
+                    style={[s.marketGoalBtn, isGoal && s.marketGoalBtnActive]}
+                  >
+                    <Text style={[s.marketGoalText, isGoal && s.marketGoalTextActive]}>
+                      {isGoal ? 'GOAL' : 'FUND'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {/* ── RUNNING GENOME — Engine 1 ──────────────────────────── */}
+        {!showGraveyard && genome.length > 0 && (
+          <View style={s.genomeSection}>
+            <Text style={s.genomeTitle}>RUNNING GENOME</Text>
+            <Text style={s.genomeSub}>LEARNED FROM YOUR RUNS. NEVER ASKED.</Text>
+            {genome.slice(0, 7).map((g, i) => (
+              <View key={`${g.label}-${i}`} style={s.genomeRow}>
+                <View style={s.genomeLeft}>
+                  <Text style={s.genomeDim}>{g.dimension.toUpperCase()} DNA</Text>
+                  <Text style={s.genomeLabel}>{g.label}</Text>
+                </View>
+                <View style={s.genomeRight}>
+                  <Text style={s.genomeValue}>{g.value}</Text>
+                  <Text style={s.genomeDetail}>{g.detail}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* ── SHOE READINESS ──────────────────────────────────────── */}
         {!showGraveyard && readinessScores.length > 0 && (
           <View style={s.readinessSection}>
@@ -925,6 +1029,43 @@ const s = StyleSheet.create({
   advisorLabel: { fontFamily: MONO, fontSize: 8, color: 'rgba(255,255,255,0.5)', letterSpacing: 2 },
   advisorHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   advisorConfidence: { fontFamily: MONO, fontSize: 8, color: LIME, letterSpacing: 1.5 },
+
+  // Decision Center (Engine 3)
+  decisionBlock: { marginTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)' },
+  decisionRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
+  decisionKey: { fontFamily: MONO, fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5, width: 42, marginTop: 1 },
+  decisionVal: { fontFamily: MONO, fontSize: 10, fontWeight: '900', color: '#FFFFFF', letterSpacing: 1, width: 74 },
+  decisionDetail: { fontFamily: MONO, fontSize: 8, color: 'rgba(255,255,255,0.55)', lineHeight: 13, flex: 1 },
+
+  // Next Shoe — Marketplace (Engine 6)
+  marketSection: { marginBottom: 24 },
+  marketTitle: { fontFamily: MONO, fontSize: 11, fontWeight: '900', color: INK, letterSpacing: 2, marginBottom: 4 },
+  marketSub: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.45)', letterSpacing: 0.8, lineHeight: 13, marginBottom: 10 },
+  marketCard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 2, borderColor: INK, borderRadius: 2, padding: 10, marginBottom: 10, backgroundColor: '#FFFFFF' },
+  marketInfo: { flex: 1 },
+  marketBrand: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.4)', letterSpacing: 1.5 },
+  marketModel: { fontFamily: MONO, fontSize: 13, fontWeight: '900', color: INK, marginBottom: 3 },
+  marketReason: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.55)', lineHeight: 12, marginBottom: 5 },
+  marketStatsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+  marketStat: { fontFamily: MONO, fontSize: 10, fontWeight: '900', color: INK },
+  marketStatDim: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.45)', letterSpacing: 0.5 },
+  marketConfidence: { fontFamily: MONO, fontSize: 8, color: '#2563EB', letterSpacing: 0.5 },
+  marketGoalBtn: { borderWidth: 2, borderColor: INK, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 2 },
+  marketGoalBtnActive: { backgroundColor: LIME, borderColor: LIME },
+  marketGoalText: { fontFamily: MONO, fontSize: 8, fontWeight: '900', color: INK, letterSpacing: 1 },
+  marketGoalTextActive: { color: INK },
+
+  // Running Genome (Engine 1)
+  genomeSection: { marginBottom: 24, backgroundColor: INK, borderRadius: 2, padding: 14 },
+  genomeTitle: { fontFamily: MONO, fontSize: 11, fontWeight: '900', color: PAPER, letterSpacing: 2 },
+  genomeSub: { fontFamily: MONO, fontSize: 8, color: 'rgba(244,241,234,0.4)', letterSpacing: 1, marginBottom: 10, marginTop: 2 },
+  genomeRow: { flexDirection: 'row', gap: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: 'rgba(244,241,234,0.1)' },
+  genomeLeft: { width: 110 },
+  genomeDim: { fontFamily: MONO, fontSize: 7, color: ACCENT, letterSpacing: 1.2, marginBottom: 2 },
+  genomeLabel: { fontFamily: MONO, fontSize: 9, fontWeight: '700', color: PAPER, letterSpacing: 0.5, lineHeight: 13 },
+  genomeRight: { flex: 1 },
+  genomeValue: { fontFamily: MONO, fontSize: 11, fontWeight: '900', color: LIME, letterSpacing: 0.5, marginBottom: 2 },
+  genomeDetail: { fontFamily: MONO, fontSize: 8, color: 'rgba(244,241,234,0.5)', lineHeight: 12 },
   advisorText: { fontSize: 15, fontWeight: '700', color: '#fff', lineHeight: 22, marginBottom: 6 },
   advisorWeather: { fontFamily: MONO, fontSize: 10, color: 'rgba(255,255,255,0.6)', marginBottom: 4 },
   advisorWarning: { fontFamily: MONO, fontSize: 10, color: '#FBBF24', marginTop: 4 },
