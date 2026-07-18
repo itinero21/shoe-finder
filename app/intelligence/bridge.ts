@@ -61,6 +61,7 @@ export interface ShoeHealthReport {
   shoeName: string;
   totalMiles: number;
   lifePct: number;
+  health: number;
   estimatedMilesRemaining: number;
   estimatedRunsRemaining: number;
   wearRisk: 'low' | 'moderate' | 'high' | 'critical';
@@ -387,6 +388,7 @@ export function generateAllHealthReports(
         shoeName: `${shoe.brand} ${shoe.model}`,
         totalMiles: Math.round(char.totalMiles),
         lifePct: Math.round(char.lifePct),
+        health: Math.round(life.health),
         estimatedMilesRemaining: remainingMiles,
         estimatedRunsRemaining: Math.max(0, Math.round(remainingMiles / Math.max(1, avgMiles))),
         wearRisk,

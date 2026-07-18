@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 // Ownership lookups use the full trackable catalog (current + upcoming + legacy)
 // so users who own an older model never lose tracking. Recommendation pools
@@ -20,7 +20,7 @@ import { ALL_TRACKABLE_SHOES as SHOES, CURRENT_SHOES, Shoe } from '../data/shoes
 import { getFavorites, removeFromFavorites } from '../utils/storage';
 import { getRuns } from '../utils/runStorage';
 import { Run } from '../types/run';
-import { getUserProfile } from '../utils/userProfile';
+import { getUserProfile, setShoeFundGoal } from '../utils/userProfile';
 import {
   addMemorial,
   getLivingShoes,
@@ -57,10 +57,8 @@ import {
   computeCostPerMile,
   cpmTier,
   computeFreshnessScore,
-  freshnessTier,
   getDecompressionState,
 } from '../utils/shoeFundEngine';
-import { setShoeFundGoal } from '../utils/userProfile';
 import { RunnerLoop, getBrandColor } from '../../components/RunnerLoop';
 import { RetirementCeremony } from '../../components/RetirementCeremony';
 import { HallOfFame } from '../../components/HallOfFame';
@@ -238,25 +236,16 @@ export default function ClosetScreen() {
       const todaysMemories = findTodaysMemories(allRuns, updated, memos, shoeDataMap);
       setMemories(todaysMemories);
 
-      // Weather + Shoe of the Day + Decision Center (Engine 3)
-      getTodaysWeather().then(w => {
-        setWeather(w);
-        setShoeOfDay(getShoeOfTheDay(updated, shoeDataMap, allRuns, w, profile));
-        setDailyDecision(allRuns.length >= 3 ? getDailyDecision(allRuns, w) : null);
-      }).catch(() => {
-        setDailyDecision(allRuns.length >= 3 ? getDailyDecision(allRuns, null) : null);
-      });
+      // Resolve weather once so the pick, decision, and readiness all use the
+      // same snapshot instead of producing contradictory answers.
+      const todaysWeather = await getTodaysWeather().catch(() => null);
+      setWeather(todaysWeather);
+      setShoeOfDay(getShoeOfTheDay(updated, shoeDataMap, allRuns, todaysWeather, profile));
+      setDailyDecision(allRuns.length >= 3 ? getDailyDecision(allRuns, todaysWeather) : null);
 
       // Running Genome (Engine 1) + Next Shoe marketplace (Engine 6)
       setGenome(getRunningGenome(updated, allRuns, memos));
-      // Marketplace respects the stated budget from the quiz, if any
-      const quizRaw = await AsyncStorage.getItem('stride_quiz_answers_v1');
-      let budget: number | undefined;
-      try {
-        const pr = quizRaw ? (JSON.parse(quizRaw).price_range as string | undefined) : undefined;
-        budget = pr === 'budget' ? 110 : pr === 'mid' ? 170 : pr === 'premium' ? 230 : undefined;
-      } catch { /* no quiz yet */ }
-      setNextShoe(getNextShoeAdvice(updated, allRuns, profile, budget));
+      setNextShoe(getNextShoeAdvice(updated, allRuns, profile));
 
       // Health reports
       const reports = generateAllHealthReports(updated, shoeDataMap, allRuns);
@@ -270,12 +259,8 @@ export default function ClosetScreen() {
       const rotation = getRotationAnalysis(updated, shoeDataMap, allRuns);
       setRotationAdvice(rotation.advice);
 
-      // Shoe readiness scores (Intelligence Engine v2.1, weather-aware)
-      getTodaysWeather().then(w => {
-        setReadinessScores(getReadinessScores(updated, shoeDataMap, allRuns, w, profile));
-      }).catch(() => {
-        setReadinessScores(getReadinessScores(updated, shoeDataMap, allRuns, null, profile));
-      });
+      // Shoe readiness scores (same weather snapshot as Today's Pick)
+      setReadinessScores(getReadinessScores(updated, shoeDataMap, allRuns, todaysWeather, profile));
 
       // Bad purchases + chemistry
       setBadPurchases(detectBadPurchases(updated, shoeDataMap, allRuns));
@@ -294,13 +279,18 @@ export default function ClosetScreen() {
     setShowOnboarding(false);
   };
 
+  const handleStartScout = async () => {
+    await handleOnboardingComplete();
+    router.push('/(tabs)/scan' as any);
+  };
+
   const activeShoes = livingShoes.filter(c =>
     favoriteIds.includes(c.shoeId) && c.lifeStage !== 'departed'
   );
 
   return (
     <SafeAreaView style={s.container}>
-      {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
+      {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} onStartScout={handleStartScout} />}
 
       {/* Header */}
       <View style={s.header}>
@@ -327,21 +317,15 @@ export default function ClosetScreen() {
             onPress={() => { setShowGraveyard(!showGraveyard); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
             style={s.graveyardBtn}
           >
-            <Ionicons name={showGraveyard ? 'shirt-outline' : 'archive-outline'} size={16} color={showGraveyard ? ACCENT : INK} />
+            {showGraveyard
+              ? <MaterialCommunityIcons name="shoe-sneaker" size={17} color={ACCENT} />
+              : <Ionicons name="archive-outline" size={16} color={INK} />}
             <Text style={[s.graveyardBtnText, showGraveyard && { color: ACCENT }]}>
               {showGraveyard ? 'ACTIVE' : `RETIRED (${memorials.length})`}
             </Text>
           </TouchableOpacity>
         </View>
       </View>
-
-      {/* Daily Brief */}
-      {dailyLine && !showGraveyard && (
-        <View style={s.briefCard}>
-          <Text style={s.briefSpeaker}>{dailySpeaker?.toUpperCase() ?? 'YOUR CLOSET'}</Text>
-          <Text style={s.briefLine}>"{dailyLine}"</Text>
-        </View>
-      )}
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
@@ -350,8 +334,9 @@ export default function ClosetScreen() {
           <View style={s.advisorCard}>
             <View style={s.advisorHeader}>
               <Text style={s.advisorLabel}>TODAY'S PICK</Text>
-              <Text style={s.advisorConfidence}>CONFIDENCE {shoeOfDay.confidence}%</Text>
+              <Text style={s.advisorConfidence}>{shoeOfDay.score}% READY</Text>
             </View>
+            <Text style={s.advisorShoe}>{shoeOfDay.shoeName.toUpperCase()}</Text>
             <Text style={s.advisorText}>{shoeOfDay.reason}</Text>
             {weather && <Text style={s.advisorWeather}>{weather.summary}</Text>}
             {shoeOfDay.warnings.map((w, i) => (
@@ -381,12 +366,32 @@ export default function ClosetScreen() {
                 </View>
               </View>
             )}
+            <TouchableOpacity
+              style={s.advisorAction}
+              onPress={() => { router.push('/(tabs)/run' as any); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); }}
+            >
+              <Text style={s.advisorActionText}>RUN IN THIS SHOE</Text>
+              <Ionicons name="arrow-forward" size={16} color={INK} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {!showGraveyard && (rotationAdvice || dailyLine) && (
+          <View style={s.intelligenceCard}>
+            <Text style={s.intelligenceTitle}>CLOSET INTELLIGENCE</Text>
+            {rotationAdvice ? <Text style={s.intelligenceText}>{rotationAdvice}</Text> : null}
+            {dailyLine ? (
+              <Text style={s.intelligenceVoice}>
+                {dailySpeaker?.toUpperCase() ?? 'YOUR CLOSET'}: “{dailyLine}”
+              </Text>
+            ) : null}
           </View>
         )}
 
         {/* ── LIVING SHOES ──────────────────────────────────────────── */}
         {!showGraveyard && (
           <>
+            {activeShoes.length > 0 && <Text style={s.rotationHeading}>YOUR ROTATION</Text>}
             {activeShoes.length === 0 ? (
               <View style={s.empty}>
                 <Ionicons name="walk-outline" size={48} color="rgba(10,10,10,0.15)" />
@@ -408,30 +413,40 @@ export default function ClosetScreen() {
                 const nextLockedAchievement = story.achievements.find(a => !a.unlocked);
                 const displayMood = computeStoryMoodOverride(char.mood, story.streak);
                 const freshness = computeFreshnessScore(char.lifePct);
-                const freshTier = freshnessTier(freshness);
+                const readiness = readinessScores.find(r => r.shoeId === char.shoeId);
+                const health = healthReports.find(r => r.shoeId === char.shoeId)?.health ?? freshness;
+                const decomp = getDecompressionState(char);
+                const readinessLabel = decomp.recovering
+                  ? `RECOVERING · ${decomp.hoursRemaining}H`
+                  : readiness?.label.toUpperCase() ?? 'READY NOW';
 
                 return (
                   <View key={char.shoeId} style={s.cardWrap}>
                     <View style={[s.cardShadow, { backgroundColor: stageColor }]} />
                     <View style={s.card}>
-                      {/* Top: stage + mood + life % */}
-                      <View style={s.cardTop}>
-                        <View style={[s.stageBadge, { backgroundColor: stageColor }]}>
-                          <Text style={s.stageBadgeText}>{STAGE_LABELS[char.lifeStage]}</Text>
-                        </View>
-                        <View style={s.moodPill}>
-                          <Text style={s.moodText}>{MOOD_LABELS[displayMood]}</Text>
-                        </View>
-                        <View style={s.freshnessBlock}>
-                          <Text style={[s.freshnessScore, { color: freshTier.color }]}>{freshness}%</Text>
-                          <Text style={[s.freshnessLabel, { color: freshTier.color }]}>{freshTier.label}</Text>
-                        </View>
-                      </View>
-
                       {/* Brand + model */}
                       <View style={s.identityBlock}>
                         <Text style={s.brand}>{shoe.brand.toUpperCase()}</Text>
                         <Text style={s.model}>{shoe.model}</Text>
+                      </View>
+
+                      <View style={s.statusGrid}>
+                        <View style={s.statusCell}>
+                          <Text style={s.statusKey}>LIFE</Text>
+                          <Text style={[s.statusValue, { color: stageColor }]}>{STAGE_LABELS[char.lifeStage]}</Text>
+                        </View>
+                        <View style={s.statusCell}>
+                          <Text style={s.statusKey}>HEALTH</Text>
+                          <Text style={s.statusValue}>{health}%</Text>
+                        </View>
+                        <View style={s.statusCell}>
+                          <Text style={s.statusKey}>READINESS</Text>
+                          <Text style={s.statusValue} numberOfLines={1} adjustsFontSizeToFit>{readinessLabel}</Text>
+                        </View>
+                        <View style={s.statusCell}>
+                          <Text style={s.statusKey}>MOOD</Text>
+                          <Text style={s.statusValue}>{MOOD_LABELS[displayMood]}</Text>
+                        </View>
                       </View>
 
                       {/* Nickname if earned */}
@@ -482,10 +497,16 @@ export default function ClosetScreen() {
                         </View>
                         <View style={s.statDivider} />
                         <View style={s.statCell}>
-                          <Text style={s.statVal}>{char.daysSinceLastRun}</Text>
-                          <Text style={s.statLabel}>DAYS AGO</Text>
+                          <Text style={[s.statVal, char.runCount === 0 && s.statValEmpty]}>
+                            {char.runCount === 0 ? 'NOT YET' : char.daysSinceLastRun}
+                          </Text>
+                          <Text style={s.statLabel}>{char.runCount === 0 ? 'LAST RUN' : 'DAYS AGO'}</Text>
                         </View>
                       </View>
+
+                      <Text style={s.practicalMessage}>
+                        {char.runCount === 0 ? 'Ready for its first run.' : readiness?.label ?? readinessLabel}
+                      </Text>
 
                       {/* Foam Decompression — live runner shows the gait on this foam */}
                       {(() => {
@@ -703,6 +724,15 @@ export default function ClosetScreen() {
           <View style={s.fundSection}>
             <Text style={s.fundTitle}>SHOE FUND</Text>
             <View style={s.fundCard}>
+              {!activeShoes.some(char => (char.purchasePrice ?? 0) > 0) ? (
+                <View>
+                  <Text style={s.fundSetupTitle}>START TRACKING VALUE</Text>
+                  <Text style={s.fundSetupText}>Add what you paid for a shoe to unlock cost per mile and replacement savings.</Text>
+                  <TouchableOpacity style={s.fundSetupBtn} onPress={() => router.push('/(tabs)/scan' as any)}>
+                    <Text style={s.fundSetupBtnText}>SET UP FROM SCOUT</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : <>
               {lastContribution !== null && (
                 <View style={s.fundContribBadge}>
                   <Text style={s.fundContribText}>+${lastContribution.toFixed(3)} JUST ADDED FROM YOUR RUN</Text>
@@ -734,6 +764,7 @@ export default function ClosetScreen() {
               {!shoeFund.targetName && (
                 <Text style={s.fundHint}>Every mile you run builds this fund. Set a goal from DRAFT NIGHT on any twilight shoe.</Text>
               )}
+              </>}
             </View>
           </View>
         )}
@@ -1028,6 +1059,14 @@ const s = StyleSheet.create({
   advisorLabel: { fontFamily: MONO, fontSize: 8, color: 'rgba(255,255,255,0.5)', letterSpacing: 2 },
   advisorHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   advisorConfidence: { fontFamily: MONO, fontSize: 8, color: LIME, letterSpacing: 1.5 },
+  advisorShoe: { fontFamily: MONO, fontSize: 20, fontWeight: '900', color: '#FFFFFF', lineHeight: 26, marginBottom: 8 },
+  advisorAction: { marginTop: 14, backgroundColor: LIME, borderWidth: 2, borderColor: INK, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  advisorActionText: { fontFamily: MONO, fontSize: 11, fontWeight: '900', color: INK, letterSpacing: 1.5 },
+  intelligenceCard: { marginHorizontal: 16, marginTop: 12, padding: 14, backgroundColor: INK, borderLeftWidth: 4, borderLeftColor: '#06B6D4' },
+  intelligenceTitle: { fontFamily: MONO, fontSize: 9, fontWeight: '900', color: '#06B6D4', letterSpacing: 2, marginBottom: 8 },
+  intelligenceText: { fontFamily: MONO, fontSize: 11, color: PAPER, lineHeight: 17 },
+  intelligenceVoice: { fontFamily: MONO, fontSize: 9, color: 'rgba(244,241,234,0.5)', lineHeight: 15, marginTop: 9 },
+  rotationHeading: { fontFamily: MONO, fontSize: 10, fontWeight: '900', color: INK, letterSpacing: 2, marginHorizontal: 16, marginTop: 20, marginBottom: 12 },
 
   // Decision Center (Engine 3)
   decisionBlock: { marginTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)' },
@@ -1141,6 +1180,10 @@ const s = StyleSheet.create({
   identityBlock: { borderTopWidth: 2, borderBottomWidth: 2, borderColor: INK, paddingVertical: 12, marginBottom: 12 },
   brand: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.4)', letterSpacing: 2, marginBottom: 2 },
   model: { fontFamily: MONO, fontSize: 20, fontWeight: '900', color: INK, letterSpacing: 0, marginBottom: 4 },
+  statusGrid: { flexDirection: 'row', flexWrap: 'wrap', borderWidth: 2, borderColor: INK, marginBottom: 12 },
+  statusCell: { width: '50%', paddingVertical: 9, paddingHorizontal: 10, borderBottomWidth: 1, borderRightWidth: 1, borderColor: 'rgba(10,10,10,0.18)' },
+  statusKey: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.38)', letterSpacing: 1.5, marginBottom: 3 },
+  statusValue: { fontFamily: MONO, fontSize: 10, fontWeight: '900', color: INK, letterSpacing: 0.6 },
   nickname: { fontFamily: MONO, fontSize: 10, color: ACCENT, marginBottom: 8, letterSpacing: 1 },
   lineageText: { fontFamily: MONO, fontSize: 9, color: '#7C3AED', marginBottom: 6, lineHeight: 14, letterSpacing: 0.5 },
   relationshipText: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.45)', marginBottom: 10, lineHeight: 14, letterSpacing: 0.8 },
@@ -1152,7 +1195,9 @@ const s = StyleSheet.create({
   statCell: { flex: 1, alignItems: 'center', paddingVertical: 10 },
   statDivider: { width: 2, backgroundColor: INK },
   statVal: { fontFamily: MONO, fontSize: 16, fontWeight: '900', color: INK, marginBottom: 2, letterSpacing: 0 },
+  statValEmpty: { fontSize: 10, lineHeight: 19 },
   statLabel: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.4)', letterSpacing: 1 },
+  practicalMessage: { fontFamily: MONO, fontSize: 10, fontWeight: '700', color: INK, lineHeight: 16, marginBottom: 12, paddingLeft: 10, borderLeftWidth: 3, borderLeftColor: LIME },
 
   storyPulse: { backgroundColor: 'rgba(212,255,0,0.22)', borderLeftWidth: 3, borderLeftColor: LIME, padding: 12, borderRadius: 2, marginBottom: 10 },
   storyPulseTitle: { fontFamily: MONO, fontSize: 9, color: INK, fontWeight: '900', letterSpacing: 1.5, marginBottom: 5 },
@@ -1196,6 +1241,10 @@ const s = StyleSheet.create({
   fundSection: { marginHorizontal: 16, marginTop: 16 },
   fundTitle: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.35)', letterSpacing: 2, marginBottom: 10 },
   fundCard: { backgroundColor: INK, padding: 16, borderRadius: 2, borderWidth: 2, borderColor: INK },
+  fundSetupTitle: { fontFamily: MONO, fontSize: 13, fontWeight: '900', color: PAPER, letterSpacing: 1.2, marginBottom: 7 },
+  fundSetupText: { fontFamily: MONO, fontSize: 9, color: 'rgba(244,241,234,0.55)', lineHeight: 15, marginBottom: 13 },
+  fundSetupBtn: { borderWidth: 2, borderColor: LIME, paddingVertical: 10, alignItems: 'center' },
+  fundSetupBtnText: { fontFamily: MONO, fontSize: 9, fontWeight: '900', color: LIME, letterSpacing: 1.4 },
   fundContribBadge: { backgroundColor: LIME, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 12, alignSelf: 'flex-start' },
   fundContribText: { fontFamily: MONO, fontSize: 9, color: INK, fontWeight: '900', letterSpacing: 1 },
   fundTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },

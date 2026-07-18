@@ -29,9 +29,10 @@ type Screen = 'fork' | 'browse';
 
 interface OnboardingProps {
   onComplete: () => void;
+  onStartScout?: () => void;
 }
 
-export function Onboarding({ onComplete }: OnboardingProps) {
+export function Onboarding({ onComplete, onStartScout }: OnboardingProps) {
   const [screen, setScreen]   = useState<Screen>('fork');
   const [query, setQuery]     = useState('');
   const [added, setAdded]     = useState<Set<string>>(new Set());
@@ -78,7 +79,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             <Text style={s.forkEyebrow}>// STRIDE PROTOCOL</Text>
             <Text style={s.forkTitle}>WELCOME.</Text>
             <Text style={s.forkSub}>
-              The running shoe tracker built for people who take their kit seriously.
+              STRIDE helps you choose which shoe to run in, tracks how your shoes are aging, and tells you when and what to replace. Every run builds the shoe's history.
             </Text>
           </View>
 
@@ -113,7 +114,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               activeOpacity={0.88}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                onComplete(); // parent will navigate to scout quiz via empty-state CTA
+                onStartScout?.();
               }}
             >
               <View style={s.forkCardTop}>

@@ -193,11 +193,12 @@ interface Props {
   visible:  boolean;
   onClose:  () => void;
   onSaved?: () => void;
+  initialShoeId?: string;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function LiveRunModal({ visible, onClose, onSaved }: Props) {
+export function LiveRunModal({ visible, onClose, onSaved, initialShoeId }: Props) {
   // ── Run state ────────────────────────────────────────────────────────────────
   const [runState, setRunState]     = useState<RunState>('idle');
   const [elapsed, setElapsed]       = useState(0);
@@ -257,7 +258,9 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
       ]);
 
       setClosetIds(favs);
-      if (favs.length > 0) setSelectedShoe(favs[0]);
+      if (favs.length > 0) {
+        setSelectedShoe(initialShoeId && favs.includes(initialShoeId) ? initialShoeId : favs[0]);
+      }
       setGpsGranted(perm === 'granted');
       setStravaTokens(tokens);
       if (tokens) setUploadToStrava(true); // default ON if connected
@@ -267,7 +270,7 @@ export function LiveRunModal({ visible, onClose, onSaved }: Props) {
     })();
   // resetAll intentionally stays outside dependencies; it only clears local modal state.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
+  }, [visible, initialShoeId]);
 
   // ── Animate map to latest GPS point ─────────────────────────────────────────
 

@@ -59,14 +59,6 @@ export default function ScanScreen() {
     getUserProfile().then(p => setIsBeginnerMode(p.is_beginner_mode));
   }, []);
 
-  const PRICE_RANGE_DEFAULTS: Record<string, string> = {
-    budget: '85',
-    mid: '130',
-    premium: '175',
-    ultra: '',
-    no_pref: '',
-  };
-
   const handleQuizComplete = async (quizAnswers: QuizAnswers) => {
     const results = getRecommendations(quizAnswers, SHOES);
     setRecs(results);
@@ -74,10 +66,6 @@ export default function ScanScreen() {
     setShowQuiz(false);
     setMode('results');
     setVisibleCount(3);
-    // Pre-seed the price input with the midpoint of the chosen budget range
-    if (quizAnswers.price_range) {
-      setPurchasePrice(PRICE_RANGE_DEFAULTS[quizAnswers.price_range] ?? '');
-    }
     await AsyncStorage.setItem(QUIZ_ANSWERS_KEY, JSON.stringify(quizAnswers));
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
@@ -262,13 +250,6 @@ export default function ScanScreen() {
               {answers?.arch_type && (
                 <View style={s.tagInk}><Text style={s.tagText}>/{answers.arch_type.toUpperCase()} ARCH/</Text></View>
               )}
-              {answers?.price_range && answers.price_range !== 'no_pref' && (
-                <View style={[s.tagInk, { backgroundColor: LIME }]}>
-                  <Text style={[s.tagText, { color: INK }]}>
-                    /{answers.price_range === 'budget' ? 'UNDER $100' : answers.price_range === 'mid' ? '$100–$160' : answers.price_range === 'premium' ? '$160–$220' : '$220+'}/
-                  </Text>
-                </View>
-              )}
             </View>
           </View>
 
@@ -452,9 +433,9 @@ export default function ScanScreen() {
     <View style={[s.fill, { backgroundColor: PAPER }]}>
       <View style={[s.splashSafe, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 100 }]}>
         <View style={s.splashTop}>
-          <Text style={s.splashEyebrow}>SHOE SCOUT</Text>
-          <Text style={s.splashTitle} numberOfLines={1} adjustsFontSizeToFit>ADD A SHOE.</Text>
-          <Text style={s.splashSub}>Answer the fit protocol. Choose the shoe. Let the story begin.</Text>
+          <Text style={s.splashEyebrow}>STRIDE // SCOUT</Text>
+          <Text style={s.splashTitle}>FIND MY{`\n`}NEXT SHOE.</Text>
+          <Text style={s.splashSub}>Take the Scout fit assessment. Get recommendations based on your running, fit, injury history, and current shoes.</Text>
           <View style={s.splashRunner}>
             <RunnerLoop freshness={100} shoeColor={ACCENT} size={130} />
           </View>
@@ -467,7 +448,7 @@ export default function ScanScreen() {
           >
             <View style={s.ctaShadow} />
             <View style={s.ctaInner}>
-              <Text style={s.ctaText}>BEGIN SCOUT</Text>
+              <Text style={s.ctaText}>START SCOUT</Text>
             </View>
           </Pressable>
 
@@ -475,8 +456,9 @@ export default function ScanScreen() {
             onPress={() => { setMode('browse'); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
             style={({ pressed }) => [s.browseBtn, pressed && { opacity: 0.7 }]}
           >
-            <Text style={s.browseBtnText}>BROWSE ALL SHOES</Text>
-            <Text style={[s.browseBtnText, { marginTop: 4, fontSize: 9 }]}>Browse and add any shoe from our database</Text>
+            <Text style={s.browseBtnTitle}>I ALREADY OWN A SHOE</Text>
+            <Text style={s.browseBtnText}>Search the catalog and start tracking its mileage, health, and value.</Text>
+            <Text style={s.browseBtnAction}>ADD FROM CATALOG →</Text>
           </Pressable>
 
         </View>
@@ -508,8 +490,8 @@ const s = StyleSheet.create({
   splashEyebrow: { fontFamily: MONO, fontSize: 10, color: ACCENT, letterSpacing: 3, marginBottom: 16 },
   splashTitle: {
     fontWeight: '900',
-    fontSize: SCREEN_W < 380 ? 60 : 72,
-    lineHeight: SCREEN_W < 380 ? 56 : 68,
+    fontSize: SCREEN_W < 380 ? 48 : 56,
+    lineHeight: SCREEN_W < 380 ? 46 : 54,
     fontFamily: MONO,
     letterSpacing: 0,
     color: INK,
@@ -526,8 +508,10 @@ const s = StyleSheet.create({
     borderWidth: 2, borderColor: INK, alignItems: 'center',
   },
   ctaText: { fontFamily: MONO, fontSize: 14, fontWeight: '700', letterSpacing: 2, color: PAPER },
-  browseBtn: { paddingVertical: 14, alignItems: 'center', borderWidth: 2, borderColor: 'rgba(10,10,10,0.15)' },
-  browseBtnText: { fontFamily: MONO, fontSize: 10, color: 'rgba(10,10,10,0.5)', letterSpacing: 2 },
+  browseBtn: { paddingVertical: 14, paddingHorizontal: 16, alignItems: 'flex-start', borderWidth: 2, borderColor: INK },
+  browseBtnTitle: { fontFamily: MONO, fontSize: 11, fontWeight: '900', color: INK, letterSpacing: 1.2, marginBottom: 5 },
+  browseBtnText: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.5)', lineHeight: 14 },
+  browseBtnAction: { fontFamily: MONO, fontSize: 9, fontWeight: '900', color: ACCENT, letterSpacing: 1.2, marginTop: 9 },
 
   // Browse screen
   browseContainer: { flex: 1, backgroundColor: PAPER },

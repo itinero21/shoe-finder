@@ -23,10 +23,14 @@ import { StravaMark, AppleHealthMark, GarminMark, Wordmark } from '../../compone
 import { getLivingShoes } from '../utils/characterStorage';
 import { LivingShoe } from '../types/character';
 import { generateDialogue } from '../utils/dialogueEngine';
+import { getTodaysWeather } from '../services/weatherService';
+import { getUserProfile } from '../utils/userProfile';
+import { getShoeOfTheDay, ShoeRecommendation } from '../intelligence/bridge';
 
 const INK    = '#0A0A0A';
 const PAPER  = '#F4F1EA';
 const ACCENT = '#FF3D00';
+const LIME   = '#D4FF00';
 const MONO   = 'SpaceMono';
 const BLUE   = '#2563EB';
 const GREEN  = '#16A34A';
@@ -48,6 +52,7 @@ export default function RunScreen() {
   const [stravaConnected, setStravaConnected] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [justRated, setJustRated] = useState(false);
+  const [recommended, setRecommended] = useState<ShoeRecommendation | null>(null);
 
   // Modals
   const [showLiveRun, setShowLiveRun] = useState(false);
@@ -67,6 +72,12 @@ export default function RunScreen() {
       setRuns(allRuns.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       setLivingShoes(chars);
       setStravaConnected(!!stravaTokens?.access_token);
+      const shoeData = Object.fromEntries(SHOES.map(shoe => [shoe.id, shoe]));
+      const [weather, profile] = await Promise.all([
+        getTodaysWeather().catch(() => null),
+        getUserProfile(),
+      ]);
+      setRecommended(getShoeOfTheDay(chars, shoeData, allRuns, weather, profile));
     })();
   }, []));
 
@@ -144,6 +155,24 @@ export default function RunScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+          </View>
+        )}
+
+        {recommended && (
+          <View style={s.recommendedCard}>
+            <View style={s.recommendedTop}>
+              <Text style={s.recommendedLabel}>RECOMMENDED TODAY</Text>
+              <Text style={s.recommendedScore}>{recommended.score}% READY</Text>
+            </View>
+            <Text style={s.recommendedName}>{recommended.shoeName.toUpperCase()}</Text>
+            <Text style={s.recommendedReason}>{recommended.reason}</Text>
+            <TouchableOpacity
+              style={s.recommendedBtn}
+              onPress={() => { setShowLiveRun(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); }}
+            >
+              <Text style={s.recommendedBtnText}>USE THIS SHOE</Text>
+              <Ionicons name="arrow-forward" size={17} color={INK} />
+            </TouchableOpacity>
           </View>
         )}
 
@@ -232,8 +261,8 @@ export default function RunScreen() {
 
         <View style={s.section}>
           <View style={s.sectionHead}>
-            <Text style={s.sectionLabel}>CONNECTIONS</Text>
-            <Text style={s.sectionSub}>IMPORT RUNS WITHOUT LOSING THE STORY</Text>
+            <Text style={s.sectionLabel}>IMPORT &amp; SYNC</Text>
+            <Text style={s.sectionSub}>BRING IN RUNS FROM YOUR OTHER APPS</Text>
           </View>
 
           <TouchableOpacity
@@ -306,7 +335,7 @@ export default function RunScreen() {
       </ScrollView>
 
       {/* Modals */}
-      <LiveRunModal visible={showLiveRun} onClose={() => setShowLiveRun(false)} onSaved={async () => {
+      <LiveRunModal visible={showLiveRun} initialShoeId={recommended?.shoeId} onClose={() => setShowLiveRun(false)} onSaved={async () => {
         const allRuns = await getRuns();
         setRuns(allRuns.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       }} />
@@ -338,6 +367,15 @@ const s = StyleSheet.create({
   headerStatValue: { fontFamily: MONO, fontSize: 16, fontWeight: '900', color: INK, letterSpacing: 0 },
   headerStatLabel: { fontFamily: MONO, fontSize: 7, fontWeight: '700', color: 'rgba(10,10,10,0.45)', letterSpacing: 1.5 },
   scroll: { paddingVertical: 20, paddingBottom: 80 },
+
+  recommendedCard: { marginHorizontal: 16, marginBottom: 22, padding: 16, backgroundColor: INK, borderLeftWidth: 5, borderLeftColor: LIME },
+  recommendedTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 },
+  recommendedLabel: { fontFamily: MONO, fontSize: 8, fontWeight: '900', color: 'rgba(244,241,234,0.5)', letterSpacing: 2 },
+  recommendedScore: { fontFamily: MONO, fontSize: 9, fontWeight: '900', color: LIME, letterSpacing: 1 },
+  recommendedName: { fontFamily: MONO, fontSize: 18, fontWeight: '900', color: PAPER, lineHeight: 24, marginBottom: 7 },
+  recommendedReason: { fontFamily: MONO, fontSize: 10, color: 'rgba(244,241,234,0.65)', lineHeight: 16, marginBottom: 13 },
+  recommendedBtn: { backgroundColor: LIME, borderWidth: 2, borderColor: PAPER, paddingVertical: 11, paddingHorizontal: 13, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  recommendedBtnText: { fontFamily: MONO, fontSize: 10, fontWeight: '900', color: INK, letterSpacing: 1.5 },
 
   heroWrap: { marginHorizontal: 16, marginBottom: 26, position: 'relative' },
   heroShadow: { position: 'absolute', top: 6, left: 6, right: -6, bottom: -6, backgroundColor: INK, borderRadius: 2 },

@@ -16,7 +16,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { QuizAnswers, InjuryCurrent, InjuryHistory, PriceRange, getAllBrands } from '../app/utils/scoring';
+import { QuizAnswers, InjuryCurrent, InjuryHistory, getAllBrands } from '../app/utils/scoring';
 import { SHOES } from '../app/data/shoes';
 
 const { width } = Dimensions.get('window');
@@ -72,21 +72,6 @@ const STEP_TERRAIN: SingleStep = {
     { value: 'trail_groomed', label: 'Groomed Trails', sublabel: 'Packed dirt, light terrain' },
     { value: 'trail_technical', label: 'Technical Trails', sublabel: 'Rocks, roots, steep terrain' },
     { value: 'track', label: 'Track / Synthetic', sublabel: 'Oval track, synthetic surface' },
-  ],
-};
-
-const STEP_BUDGET: SingleStep = {
-  kind: 'single',
-  id: 'price_range',
-  question: 'What is your budget for this shoe?',
-  subtext: "We'll prioritize shoes in your range. This also seeds your Shoe Fund — every mile chips away at the cost.",
-  badge: 'ECONOMIC ANCHOR',
-  options: [
-    { value: 'budget',  label: 'Under $100',    sublabel: 'Best value picks, no-frills performance' },
-    { value: 'mid',     label: '$100 – $160',   sublabel: 'The sweet spot — most great shoes live here' },
-    { value: 'premium', label: '$160 – $220',   sublabel: 'Premium foam, wider model selection' },
-    { value: 'ultra',   label: '$220+',          sublabel: 'Carbon racers and top-shelf trainers' },
-    { value: 'no_pref', label: 'No Preference', sublabel: 'Show me the best fit regardless of price' },
   ],
 };
 
@@ -329,10 +314,9 @@ const STEP_BRAND: BrandStep = {
   subtext: "We'll recommend only from your chosen brands — or pick \"Any\" for the full database.",
 };
 
-// Full diagnostic (12 questions, longer track)
+// Full diagnostic (17 questions, longer track)
 const ALL_STEPS: QuizStep[] = [
   STEP_TERRAIN,
-  STEP_BUDGET,
   STEP_PRIORITY,
   STEP_CURRENT_SHOE,
   STEP_WEEKLY_MILEAGE,
@@ -354,7 +338,6 @@ const ALL_STEPS: QuizStep[] = [
 // Quick scan (10 questions): still fast, but includes the signals that stop the last 10% wrong answers.
 const BEGINNER_STEPS: QuizStep[] = [
   STEP_TERRAIN,
-  STEP_BUDGET,
   STEP_PRIORITY,
   STEP_CURRENT_SHOE,
   STEP_WEEKLY_MILEAGE,
@@ -396,7 +379,6 @@ const HardShadowCard: React.FC<{
 // ─── Defaults for fields the quick scan doesn't ask ──────────────────────────
 
 const QUICK_SCAN_DEFAULTS: Partial<QuizAnswers> = {
-  price_range: 'no_pref',
   goal: 'easy_base',
   experience: 'intermediate',
   arch_type: 'unsure',

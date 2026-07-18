@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   return (
@@ -31,7 +31,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'CLOSET',
-          tabBarIcon: ({ color }) => <Ionicons name="shirt-outline" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="shoe-sneaker" size={24} color={color} />,
         }}
       />
 
@@ -48,8 +48,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="scan"
         options={{
-          title: 'ADD',
-          tabBarIcon: ({ color }) => <Ionicons name="add-circle-outline" size={22} color={color} />,
+          title: 'SCOUT',
+          tabBarIcon: ({ color }) => <Ionicons name="search-outline" size={22} color={color} />,
         }}
       />
 
