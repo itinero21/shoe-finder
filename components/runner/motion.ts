@@ -115,7 +115,7 @@ export function gaitParamsFor(speed: number): GaitParams {
     swingHeight: lerp(11, 24, s),
     bounce: lerp(2.2, 5.5, s),
     lean: lerp(0.07, 0.17, s),
-    armAmp: lerp(0.42, 0.78, s),
+    armAmp: lerp(0.36, 0.6, s),
     stanceFrac: lerp(0.42, 0.31, s),
     kneeDrive: s,
   };
@@ -175,7 +175,7 @@ function buildArm(shoulder: Vec2, swing: number, foldBase: number): ArmPose {
     x: shoulder.x + BONES.upperArm * Math.sin(upper),
     y: shoulder.y + BONES.upperArm * Math.cos(upper),
   };
-  const fold = foldBase + swing * 0.3;
+  const fold = foldBase + swing * 0.15;
   const fore = upper + fold; // fold forward (+x)
   const wrist: Vec2 = {
     x: elbow.x + BONES.forearm * Math.sin(fore),
@@ -246,8 +246,8 @@ export function runningPose(phase: number, speed: number, time: number, seed: nu
   // so the front arm is fully back at φ≈0: swing = -A·cos(φ·2π).
   const armWave = Math.cos(ph * TAU);
   const arms: [ArmPose, ArmPose] = [
-    buildArm(rearShoulder, p.armAmp * mv.arm * armWave, 1.35),
-    buildArm(frontShoulder, -p.armAmp * mv.arm * armWave, 1.3),
+    buildArm(rearShoulder, p.armAmp * mv.arm * armWave, 1.12),
+    buildArm(frontShoulder, -p.armAmp * mv.arm * armWave, 1.08),
   ];
 
   // Head: stable, slightly delayed bob, tiny rotation.

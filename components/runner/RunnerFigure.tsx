@@ -28,6 +28,8 @@ interface SegSpec {
   w: number;
   len: number;
   colors: readonly [string, string, string];
+  /** square the top end (used by shorts cuffs so they fuse with the block) */
+  flatTop?: boolean;
 }
 
 // Selectors are module-scope worklets so animated styles can call them.
@@ -42,15 +44,16 @@ const selRearForearm = (p: RunnerPose): [Vec2, Vec2] => { 'worklet'; return [p.a
 const selFrontUpperArm = (p: RunnerPose): [Vec2, Vec2] => { 'worklet'; return [p.arms[1].shoulder, p.arms[1].elbow]; };
 const selFrontForearm = (p: RunnerPose): [Vec2, Vec2] => { 'worklet'; return [p.arms[1].elbow, p.arms[1].wrist]; };
 const selTorso = (p: RunnerPose): [Vec2, Vec2] => { 'worklet'; return [p.pelvis, p.chest]; };
+const selNeck = (p: RunnerPose): [Vec2, Vec2] => { 'worklet'; return [p.chest, p.head]; };
 const selRearCuff = (p: RunnerPose): [Vec2, Vec2] => {
   'worklet';
   const { hip, knee } = p.legs[0];
-  return [hip, { x: hip.x + (knee.x - hip.x) * 0.45, y: hip.y + (knee.y - hip.y) * 0.45 }];
+  return [hip, { x: hip.x + (knee.x - hip.x) * 0.42, y: hip.y + (knee.y - hip.y) * 0.42 }];
 };
 const selFrontCuff = (p: RunnerPose): [Vec2, Vec2] => {
   'worklet';
   const { hip, knee } = p.legs[1];
-  return [hip, { x: hip.x + (knee.x - hip.x) * 0.45, y: hip.y + (knee.y - hip.y) * 0.45 }];
+  return [hip, { x: hip.x + (knee.x - hip.x) * 0.42, y: hip.y + (knee.y - hip.y) * 0.42 }];
 };
 
 function makeSegs(accent: string, accentDark: string): SegSpec[] {
@@ -62,12 +65,13 @@ function makeSegs(accent: string, accentDark: string): SegSpec[] {
     { key: 'rl1', sel: selRearThigh, w: 12.5, len: BONES.thigh, colors: CLAY_REAR },
     { key: 'rl2', sel: selRearShin, w: 10, len: BONES.shin, colors: CLAY_REAR },
     { key: 'rlf', sel: selRearFoot, w: 9.5, len: BONES.footLen, colors: [accentDark, accentDark, '#7A2A12'] },
-    { key: 'rcuff', sel: selRearCuff, w: 14.5, len: BONES.thigh * 0.45, colors: INK_MAT },
+    { key: 'rcuff', sel: selRearCuff, w: 13, len: BONES.thigh * 0.4, colors: INK_MAT, flatTop: true },
     { key: 'torso', sel: selTorso, w: 17, len: BONES.torso, colors: CLAY_FRONT },
+    { key: 'neck', sel: selNeck, w: 7.5, len: BONES.neck + 4, colors: CLAY_FRONT },
     { key: 'fl1', sel: selFrontThigh, w: 12.5, len: BONES.thigh, colors: CLAY_FRONT },
     { key: 'fl2', sel: selFrontShin, w: 10, len: BONES.shin, colors: CLAY_FRONT },
     { key: 'flf', sel: selFrontFoot, w: 9.5, len: BONES.footLen, colors: ACCENT_MAT },
-    { key: 'fcuff', sel: selFrontCuff, w: 14.5, len: BONES.thigh * 0.45, colors: INK_MAT },
+    { key: 'fcuff', sel: selFrontCuff, w: 13, len: BONES.thigh * 0.4, colors: INK_MAT, flatTop: true },
     { key: 'fa1', sel: selFrontUpperArm, w: 9, len: BONES.upperArm, colors: CLAY_FRONT },
     { key: 'fa2', sel: selFrontForearm, w: 8, len: BONES.forearm, colors: CLAY_FRONT },
   ];
@@ -96,7 +100,9 @@ function Capsule({ pose, spec }: { pose: SharedValue<RunnerPose>; spec: SegSpec 
         colors={[...spec.colors]}
         start={{ x: 0, y: 0.1 }}
         end={{ x: 1, y: 0.9 }}
-        style={[st.fill, { borderRadius: w / 2 }]}
+        style={[st.fill, spec.flatTop
+          ? { borderBottomLeftRadius: w / 2, borderBottomRightRadius: w / 2, borderTopLeftRadius: 2, borderTopRightRadius: 2 }
+          : { borderRadius: w / 2 }]}
       />
     </Animated.View>
   );
@@ -111,7 +117,7 @@ export interface RunnerFigureProps {
   accent?: string;
 }
 
-const HEAD_R = 11.5;
+const HEAD_R = 12;
 
 export function RunnerFigure({ pose, height, ponytail = false, accent = '#FF3D00' }: RunnerFigureProps) {
   const scale = height / DESIGN_H;
@@ -136,7 +142,7 @@ export function RunnerFigure({ pose, height, ponytail = false, accent = '#FF3D00
   const head = useAnimatedStyle(() => ({
     transform: [
       { translateX: pose.value.head.x - HEAD_R },
-      { translateY: pose.value.head.y - HEAD_R - 6 },
+      { translateY: pose.value.head.y - HEAD_R - 1 },
       { rotate: `${pose.value.headAngle}rad` },
     ],
   }));
@@ -157,8 +163,8 @@ export function RunnerFigure({ pose, height, ponytail = false, accent = '#FF3D00
   // Shorts block rotates with the torso
   const shorts = useAnimatedStyle(() => ({
     transform: [
-      { translateX: pose.value.pelvis.x - 11.5 },
-      { translateY: pose.value.pelvis.y - 8 },
+      { translateX: pose.value.pelvis.x - 12.5 },
+      { translateY: pose.value.pelvis.y - 9 },
       { rotate: `${pose.value.torsoAngle}rad` },
     ],
   }));
@@ -166,12 +172,12 @@ export function RunnerFigure({ pose, height, ponytail = false, accent = '#FF3D00
   // Chest mass breathes very slightly
   const chest = useAnimatedStyle(() => {
     const p = pose.value;
-    const mx = (p.pelvis.x + p.chest.x * 2) / 3;
-    const my = (p.pelvis.y + p.chest.y * 2) / 3;
+    const mx = p.chest.x;
+    const my = p.chest.y + 3;
     return {
       transform: [
-        { translateX: mx - 9.5 },
-        { translateY: my - 14 },
+        { translateX: mx - 10.5 },
+        { translateY: my - 11 },
         { rotate: `${p.torsoAngle}rad` },
         { scale: 1 + p.breath * 0.02 },
       ],
@@ -180,17 +186,17 @@ export function RunnerFigure({ pose, height, ponytail = false, accent = '#FF3D00
 
   // Soft dynamic contact shadow
   const shadowOuter = useAnimatedStyle(() => ({
-    opacity: pose.value.shadow.opacity * 0.55,
+    opacity: pose.value.shadow.opacity * 0.32,
     transform: [
-      { translateX: pose.value.pelvis.x - 40 },
-      { translateY: GROUND_Y + 2 },
+      { translateX: pose.value.pelvis.x - 37 },
+      { translateY: GROUND_Y + 3 },
       { scaleX: pose.value.shadow.scaleX * 1.15 },
     ],
   }));
   const shadowInner = useAnimatedStyle(() => ({
-    opacity: pose.value.shadow.opacity,
+    opacity: pose.value.shadow.opacity * 0.75,
     transform: [
-      { translateX: pose.value.pelvis.x - 27 },
+      { translateX: pose.value.pelvis.x - 24 },
       { translateY: GROUND_Y + 4 },
       { scaleX: pose.value.shadow.scaleX },
     ],
@@ -204,17 +210,18 @@ export function RunnerFigure({ pose, height, ponytail = false, accent = '#FF3D00
 
         <Animated.View style={[st.hand, { backgroundColor: CLAY_REAR[1] }, rearHand]} />
         {segs.slice(0, 6).map(sp => <Capsule key={sp.key} pose={pose} spec={sp} />)}
+        {segs.slice(6, 12).map(sp => <Capsule key={sp.key} pose={pose} spec={sp} />)}
 
-        {/* Shorts sit between rear and front layers */}
+        {/* Shorts block paints over both cuff tops so the unit reads as one */}
         <Animated.View style={[st.shorts, shorts]}>
-          <LinearGradient colors={[...INK_MAT]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[st.fill, { borderRadius: 8 }]} />
+          <LinearGradient colors={[...INK_MAT]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[st.fill, { borderRadius: 7 }]} />
         </Animated.View>
 
-        {segs.slice(6).map(sp => <Capsule key={sp.key} pose={pose} spec={sp} />)}
+        {segs.slice(12).map(sp => <Capsule key={sp.key} pose={pose} spec={sp} />)}
 
         {/* Chest mass */}
         <Animated.View style={[st.chest, chest]}>
-          <LinearGradient colors={[...CLAY_FRONT]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[st.fill, { borderRadius: 9.5 }]} />
+          <LinearGradient colors={[...CLAY_FRONT]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[st.fill, { borderRadius: 10.5 }]} />
         </Animated.View>
 
         {ponytail && (
@@ -250,14 +257,14 @@ const st = StyleSheet.create({
     borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.5)',
   },
   pony: { position: 'absolute', left: 0, top: 0, width: 9, height: 16 },
-  shorts: { position: 'absolute', left: 0, top: 0, width: 23, height: 16 },
-  chest: { position: 'absolute', left: 0, top: 0, width: 19, height: 28 },
+  shorts: { position: 'absolute', left: 0, top: 0, width: 25, height: 15 },
+  chest: { position: 'absolute', left: 0, top: 0, width: 21, height: 22 },
   shadowOuter: {
-    position: 'absolute', left: 0, top: 0, width: 80, height: 13,
-    borderRadius: 8, backgroundColor: '#0A0A0A',
+    position: 'absolute', left: 0, top: 0, width: 74, height: 9,
+    borderRadius: 5, backgroundColor: '#0A0A0A',
   },
   shadowInner: {
-    position: 'absolute', left: 0, top: 0, width: 54, height: 9,
-    borderRadius: 6, backgroundColor: '#0A0A0A',
+    position: 'absolute', left: 0, top: 0, width: 48, height: 6,
+    borderRadius: 3.5, backgroundColor: '#0A0A0A',
   },
 });

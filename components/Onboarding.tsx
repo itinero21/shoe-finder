@@ -98,7 +98,7 @@ export function Onboarding({ onComplete, onStartScout }: OnboardingProps) {
                 <Ionicons name="checkmark-circle" size={28} color={LIME} />
                 <Text style={s.forkCardTag}>ALREADY FITTED</Text>
               </View>
-              <Text style={s.forkCardTitle}>I KNOW MY SHOES.</Text>
+              <Text style={s.forkCardTitle} numberOfLines={1} adjustsFontSizeToFit>I KNOW MY SHOES.</Text>
               <Text style={s.forkCardDesc}>
                 You've already been fitted or know what you run in. Find your shoes and add them to your arsenal instantly.
               </Text>
@@ -121,7 +121,7 @@ export function Onboarding({ onComplete, onStartScout }: OnboardingProps) {
                 <Ionicons name="search" size={28} color={ACCENT} />
                 <Text style={[s.forkCardTag, { color: ACCENT }]}>NEW TO RUNNING</Text>
               </View>
-              <Text style={[s.forkCardTitle, { color: INK }]}>FIND MY SHOES.</Text>
+              <Text style={[s.forkCardTitle, { color: INK }]} numberOfLines={1} adjustsFontSizeToFit>FIND MY SHOES.</Text>
               <Text style={[s.forkCardDesc, { color: 'rgba(10,10,10,0.55)' }]}>
                 Not sure what you need? Take the 2-minute Scout diagnostic and get a personalised recommendation.
               </Text>
