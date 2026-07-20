@@ -49,7 +49,7 @@ export interface RunnerLoopProps {
   variant?: 'm' | 'w';
 }
 
-const KEYS = [0, 0.25, 0.5, 0.75, 1];
+const GAIT_KEYS = [0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1];
 
 export function RunnerLoop({
   freshness = 100,
@@ -60,11 +60,19 @@ export function RunnerLoop({
   const fresh = Math.max(0, Math.min(100, freshness)) / 100;
 
   // ── Physics derived from foam freshness ────────────────────────────────
-  const flight   = 1.5 + 5.0 * fresh;          // upward bounce (px)
-  const sink     = 7.5 - 4.5 * fresh;          // downward sink at stance (px)
+  const flight   = 1.0 + 2.8 * fresh;          // controlled upward flight (px)
+  const sink     = 3.5 - 2.0 * fresh;          // stance compression (px)
   const squash   = 0.55 + 0.33 * fresh;        // foam scaleY at footstrike
   const rebound  = fresh > 0.5 ? 1 : 0.85;     // spent foam doesn't fully return
   const cycleMs  = 950 - 280 * fresh;          // cadence
+  const stride   = 0.68 + 0.32 * fresh;        // tired shoes produce a shorter stride
+
+  const swingDeg = (angle: number) => `${Math.round(angle * stride)}deg`;
+  const kneeDeg = (angle: number) => `${Math.round(18 + (angle - 18) * stride)}deg`;
+  const ankleDeg = (thigh: number, knee: number, target: number) => {
+    const totalLegRotation = thigh * stride + 18 + (knee - 18) * stride;
+    return `${Math.round(target - totalLegRotation)}deg`;
+  };
 
   const t = useRef(new Animated.Value(0)).current;
 
@@ -84,30 +92,54 @@ export function RunnerLoop({
 
   // ── Run-cycle keyframes ────────────────────────────────────────────────
   // Front leg strikes at t=0.25, back leg at t=0.75
-  const thighFront = t.interpolate({ inputRange: KEYS, outputRange: ['-42deg', '-4deg', '32deg', '2deg', '-42deg'] });
-  const thighBack  = t.interpolate({ inputRange: KEYS, outputRange: ['32deg', '2deg', '-42deg', '-4deg', '32deg'] });
-  const kneeFront  = t.interpolate({ inputRange: KEYS, outputRange: ['22deg', '14deg', '34deg', '104deg', '22deg'] });
-  const kneeBack   = t.interpolate({ inputRange: KEYS, outputRange: ['34deg', '104deg', '22deg', '14deg', '34deg'] });
-  const armFront   = t.interpolate({ inputRange: KEYS, outputRange: ['34deg', '4deg', '-36deg', '-2deg', '34deg'] });
-  const armBack    = t.interpolate({ inputRange: KEYS, outputRange: ['-36deg', '-2deg', '34deg', '4deg', '-36deg'] });
+  const thighFront = t.interpolate({
+    inputRange: GAIT_KEYS,
+    outputRange: [-38, -24, -6, 18, 34, 28, 4, -25, -38].map(swingDeg),
+  });
+  const thighBack = t.interpolate({
+    inputRange: GAIT_KEYS,
+    outputRange: [34, 28, 4, -25, -38, -24, -6, 18, 34].map(swingDeg),
+  });
+  const kneeFront = t.interpolate({
+    inputRange: GAIT_KEYS,
+    outputRange: [38, 20, 12, 20, 42, 76, 98, 72, 38].map(kneeDeg),
+  });
+  const kneeBack = t.interpolate({
+    inputRange: GAIT_KEYS,
+    outputRange: [42, 76, 98, 72, 38, 20, 12, 20, 42].map(kneeDeg),
+  });
+  const armFront = t.interpolate({
+    inputRange: GAIT_KEYS,
+    outputRange: [32, 22, 4, -18, -32, -22, -4, 18, 32].map(swingDeg),
+  });
+  const armBack = t.interpolate({
+    inputRange: GAIT_KEYS,
+    outputRange: [-32, -22, -4, 18, 32, 22, 4, -18, -32].map(swingDeg),
+  });
 
   // The foot needs its own joint. Without this counter-rotation the shoe
   // inherits thigh + knee rotation and can turn more than 100° in recovery.
   // These angles keep the shoe close to level at contact while allowing a
   // natural toe-up recovery position in flight.
   const ankleFront = t.interpolate({
-    inputRange: KEYS,
-    outputRange: ['12deg', '-8deg', '-52deg', '-124deg', '12deg'],
+    inputRange: GAIT_KEYS,
+    outputRange: [
+      [-38, 38, -8], [-24, 20, -4], [-6, 12, 2], [18, 20, 8], [34, 42, 14],
+      [28, 76, 5], [4, 98, -14], [-25, 72, -18], [-38, 38, -8],
+    ].map(([thigh, knee, target]) => ankleDeg(thigh, knee, target)),
   });
   const ankleBack = t.interpolate({
-    inputRange: KEYS,
-    outputRange: ['-52deg', '-124deg', '12deg', '-8deg', '-52deg'],
+    inputRange: GAIT_KEYS,
+    outputRange: [
+      [34, 42, 14], [28, 76, 5], [4, 98, -14], [-25, 72, -18], [-38, 38, -8],
+      [-24, 20, -4], [-6, 12, 2], [18, 20, 8], [34, 42, 14],
+    ].map(([thigh, knee, target]) => ankleDeg(thigh, knee, target)),
   });
 
   // Vertical bob — flight at 0/0.5, sink at footstrikes 0.25/0.75
   const bob = t.interpolate({
-    inputRange: KEYS,
-    outputRange: [-flight, sink, -flight, sink, -flight],
+    inputRange: GAIT_KEYS,
+    outputRange: [-flight, -0.5, sink, 0, -flight, -0.5, sink, 0, -flight],
   });
 
   // Foam squash at each foot's contact moment
@@ -122,8 +154,8 @@ export function RunnerLoop({
 
   // Ground shadow breathes opposite to the bounce
   const shadowScale = t.interpolate({
-    inputRange: KEYS,
-    outputRange: [0.82, 1.12, 0.82, 1.12, 0.82],
+    inputRange: GAIT_KEYS,
+    outputRange: [0.88, 0.98, 1.08, 0.98, 0.88, 0.98, 1.08, 0.98, 0.88],
   });
 
   const scale = size / 150;
@@ -143,7 +175,9 @@ export function RunnerLoop({
           {/* BACK ARM */}
           <Animated.View style={[st.armPivot, st.backArmPivot, { transform: [{ rotate: armBack }] }]}>
             <View style={[st.upperArm, { backgroundColor: CLAY_BACK }]} />
-            <View style={[st.forearm, { backgroundColor: CLAY_BACK }]} />
+            <View style={st.elbowPivot}>
+              <View style={[st.forearm, { backgroundColor: CLAY_BACK }]} />
+            </View>
           </Animated.View>
 
           {/* BACK LEG */}
@@ -188,7 +222,9 @@ export function RunnerLoop({
           {/* FRONT ARM */}
           <Animated.View style={[st.armPivot, st.frontArmPivot, { transform: [{ rotate: armFront }] }]}>
             <View style={[st.upperArm, { backgroundColor: CLAY }]} />
-            <View style={[st.forearm, { backgroundColor: CLAY }]} />
+            <View style={st.elbowPivot}>
+              <View style={[st.forearm, { backgroundColor: CLAY }]} />
+            </View>
           </Animated.View>
         </Animated.View>
       </View>
@@ -269,52 +305,55 @@ const st = StyleSheet.create({
   // ── Legs — pivot at the hip, knee pivot nested inside ──────────────────
   thighPivot: {
     position: 'absolute',
-    left: 68,
-    top: 80,
-    width: 12,
-    height: 30,
-    transformOrigin: 'top center',
+    left: 34,
+    top: 40,
+    width: 80,
+    height: 80,
   },
-  backLegPivot: { left: 66 },
-  frontLegPivot: { left: 70 },
+  backLegPivot: { left: 31 },
+  frontLegPivot: { left: 35 },
   thigh: {
+    position: 'absolute',
+    left: 34,
+    top: 40,
     width: 12,
     height: 32,
     borderRadius: 6,
   },
   kneePivot: {
     position: 'absolute',
-    left: 1,
-    top: 28,
-    width: 10,
-    height: 28,
-    transformOrigin: 'top center',
+    left: 5,
+    top: 37,
+    width: 70,
+    height: 70,
   },
   kneeCap: {
     position: 'absolute',
-    left: -1,
-    top: -3,
+    left: 29,
+    top: 29,
     width: 12,
     height: 12,
     borderRadius: 6,
   },
   shin: {
+    position: 'absolute',
+    left: 30,
+    top: 35,
     width: 10,
     height: 30,
     borderRadius: 5,
   },
   footGroup: {
     position: 'absolute',
-    left: 3,
-    top: 26,
-    width: 24,
-    height: 14,
-    transformOrigin: 'left center',
+    left: 5,
+    top: 45,
+    width: 60,
+    height: 40,
   },
   shoeUpper: {
     position: 'absolute',
-    top: 0,
-    left: 0,
+    top: 14,
+    left: 30,
     width: 24,
     height: 7,
     borderTopLeftRadius: 4,
@@ -323,20 +362,19 @@ const st = StyleSheet.create({
   },
   foam: {
     position: 'absolute',
-    top: 6,
-    left: 0,
+    top: 20,
+    left: 30,
     width: 24,
     height: 6,
     borderRadius: 3,
     backgroundColor: '#F4F1EA',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(10,10,10,0.25)',
-    transformOrigin: 'bottom center',
   },
   outsole: {
     position: 'absolute',
-    left: 1,
-    top: 11,
+    left: 31,
+    top: 25,
     width: 23,
     height: 2,
     borderRadius: 1,
@@ -347,28 +385,36 @@ const st = StyleSheet.create({
   // ── Arms — pivot at the shoulder, forearm fixed at a runner's bend ─────
   armPivot: {
     position: 'absolute',
-    left: 70,
-    top: 46,
-    width: 10,
-    height: 22,
-    transformOrigin: 'top center',
+    left: 35,
+    top: 8,
+    width: 80,
+    height: 80,
   },
-  backArmPivot: { left: 67 },
-  frontArmPivot: { left: 72 },
+  backArmPivot: { left: 32 },
+  frontArmPivot: { left: 37 },
   upperArm: {
+    position: 'absolute',
+    left: 35,
+    top: 40,
     width: 10,
     height: 24,
     borderRadius: 5,
   },
+  elbowPivot: {
+    position: 'absolute',
+    left: 15,
+    top: 39,
+    width: 50,
+    height: 50,
+    transform: [{ rotate: '-74deg' }],
+  },
   forearm: {
     position: 'absolute',
-    left: 3,
-    top: 20,
+    left: 21,
+    top: 25,
     width: 9,
     height: 20,
     borderRadius: 5,
-    transform: [{ rotate: '-74deg' }],
-    transformOrigin: 'top center',
   },
 });
 
