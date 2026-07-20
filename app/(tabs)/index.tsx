@@ -267,9 +267,12 @@ export default function ClosetScreen() {
       setChemistry(analyzeRotationChemistry(updated, shoeDataMap));
       setShoeAwards(buildYearEndShoeAwards(updated, memos, allRuns, shoeDataMap));
 
-      // Auto-sync watches
+      // Auto-sync watches + Strava (quiet, hourly-throttled)
       import('../services/watchService').then(({ syncAllWatches }) =>
         syncAllWatches().catch(() => {})
+      );
+      import('../services/stravaService').then(({ autoSyncStrava }) =>
+        autoSyncStrava().catch(() => {})
       );
     })();
   }, []));

@@ -17,7 +17,7 @@ import { getRuns, updateRun } from '../utils/runStorage';
 import { Run } from '../types/run';
 import {
   connectStrava, getStravaTokens, syncStravaActivities,
-  getStravaGear, StravaGear, getGearMap, matchGearToCatalog,
+  getStravaGear, StravaGear, getGearMap, matchGearToCatalog, autoSyncStrava,
 } from '../services/stravaService';
 import { importStravaGear, closetShoeNameFor } from '../services/stravaGearSync';
 import { LiveRunModal } from '../../components/LiveRunModal';
@@ -82,6 +82,13 @@ export default function RunScreen() {
       if (stravaTokens?.access_token) {
         getStravaGear().then(setStravaGear).catch(() => {});
         getGearMap().then(setGearMapState).catch(() => {});
+        // Quiet hourly auto-sync — no button press needed
+        autoSyncStrava().then(async result => {
+          if (result && result.imported > 0) {
+            const fresh = await getRuns();
+            setRuns(fresh.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+          }
+        }).catch(() => {});
       }
       const shoeData = Object.fromEntries(SHOES.map(shoe => [shoe.id, shoe]));
       const [weather, profile] = await Promise.all([

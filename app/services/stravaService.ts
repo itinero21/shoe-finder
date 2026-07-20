@@ -428,6 +428,24 @@ export async function uploadRunToStrava(
   }
 }
 
+// ── Background auto-sync ──────────────────────────────────────────────────────
+// Once connected, Strava stays connected (refresh tokens) and STRIDE keeps
+// itself current without the user pressing SYNC: at most once per hour, on
+// app-surface focus, new activities are pulled with the gear map applied.
+
+const LAST_AUTOSYNC = 'stride_strava_last_autosync';
+const AUTOSYNC_MIN_INTERVAL_MS = 60 * 60 * 1000;
+
+export async function autoSyncStrava(): Promise<SyncResult | null> {
+  const tokens = await getStravaTokens();
+  if (!tokens?.access_token) return null;
+  const last = await AsyncStorage.getItem(LAST_AUTOSYNC);
+  if (last && Date.now() - parseInt(last, 10) < AUTOSYNC_MIN_INTERVAL_MS) return null;
+  await AsyncStorage.setItem(LAST_AUTOSYNC, String(Date.now()));
+  const gearMap = await getGearMap();
+  return syncStravaActivities(gearMap).catch(() => null);
+}
+
 // ── Strava gear list (athlete's shoes + lifetime mileage) ─────────────────────
 export interface StravaGear {
   id: string;
