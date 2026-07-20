@@ -117,6 +117,10 @@ export interface LivingShoe {
   // Economics
   purchasePrice: number | null;     // actual price user paid (not list price)
   decompressionHours: number;       // hours foam needs to recover after last run
+
+  // Imported history (e.g. Strava gear mileage before STRIDE existed).
+  // Counts toward totalMiles / life / cost-per-mile, but not run stats.
+  importedBaselineMiles?: number;
 }
 
 // ── Dialogue Line ───────────────────────────────────────────────────────────

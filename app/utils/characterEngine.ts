@@ -421,7 +421,8 @@ export function updateShoeAfterRun(
   weightLbs: number,
 ): LivingShoe {
   const shoeRuns = allRuns.filter(r => r.shoeId === shoe.shoeId);
-  const totalMiles = shoeRuns.reduce((s, r) => s + r.distanceKm * 0.621371, 0);
+  const totalMiles = shoeRuns.reduce((s, r) => s + r.distanceKm * 0.621371, 0)
+    + (shoe.importedBaselineMiles ?? 0);
   const lifePct = Math.min(100, (totalMiles / shoe.lifespanMiles) * 100);
   const lastRun = shoeRuns.sort((a, b) =>
     new Date(b.date).getTime() - new Date(a.date).getTime()

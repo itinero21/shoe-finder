@@ -11,11 +11,15 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ALL_TRACKABLE_SHOES as SHOES, Shoe } from '../data/shoes';
+import { ALL_TRACKABLE_SHOES as SHOES, CURRENT_SHOES, Shoe } from '../data/shoes';
 import { getFavorites } from '../utils/storage';
 import { getRuns, updateRun } from '../utils/runStorage';
 import { Run } from '../types/run';
-import { connectStrava, getStravaTokens, syncStravaActivities } from '../services/stravaService';
+import {
+  connectStrava, getStravaTokens, syncStravaActivities,
+  getStravaGear, StravaGear, getGearMap, matchGearToCatalog,
+} from '../services/stravaService';
+import { importStravaGear, closetShoeNameFor } from '../services/stravaGearSync';
 import { LiveRunModal } from '../../components/LiveRunModal';
 import { LogRunModal } from '../../components/LogRunModal';
 import { WatchConnectModal } from '../../components/WatchConnectModal';
@@ -53,6 +57,9 @@ export default function RunScreen() {
   const [syncing, setSyncing] = useState(false);
   const [justRated, setJustRated] = useState(false);
   const [recommended, setRecommended] = useState<ShoeRecommendation | null>(null);
+  const [stravaGear, setStravaGear] = useState<StravaGear[]>([]);
+  const [gearMap, setGearMapState] = useState<Record<string, string>>({});
+  const [importingGear, setImportingGear] = useState<string | null>(null);
 
   // Modals
   const [showLiveRun, setShowLiveRun] = useState(false);
@@ -72,6 +79,10 @@ export default function RunScreen() {
       setRuns(allRuns.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       setLivingShoes(chars);
       setStravaConnected(!!stravaTokens?.access_token);
+      if (stravaTokens?.access_token) {
+        getStravaGear().then(setStravaGear).catch(() => {});
+        getGearMap().then(setGearMapState).catch(() => {});
+      }
       const shoeData = Object.fromEntries(SHOES.map(shoe => [shoe.id, shoe]));
       const [weather, profile] = await Promise.all([
         getTodaysWeather().catch(() => null),
@@ -111,7 +122,8 @@ export default function RunScreen() {
 
   const handleSync = async () => {
     setSyncing(true);
-    await syncStravaActivities({}).catch(() => {});
+    const map = await getGearMap().catch(() => ({} as Record<string, string>));
+    await syncStravaActivities(map).catch(() => {});
     const allRuns = await getRuns();
     setRuns(allRuns.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setSyncing(false);
@@ -121,7 +133,29 @@ export default function RunScreen() {
     setSyncing(true);
     const tokens = await connectStrava().catch(() => null);
     setStravaConnected(!!tokens?.access_token);
+    if (tokens?.access_token) {
+      getStravaGear().then(setStravaGear).catch(() => {});
+      getGearMap().then(setGearMapState).catch(() => {});
+    }
     setSyncing(false);
+  };
+
+  const handleImportGear = async (gear: StravaGear) => {
+    const match = matchGearToCatalog(gear.name, CURRENT_SHOES);
+    if (!match) return;
+    setImportingGear(gear.id);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      await importStravaGear(gear, match);
+      const [favs, chars, map] = await Promise.all([
+        getFavorites(), getLivingShoes(), getGearMap(),
+      ]);
+      setFavoriteIds(favs);
+      setLivingShoes(chars);
+      setGearMapState(map);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch { /* keep UI stable */ }
+    setImportingGear(null);
   };
 
   return (
@@ -309,6 +343,58 @@ export default function RunScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Strava shoes — the athlete's gear, mileage included */}
+        {stravaConnected && stravaGear.length > 0 && (
+          <View style={s.section}>
+            <View style={s.sectionHead}>
+              <Text style={s.sectionLabel}>STRAVA SHOES</Text>
+              <Text style={s.sectionSub}>YOUR GEAR AND ITS LIFETIME DISTANCE</Text>
+            </View>
+            {stravaGear.filter(g => !g.retired).map(gear => {
+              const linkedShoeId = gearMap[gear.id];
+              const linkedName = linkedShoeId ? closetShoeNameFor(linkedShoeId) : null;
+              const match = linkedShoeId ? null : matchGearToCatalog(gear.name, CURRENT_SHOES);
+              return (
+                <View key={gear.id} style={s.gearRow}>
+                  <View style={s.gearInfo}>
+                    <Text style={s.gearName} numberOfLines={1}>{gear.name.toUpperCase()}</Text>
+                    <Text style={s.gearDistance}>
+                      {Math.round(gear.distance_km)} KM · {Math.round(gear.distance_km * 0.621371)} MI
+                      {gear.primary ? ' · PRIMARY' : ''}
+                    </Text>
+                    {linkedName && <Text style={s.gearLinked}>IN CLOSET AS {linkedName.toUpperCase()}</Text>}
+                    {!linkedName && !match && (
+                      <Text style={s.gearNoMatch}>NO CATALOG MATCH — ADD IT FROM SCOUT</Text>
+                    )}
+                  </View>
+                  {!linkedName && match && (
+                    <TouchableOpacity
+                      onPress={() => handleImportGear(gear)}
+                      disabled={importingGear === gear.id}
+                      style={s.gearImportBtn}
+                    >
+                      <Text style={s.gearImportText}>
+                        {importingGear === gear.id ? '...' : 'ADD'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {linkedName && <Ionicons name="checkmark-circle" size={18} color={GREEN} />}
+                </View>
+              );
+            })}
+            <Text style={s.gearFootnote}>
+              IMPORTED SHOES CARRY THEIR STRAVA MILEAGE INTO LIFE, HEALTH, AND COST TRACKING.
+            </Text>
+          </View>
+        )}
+        {stravaConnected && stravaGear.length === 0 && (
+          <View style={s.section}>
+            <Text style={s.gearNoMatch}>
+              NO STRAVA SHOES FOUND. IF YOU HAVE GEAR ON STRAVA, RECONNECT TO GRANT SHOE ACCESS.
+            </Text>
+          </View>
+        )}
+
         {/* Last run reaction */}
         {postRunLine && recentShoe && (
           <View style={s.reactionWrap}>
@@ -436,4 +522,13 @@ const s = StyleSheet.create({
   rateRow: { flexDirection: 'row', gap: 6 },
   rateChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderWidth: 2, borderColor: 'rgba(10,10,10,0.25)', borderRadius: 2 },
   rateChipText: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: INK, letterSpacing: 0.5 },
+  gearRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(10,10,10,0.1)' },
+  gearInfo: { flex: 1 },
+  gearName: { fontFamily: MONO, fontSize: 11, fontWeight: '900', color: INK, letterSpacing: 0.5, marginBottom: 3 },
+  gearDistance: { fontFamily: MONO, fontSize: 9, color: 'rgba(10,10,10,0.5)', letterSpacing: 0.8 },
+  gearLinked: { fontFamily: MONO, fontSize: 8, color: GREEN, letterSpacing: 0.8, marginTop: 3 },
+  gearNoMatch: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.4)', letterSpacing: 0.8, marginTop: 3, marginHorizontal: 0 },
+  gearImportBtn: { backgroundColor: INK, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 2 },
+  gearImportText: { fontFamily: MONO, fontSize: 9, fontWeight: '900', color: LIME, letterSpacing: 1.5 },
+  gearFootnote: { fontFamily: MONO, fontSize: 7, color: 'rgba(10,10,10,0.35)', letterSpacing: 0.8, marginHorizontal: 16, marginTop: 10, lineHeight: 11 },
 });

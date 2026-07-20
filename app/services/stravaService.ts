@@ -96,7 +96,8 @@ export function getStravaAuthUrl(): string {
     + `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
     + `&response_type=code`
     + `&approval_prompt=auto`
-    + `&scope=activity:read_all,activity:write`;
+    // profile:read_all is required to read the athlete's gear (shoes + mileage)
+    + `&scope=read,profile:read_all,activity:read_all,activity:write`;
   console.log('[Strava] Platform:', Platform.OS);
   console.log('[Strava] Auth URL:', url);
   return url;
@@ -427,11 +428,13 @@ export async function uploadRunToStrava(
   }
 }
 
-// ── Strava gear list (to build the gearMap) ───────────────────────────────────
+// ── Strava gear list (athlete's shoes + lifetime mileage) ─────────────────────
 export interface StravaGear {
   id: string;
   name: string;
   distance_km: number;
+  primary: boolean;
+  retired: boolean;
 }
 
 export async function getStravaGear(): Promise<StravaGear[]> {
@@ -445,8 +448,44 @@ export async function getStravaGear(): Promise<StravaGear[]> {
     const data = await res.json();
     return (data.shoes ?? []).map((g: any) => ({
       id: g.id,
-      name: g.name,
-      distance_km: g.distance / 1000,
+      name: g.nickname || g.name,
+      distance_km: (g.distance ?? 0) / 1000,
+      primary: !!g.primary,
+      retired: !!g.retired,
     }));
   } catch { return []; }
+}
+
+// ── Match Strava gear names to the STRIDE catalog ─────────────────────────────
+
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+
+/**
+ * Best catalog match for a Strava gear name like "Nike Pegasus 41" or
+ * "HOKA Clifton 10". Requires the brand plus at least one meaningful model
+ * token to appear in the gear name — a weak match returns null rather than
+ * guessing wrong.
+ */
+export function matchGearToCatalog<T extends { id: string; brand: string; model: string }>(
+  gearName: string,
+  catalog: T[],
+): T | null {
+  const g = ` ${norm(gearName)} `;
+  let best: T | null = null;
+  let bestScore = 0;
+
+  for (const shoe of catalog) {
+    const brand = norm(shoe.brand);
+    const brandHit = g.includes(` ${brand} `) || (brand === 'new balance' && / nb /.test(g));
+    const modelTokens = norm(shoe.model).split(' ').filter(t => t.length > 1 || /\d/.test(t));
+    const hits = modelTokens.filter(t => g.includes(` ${t} `)).length;
+    if (hits === 0) continue;
+
+    const allModelTokens = hits === modelTokens.length;
+    let score = hits * 2 + (brandHit ? 3 : 0) + (allModelTokens ? 4 : 0);
+    // A model match without brand needs to be complete to count
+    if (!brandHit && !allModelTokens) score = 0;
+    if (score > bestScore) { bestScore = score; best = shoe; }
+  }
+  return bestScore >= 5 ? best : null;
 }
