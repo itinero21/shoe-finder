@@ -91,6 +91,19 @@ export function RunnerLoop({
   const armFront   = t.interpolate({ inputRange: KEYS, outputRange: ['34deg', '4deg', '-36deg', '-2deg', '34deg'] });
   const armBack    = t.interpolate({ inputRange: KEYS, outputRange: ['-36deg', '-2deg', '34deg', '4deg', '-36deg'] });
 
+  // The foot needs its own joint. Without this counter-rotation the shoe
+  // inherits thigh + knee rotation and can turn more than 100° in recovery.
+  // These angles keep the shoe close to level at contact while allowing a
+  // natural toe-up recovery position in flight.
+  const ankleFront = t.interpolate({
+    inputRange: KEYS,
+    outputRange: ['12deg', '-8deg', '-52deg', '-124deg', '12deg'],
+  });
+  const ankleBack = t.interpolate({
+    inputRange: KEYS,
+    outputRange: ['-52deg', '-124deg', '12deg', '-8deg', '-52deg'],
+  });
+
   // Vertical bob — flight at 0/0.5, sink at footstrikes 0.25/0.75
   const bob = t.interpolate({
     inputRange: KEYS,
@@ -128,21 +141,23 @@ export function RunnerLoop({
         <Animated.View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, transform: [{ translateY: bob }] }}>
 
           {/* BACK ARM */}
-          <Animated.View style={[st.armPivot, { transform: [{ rotate: armBack }] }]}>
+          <Animated.View style={[st.armPivot, st.backArmPivot, { transform: [{ rotate: armBack }] }]}>
             <View style={[st.upperArm, { backgroundColor: CLAY_BACK }]} />
             <View style={[st.forearm, { backgroundColor: CLAY_BACK }]} />
           </Animated.View>
 
           {/* BACK LEG */}
-          <Animated.View style={[st.thighPivot, { transform: [{ rotate: thighBack }] }]}>
+          <Animated.View style={[st.thighPivot, st.backLegPivot, { transform: [{ rotate: thighBack }] }]}>
             <View style={[st.thigh, { backgroundColor: CLAY_BACK }]} />
             <Animated.View style={[st.kneePivot, { transform: [{ rotate: kneeBack }] }]}>
+              <View style={[st.kneeCap, { backgroundColor: CLAY_BACK }]} />
               <View style={[st.shin, { backgroundColor: CLAY_BACK }]} />
               {/* Shoe: upper + foam that squashes on impact */}
-              <View style={st.footGroup}>
+              <Animated.View style={[st.footGroup, { transform: [{ rotate: ankleBack }] }]}>
                 <View style={[st.shoeUpper, { backgroundColor: shoeColor, opacity: 0.75 }]} />
                 <Animated.View style={[st.foam, { transform: [{ scaleY: footSquashBack }] }]} />
-              </View>
+                <View style={st.outsole} />
+              </Animated.View>
             </Animated.View>
           </Animated.View>
 
@@ -152,22 +167,26 @@ export function RunnerLoop({
           <View style={st.shorts} />
           {/* HEAD */}
           <View style={st.head} />
+          <View style={st.ear} />
+          <View style={st.nose} />
           {variant === 'w' && <View style={st.ponytail} />}
 
           {/* FRONT LEG */}
-          <Animated.View style={[st.thighPivot, { transform: [{ rotate: thighFront }] }]}>
+          <Animated.View style={[st.thighPivot, st.frontLegPivot, { transform: [{ rotate: thighFront }] }]}>
             <View style={[st.thigh, { backgroundColor: CLAY }]} />
             <Animated.View style={[st.kneePivot, { transform: [{ rotate: kneeFront }] }]}>
+              <View style={[st.kneeCap, { backgroundColor: CLAY }]} />
               <View style={[st.shin, { backgroundColor: CLAY }]} />
-              <View style={st.footGroup}>
+              <Animated.View style={[st.footGroup, { transform: [{ rotate: ankleFront }] }]}>
                 <View style={[st.shoeUpper, { backgroundColor: shoeColor }]} />
                 <Animated.View style={[st.foam, { transform: [{ scaleY: footSquashFront }] }]} />
-              </View>
+                <View style={st.outsole} />
+              </Animated.View>
             </Animated.View>
           </Animated.View>
 
           {/* FRONT ARM */}
-          <Animated.View style={[st.armPivot, { transform: [{ rotate: armFront }] }]}>
+          <Animated.View style={[st.armPivot, st.frontArmPivot, { transform: [{ rotate: armFront }] }]}>
             <View style={[st.upperArm, { backgroundColor: CLAY }]} />
             <View style={[st.forearm, { backgroundColor: CLAY }]} />
           </Animated.View>
@@ -218,6 +237,24 @@ const st = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: CLAY,
   },
+  ear: {
+    position: 'absolute',
+    left: 68,
+    top: 30,
+    width: 6,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: CLAY_DARK,
+  },
+  nose: {
+    position: 'absolute',
+    left: 88,
+    top: 30,
+    width: 6,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: CLAY,
+  },
   ponytail: {
     position: 'absolute',
     left: 60,
@@ -238,6 +275,8 @@ const st = StyleSheet.create({
     height: 30,
     transformOrigin: 'top center',
   },
+  backLegPivot: { left: 66 },
+  frontLegPivot: { left: 70 },
   thigh: {
     width: 12,
     height: 32,
@@ -251,6 +290,14 @@ const st = StyleSheet.create({
     height: 28,
     transformOrigin: 'top center',
   },
+  kneeCap: {
+    position: 'absolute',
+    left: -1,
+    top: -3,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
   shin: {
     width: 10,
     height: 30,
@@ -258,10 +305,11 @@ const st = StyleSheet.create({
   },
   footGroup: {
     position: 'absolute',
-    left: -2,
-    top: 27,
+    left: 3,
+    top: 26,
     width: 24,
-    height: 12,
+    height: 14,
+    transformOrigin: 'left center',
   },
   shoeUpper: {
     position: 'absolute',
@@ -285,6 +333,16 @@ const st = StyleSheet.create({
     borderColor: 'rgba(10,10,10,0.25)',
     transformOrigin: 'bottom center',
   },
+  outsole: {
+    position: 'absolute',
+    left: 1,
+    top: 11,
+    width: 23,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: INK,
+    opacity: 0.75,
+  },
 
   // ── Arms — pivot at the shoulder, forearm fixed at a runner's bend ─────
   armPivot: {
@@ -295,6 +353,8 @@ const st = StyleSheet.create({
     height: 22,
     transformOrigin: 'top center',
   },
+  backArmPivot: { left: 67 },
+  frontArmPivot: { left: 72 },
   upperArm: {
     width: 10,
     height: 24,
