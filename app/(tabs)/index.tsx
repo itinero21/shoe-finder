@@ -59,8 +59,7 @@ import {
   computeFreshnessScore,
   getDecompressionState,
 } from '../utils/shoeFundEngine';
-import { getBrandColor } from '../../components/RunnerLoop';
-import { StrideRunner } from '../../components/runner/StrideRunner';
+import { RunnerLoop, getBrandColor } from '../../components/RunnerLoop';
 import { RetirementCeremony } from '../../components/RetirementCeremony';
 import { HallOfFame } from '../../components/HallOfFame';
 import { FamilyTree } from '../../components/FamilyTree';
@@ -525,13 +524,11 @@ export default function ClosetScreen() {
                               <Text style={s.decompTime}>{decomp.hoursRemaining}H LEFT</Text>
                             </View>
                             <View style={s.decompRunnerRow}>
-                              <StrideRunner
-                                state="running"
-                                speed={0.5}
-                                size="small"
-                                ponytail={char.personalitySeed > 0.5}
-                                accent={getBrandColor(shoe.brand)}
-                                seed={Math.round(char.personalitySeed * 7)}
+                              <RunnerLoop
+                                freshness={foamNow}
+                                shoeColor={getBrandColor(shoe.brand)}
+                                size={92}
+                                variant={char.personalitySeed > 0.5 ? 'w' : 'm'}
                               />
                               <View style={s.decompRunnerInfo}>
                                 <Text style={s.decompRunnerText}>
