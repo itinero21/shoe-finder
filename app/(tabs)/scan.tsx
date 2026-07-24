@@ -434,7 +434,7 @@ export default function ScanScreen() {
       <View style={[s.splashSafe, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 100 }]}>
         <View style={s.splashTop}>
           <Text style={s.splashEyebrow}>STRIDE // SCOUT</Text>
-          <Text style={s.splashTitle} numberOfLines={2} adjustsFontSizeToFit>FIND MY{`\n`}NEXT SHOE.</Text>
+          <Text style={s.splashTitle}>FIND MY{`\n`}NEXT SHOE.</Text>
           <Text style={s.splashSub}>Take the Scout fit assessment. Get recommendations based on your running, fit, injury history, and current shoes.</Text>
           <View style={s.splashRunner}>
             <RunnerLoop freshness={100} shoeColor={ACCENT} size={130} />
