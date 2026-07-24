@@ -20,6 +20,7 @@ import { Linking, Platform } from 'react-native';
 import {
   getHealthPermStatus,
   requestHealthPermission,
+  syncHealthBiometrics,
   syncHealthWorkouts,
 } from './healthService';
 import { getStravaTokens, syncStravaActivities } from './stravaService';
@@ -213,6 +214,7 @@ export async function syncAppleWatch(): Promise<{ imported: number; skipped: num
   }
 
   const result = await syncHealthWorkouts();
+  await syncHealthBiometrics().catch(() => 0);
 
   // Update last sync timestamp
   await AsyncStorage.setItem(WATCH_LAST_SYNC_KEY, String(Date.now()));

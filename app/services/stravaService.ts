@@ -27,7 +27,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const CLIENT_ID     = process.env.EXPO_PUBLIC_STRAVA_CLIENT_ID ?? '';
-const CLIENT_SECRET = process.env.EXPO_PUBLIC_STRAVA_CLIENT_SECRET ?? '';
+const TOKEN_PROXY_URL = process.env.EXPO_PUBLIC_STRAVA_TOKEN_PROXY_URL ?? '';
 const REDIRECT_URI  = 'shoefinder://strava-callback';
 
 const TOKEN_KEY    = 'stride_strava_tokens_v1';
@@ -156,16 +156,15 @@ function getParam(url: string, key: string): string | null {
 // ── Exchange code for tokens ──────────────────────────────────────────────────
 export async function exchangeStravaCode(code: string): Promise<StravaTokens | null> {
   try {
-    if (!CLIENT_ID || !CLIENT_SECRET) {
-      console.error('[Strava] Missing CLIENT_ID or CLIENT_SECRET env vars');
+    if (!CLIENT_ID || !TOKEN_PROXY_URL) {
+      console.error('[Strava] Missing CLIENT_ID or token proxy URL');
       return null;
     }
-    const res = await fetch('https://www.strava.com/oauth/token', {
+    const res = await fetch(TOKEN_PROXY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
         code,
         grant_type: 'authorization_code',
       }),
@@ -191,13 +190,12 @@ export async function exchangeStravaCode(code: string): Promise<StravaTokens | n
 // ── Refresh expired token ─────────────────────────────────────────────────────
 async function refreshStravaToken(tokens: StravaTokens): Promise<StravaTokens | null> {
   try {
-    if (!CLIENT_SECRET) return null;
-    const res = await fetch('https://www.strava.com/oauth/token', {
+    if (!TOKEN_PROXY_URL) return null;
+    const res = await fetch(TOKEN_PROXY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
         refresh_token: tokens.refresh_token,
         grant_type: 'refresh_token',
       }),
@@ -301,6 +299,13 @@ export async function syncStravaActivities(
         match_quality: mq,
         source: 'strava',
         external_id: externalId,
+        avgHr: typeof act.average_heartrate === 'number' ? act.average_heartrate : undefined,
+        maxHr: typeof act.max_heartrate === 'number' ? act.max_heartrate : undefined,
+        biomechanics: {
+          cadence: typeof act.average_cadence === 'number' ? act.average_cadence * 2 : undefined,
+          powerWatts: typeof act.average_watts === 'number' ? act.average_watts : undefined,
+          elevationGainM: typeof act.total_elevation_gain === 'number' ? act.total_elevation_gain : undefined,
+        },
         strava_gear_id: act.gear_id ?? undefined,
         coordinates,
       };

@@ -6,6 +6,7 @@ Stride is a living running-shoe closet. The shoe is the character: it ages, reac
 
 - `CLOSET`: living shoe cards, moods, life stages, memories, relationships, lineage, retirement ceremony, hall of fame, family tree.
 - `RUN`: GPS run tracking, manual run logging, shoe picker, Strava sync/connect, Apple Watch and Garmin bridge access.
+- `BODY`: deterministic recovery, sleep, training/leg load, run-type readiness, and a combined body × shoe decision.
 - `ADD`: quiz-powered shoe scouting using the local v10 scoring engine.
 
 ## Kept Plumbing
@@ -17,6 +18,7 @@ Stride is a living running-shoe closet. The shoe is the character: it ages, reac
 - Garmin through the Strava bridge.
 - GPS run tracking and route storage.
 - Match quality and fatigue/wear models.
+- Provider-neutral daily biometrics, personal baselines, confidence gates, and duplicate-activity merging.
 
 ## Removed Product Surface
 
@@ -46,3 +48,14 @@ npm install
 npm run lint
 npx expo start
 ```
+
+Apple Health uses a native HealthKit module and does not run inside Expo Go.
+Build an iOS development client after installing dependencies:
+
+```bash
+npx expo run:ios
+```
+
+The backend tables for Body Intelligence are in
+`supabase/body_intelligence_v1.sql`. Local-first Body data works without
+applying that migration; apply it before enabling biometric cloud sync.

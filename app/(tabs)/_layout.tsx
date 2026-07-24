@@ -44,6 +44,14 @@ export default function TabLayout() {
         }}
       />
 
+      <Tabs.Screen
+        name="body"
+        options={{
+          title: 'BODY',
+          tabBarIcon: ({ color }) => <Ionicons name="pulse-outline" size={22} color={color} />,
+        }}
+      />
+
       {/* + ADD / SHOP — add shoes, discovery, quiz */}
       <Tabs.Screen
         name="scan"

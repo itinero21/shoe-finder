@@ -32,8 +32,20 @@ export type Run = {
   match_quality?: MatchQuality;
   source?: RunSource;
   external_id?: string;         // Strava activity ID etc
+  external_ids?: string[];      // merged provider IDs for one physical run
   strava_gear_id?: string;      // Strava gear (shoe) ID linked to this run
   coordinates?: Coordinate[];   // GPS trace from live/Strava/Garmin runs
+  avgHr?: number;
+  maxHr?: number;
+  biomechanics?: {
+    cadence?: number;
+    strideLengthM?: number;
+    groundContactTimeMs?: number;
+    verticalOscillationCm?: number;
+    powerWatts?: number;
+    elevationGainM?: number;
+    temperatureC?: number;
+  };
 };
 
 export type ShoeStats = {

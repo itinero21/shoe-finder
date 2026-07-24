@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Run } from '../types/run';
+import { isSamePhysicalRun, mergePhysicalRuns } from './runDeduplication';
 
 const RUNS_KEY = 'RUNS_V1';
 
@@ -32,15 +33,19 @@ export async function saveRun(run: Run): Promise<void> {
   try {
     const runs = await getRuns();
     const idx = runs.findIndex(r => r.id === run.id);
+    const physicalIdx = idx === -1 ? runs.findIndex(r => isSamePhysicalRun(r, run)) : -1;
     let updatedRuns: Run[];
     if (idx !== -1) {
       runs[idx] = { ...runs[idx], ...run };
+      updatedRuns = runs;
+    } else if (physicalIdx !== -1) {
+      runs[physicalIdx] = mergePhysicalRuns(runs[physicalIdx]!, run);
       updatedRuns = runs;
     } else {
       updatedRuns = [run, ...runs];
     }
     await AsyncStorage.setItem(RUNS_KEY, JSON.stringify(updatedRuns));
-    syncRunToCloud(run); // fire-and-forget
+    syncRunToCloud(physicalIdx !== -1 ? updatedRuns[physicalIdx]! : run); // fire-and-forget
   } catch (error) {
     console.error('Error saving run:', error);
     throw error;

@@ -82,6 +82,7 @@
         }
       ],
       "expo-secure-store",
+      "@kingstinct/react-native-healthkit",
       [
         "expo-location",
         {

@@ -6,8 +6,14 @@ declare const Deno: {
 };
 
 Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
+  }
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+    return new Response('Method not allowed', { status: 405, headers: corsHeaders });
   }
 
   const clientSecret = Deno.env.get('STRAVA_CLIENT_SECRET');
@@ -37,7 +43,7 @@ Deno.serve(async (req: Request) => {
     status: res.status,
     headers: {
       'Content-Type': res.headers.get('Content-Type') ?? 'application/json',
-      'Access-Control-Allow-Origin': '*',
+      ...corsHeaders,
     },
   });
 });
@@ -47,7 +53,13 @@ function json(payload: unknown, status: number) {
     status,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
+      ...corsHeaders,
     },
   });
 }
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};

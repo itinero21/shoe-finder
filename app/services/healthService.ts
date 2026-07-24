@@ -26,6 +26,8 @@ import { addMiles } from '../utils/userProfile';
 import { Run, RunTerrain, RunPurpose } from '../types/run';
 import { ALL_TRACKABLE_SHOES as SHOES } from '../data/shoes';
 import { calcMatchQuality } from '../utils/matchQuality';
+import { DailyBiometrics } from '../body/types';
+import { upsertDailyBiometrics } from '../body/storage';
 
 const HEALTH_LAST_SYNC = 'stride_health_last_sync_v1';
 const HEALTH_ENABLED   = 'stride_health_enabled_v1';
@@ -57,16 +59,26 @@ export async function requestHealthPermission(): Promise<HealthPermStatus> {
      
     const HK = (() => { try { return require('@kingstinct/react-native-healthkit'); } catch { return null; } })();
 
-    if (HK?.default) {
-      const client = HK.default;
-      await client.requestAuthorization(
-        [], // write types (none needed)
-        [
+    const client = HK?.default ?? HK;
+    if (client?.requestAuthorization) {
+      await client.requestAuthorization({
+        toRead: [
           'HKWorkoutTypeIdentifier',
           'HKQuantityTypeIdentifierDistanceWalkingRunning',
           'HKQuantityTypeIdentifierActiveEnergyBurned',
-        ]
-      );
+          'HKQuantityTypeIdentifierStepCount',
+          'HKQuantityTypeIdentifierRestingHeartRate',
+          'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
+          'HKQuantityTypeIdentifierRespiratoryRate',
+          'HKQuantityTypeIdentifierOxygenSaturation',
+          'HKCategoryTypeIdentifierSleepAnalysis',
+          'HKQuantityTypeIdentifierRunningPower',
+          'HKQuantityTypeIdentifierRunningSpeed',
+          'HKQuantityTypeIdentifierRunningStrideLength',
+          'HKQuantityTypeIdentifierRunningGroundContactTime',
+          'HKQuantityTypeIdentifierRunningVerticalOscillation',
+        ],
+      });
       await AsyncStorage.setItem(HEALTH_ENABLED, 'authorized');
       return 'authorized';
     }
@@ -100,24 +112,25 @@ async function fetchHealthWorkouts(afterDate: Date): Promise<HealthWorkout[]> {
      
     const HK = (() => { try { return require('@kingstinct/react-native-healthkit'); } catch { return null; } })();
 
-    if (HK?.default) {
-      const client = HK.default;
+    const client = HK?.default ?? HK;
+    if (client?.queryWorkoutSamples) {
       const workouts = await client.queryWorkoutSamples({
-        startDate: afterDate.toISOString(),
-        endDate:   new Date().toISOString(),
+        filter: { date: { startDate: afterDate, endDate: new Date() } },
         limit:     200,
       });
 
       return (workouts ?? [])
         .filter((w: any) =>
-          ['Running', 'Walking', 'Hiking', 'TrailRunning'].includes(w.workoutActivityType)
+          ['Running', 'Walking', 'Hiking', 'TrailRunning', 37, 52].includes(w.workoutActivityType)
         )
         .map((w: any): HealthWorkout => ({
           id:              w.uuid ?? `hk_${w.startDate}`,
-          startDate:       w.startDate,
-          distanceMeters:  (w.totalDistance?.quantity ?? 0) * 1000, // km → m
+          startDate:       new Date(w.startDate).toISOString(),
+          distanceMeters:  w.totalDistance?.unit === 'm'
+            ? (w.totalDistance?.quantity ?? 0)
+            : (w.totalDistance?.quantity ?? 0) * 1000,
           durationSeconds: w.duration,
-          activityType:    w.workoutActivityType === 'Walking' ? 'walking'
+          activityType:    ['Walking', 52].includes(w.workoutActivityType) ? 'walking'
                          : w.workoutActivityType === 'Hiking'  ? 'hiking'
                          : 'running',
           sourceName:      w.sourceRevision?.source?.name,
@@ -126,6 +139,150 @@ async function fetchHealthWorkouts(afterDate: Date): Promise<HealthWorkout[]> {
   } catch { /* fall through to empty */ }
 
   return [];
+}
+
+// ─── Daily physiology ────────────────────────────────────────────────────────
+
+type HealthSample = {
+  startDate: string | Date;
+  endDate: string | Date;
+  quantity?: number;
+  value?: number;
+};
+
+function average(values: number[]): number | undefined {
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : undefined;
+}
+
+function unionMinutes(samples: HealthSample[]): number {
+  const intervals = samples
+    .map(sample => [new Date(sample.startDate).getTime(), new Date(sample.endDate).getTime()] as const)
+    .filter(([start, end]) => Number.isFinite(start) && Number.isFinite(end) && end > start)
+    .sort((a, b) => a[0] - b[0]);
+  if (!intervals.length) return 0;
+  let total = 0;
+  let [start, end] = intervals[0]!;
+  for (const [nextStart, nextEnd] of intervals.slice(1)) {
+    if (nextStart <= end) end = Math.max(end, nextEnd);
+    else {
+      total += end - start;
+      [start, end] = [nextStart, nextEnd];
+    }
+  }
+  return (total + end - start) / 60_000;
+}
+
+/**
+ * Reads raw HealthKit data into STRIDE's provider-neutral daily format.
+ * Unsupported or denied types stay absent; the engine shows LEARNING instead
+ * of manufacturing a recovery score.
+ */
+export async function fetchHealthBiometrics(days = 45): Promise<DailyBiometrics[]> {
+  if (Platform.OS !== 'ios') return [];
+  try {
+    const HK = (() => { try { return require('@kingstinct/react-native-healthkit'); } catch { return null; } })();
+    const client = HK?.default ?? HK;
+    if (!client?.queryQuantitySamples || !client?.queryCategorySamples) return [];
+
+    const endDate = new Date();
+    const startDate = new Date(Date.now() - days * 86_400_000);
+    const options = {
+      filter: { date: { startDate, endDate } },
+      limit: 0,
+      ascending: true,
+    };
+    const safeQuantity = async (identifier: string): Promise<HealthSample[]> => {
+      try { return await client.queryQuantitySamples(identifier, options) ?? []; }
+      catch { return []; }
+    };
+
+    const [rhr, hrv, respiration, spo2, steps, calories, sleep] = await Promise.all([
+      safeQuantity('HKQuantityTypeIdentifierRestingHeartRate'),
+      safeQuantity('HKQuantityTypeIdentifierHeartRateVariabilitySDNN'),
+      safeQuantity('HKQuantityTypeIdentifierRespiratoryRate'),
+      safeQuantity('HKQuantityTypeIdentifierOxygenSaturation'),
+      safeQuantity('HKQuantityTypeIdentifierStepCount'),
+      safeQuantity('HKQuantityTypeIdentifierActiveEnergyBurned'),
+      client.queryCategorySamples('HKCategoryTypeIdentifierSleepAnalysis', options).catch(() => []),
+    ]);
+
+    const byDate = new Map<string, DailyBiometrics>();
+    const day = (date: string | Date) => new Date(date).toISOString().slice(0, 10);
+    const ensure = (key: string) => {
+      const existing = byDate.get(key);
+      if (existing) return existing;
+      const created: DailyBiometrics = { date: key, sources: ['apple_health'] };
+      byDate.set(key, created);
+      return created;
+    };
+    const quantities = (
+      samples: HealthSample[],
+      apply: (target: DailyBiometrics, value: number, allForDay: number[]) => void,
+    ) => {
+      const grouped = new Map<string, number[]>();
+      for (const sample of samples) {
+        const value = sample.quantity;
+        if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+        const key = day(sample.startDate);
+        grouped.set(key, [...(grouped.get(key) ?? []), value]);
+      }
+      for (const [key, values] of grouped) apply(ensure(key), average(values)!, values);
+    };
+
+    quantities(rhr, (target, value) => {
+      target.cardiovascular = { ...target.cardiovascular, restingHr: value };
+    });
+    quantities(hrv, (target, value) => {
+      target.cardiovascular = { ...target.cardiovascular, hrvMs: value };
+    });
+    quantities(respiration, (target, value) => {
+      target.cardiovascular = { ...target.cardiovascular, respiratoryRate: value };
+    });
+    quantities(spo2, (target, value) => {
+      target.cardiovascular = { ...target.cardiovascular, spo2: value <= 1 ? value * 100 : value };
+    });
+    quantities(steps, (target, _value, values) => {
+      target.activity = { ...target.activity, steps: values.reduce((sum, value) => sum + value, 0) };
+    });
+    quantities(calories, (target, _value, values) => {
+      target.activity = { ...target.activity, activeCalories: values.reduce((sum, value) => sum + value, 0) };
+    });
+
+    const sleepByDay = new Map<string, HealthSample[]>();
+    for (const sample of sleep as HealthSample[]) {
+      if (![1, 2, 3, 4, 5].includes(sample.value ?? -1)) continue;
+      const key = day(sample.endDate);
+      sleepByDay.set(key, [...(sleepByDay.get(key) ?? []), sample]);
+    }
+    for (const [key, samples] of sleepByDay) {
+      const asleep = samples.filter(sample => [1, 3, 4, 5].includes(sample.value ?? -1));
+      const target = ensure(key);
+      target.sleep = {
+        durationMinutes: unionMinutes(asleep),
+        awakeMinutes: unionMinutes(samples.filter(sample => sample.value === 2)),
+        coreMinutes: unionMinutes(samples.filter(sample => sample.value === 3)),
+        deepMinutes: unionMinutes(samples.filter(sample => sample.value === 4)),
+        remMinutes: unionMinutes(samples.filter(sample => sample.value === 5)),
+        bedtime: asleep.length
+          ? new Date(Math.min(...asleep.map(sample => new Date(sample.startDate).getTime()))).toISOString()
+          : undefined,
+        wakeTime: asleep.length
+          ? new Date(Math.max(...asleep.map(sample => new Date(sample.endDate).getTime()))).toISOString()
+          : undefined,
+      };
+    }
+
+    return [...byDate.values()].map(value => ({ ...value, observedAt: new Date().toISOString() }));
+  } catch {
+    return [];
+  }
+}
+
+export async function syncHealthBiometrics(): Promise<number> {
+  if (await getHealthPermStatus() !== 'authorized') return 0;
+  const days = await fetchHealthBiometrics();
+  if (days.length) await upsertDailyBiometrics(days);
+  return days.length;
 }
 
 // ─── Activity type mapping ────────────────────────────────────────────────────
