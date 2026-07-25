@@ -3,15 +3,40 @@
  *
  * Pure and deterministic: verified inputs become scores; an LLM is never
  * allowed to calculate health or readiness. Every comparison is personal.
+ *
+ * Two independent data domains feed this engine:
+ *
+ *   TRAINING DATA (Run[])         RECOVERY DATA (DailyBiometrics[])
+ *   Strava, manual logging,   ×   Apple Health, Health Connect,
+ *   STRIDE live run                Garmin direct, COROS direct
+ *         │                              │
+ *         └──────────────┬───────────────┘
+ *                    BODY ENGINE
+ *          baseline · recovery · run readiness ·
+ *          training load · trends · pattern detection
+ *
+ * TRAINING DATA alone is enough to produce a full, non-empty BodyState —
+ * overallLoad, readiness and legLoad are derived purely from Run[]. RECOVERY
+ * DATA only sharpens `recovery`/`sleep`/the daily signal list; its absence
+ * never blanks the screen, it just leaves those fields undefined and the
+ * recommendation falls back to the conservative default (see below).
+ *
+ * Strava is intentionally never a RECOVERY DATA source: its API doesn't
+ * expose overnight physiology, and Strava's 2026 API policy prohibits using
+ * Strava data to power AI/analytics features or combining it with other
+ * customer data for that purpose. Strava-derived Run[] rows feed only the
+ * TRAINING DATA branch below.
  */
 import { Run } from '../types/run';
 import {
+  BaselineStage,
   BodyState,
   ConfidenceLevel,
   DailyBiometrics,
   EstimatedLegLoad,
   RunnerBaseline,
   ScoredSignal,
+  TrainingSummary,
 } from './types';
 
 const DAY = 86_400_000;
@@ -56,6 +81,27 @@ export function buildBaseline(
   };
 }
 
+/** Progressive baseline maturity. Garmin's own health-baseline calibration
+ * takes roughly 3-4 weeks, so a hard "ready after 7 days" claim overstates
+ * confidence — these stages say what's actually true at each point. */
+export function baselineStage(sampleCount: number): BaselineStage {
+  if (sampleCount < 7) return 'learning';
+  if (sampleCount < 14) return 'early';
+  if (sampleCount < 28) return 'improving';
+  return 'established';
+}
+
+const STAGE_LABEL: Record<BaselineStage, string> = {
+  learning: 'LEARNING',
+  early: 'EARLY BASELINE',
+  improving: 'BASELINE IMPROVING',
+  established: 'ESTABLISHED BASELINE',
+};
+
+export function baselineStageLabel(stage: BaselineStage): string {
+  return STAGE_LABEL[stage];
+}
+
 function signalScore(
   key: BaselineKey,
   label: string,
@@ -67,9 +113,10 @@ function signalScore(
     return { key, label, unit, status: 'missing', explanation: 'No verified reading available today.' };
   }
   if (!baseline || baseline.sampleCount < 3) {
+    const stage = baselineStage(baseline?.sampleCount ?? 0);
     return {
       key, label, value, unit, status: 'missing',
-      explanation: `Learning your normal range · ${baseline?.sampleCount ?? 0}/7 days`,
+      explanation: `${STAGE_LABEL[stage]} · ${baseline?.sampleCount ?? 0} verified days so far`,
     };
   }
 
@@ -142,6 +189,41 @@ function level(confidence: number): ConfidenceLevel {
   return 'high';
 }
 
+const SOURCE_LABEL: Record<string, string> = {
+  strava: 'Strava',
+  manual: 'Manual logging',
+  apple_health: 'Apple Health',
+  garmin: 'Garmin',
+};
+
+/** TRAINING DATA branch — works from Run[] alone, always populated. */
+function buildTrainingSummary(runs: Run[], today: string): TrainingSummary {
+  const sorted = [...runs].sort((a, b) => b.date.localeCompare(a.date));
+  const latest = sorted[0];
+  const recent = runs.filter(run => ageDays(today, run.date) <= 7);
+  const sourceCounts = new Map<string, number>();
+  for (const run of runs) {
+    const src = run.source ?? 'manual';
+    sourceCounts.set(src, (sourceCounts.get(src) ?? 0) + 1);
+  }
+  const topSource = [...sourceCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  return {
+    connected: runs.length > 0,
+    sourceLabel: topSource ? (SOURCE_LABEL[topSource] ?? 'Connected') : null,
+    lastRun: latest ? {
+      distanceKm: +latest.distanceKm.toFixed(1),
+      paceSecPerKm: latest.durationMinutes && latest.distanceKm
+        ? Math.round((latest.durationMinutes * 60) / latest.distanceKm)
+        : undefined,
+      avgHr: latest.avgHr,
+      date: latest.date,
+    } : undefined,
+    runsLast7Days: recent.length,
+    kmLast7Days: +recent.reduce((sum, run) => sum + run.distanceKm, 0).toFixed(1),
+  };
+}
+
 export function calculateBodyState(
   biometrics: DailyBiometrics[],
   runs: Run[],
@@ -168,9 +250,11 @@ export function calculateBodyState(
     ? Math.round(mean(scored.map(signal => signal.score!)))
     : undefined;
   const sleepSignal = signals[0];
-  const sleep = sleepSignal?.score != null && (baselines.sleep?.sampleCount ?? 0) >= 7
+  const sleep = sleepSignal?.score != null && (baselines.sleep?.sampleCount ?? 0) >= 3
     ? sleepSignal.score
     : undefined;
+  const recoveryDataConnected = biometrics.some(day => day.sources.length > 0);
+  const trainingSummary = buildTrainingSummary(runs, today);
 
   const training = calculateTrainingLoad(runs, today);
   const overallLoad = Math.round(training.cardiovascular * 0.45 + training.musculoskeletal * 0.55);
@@ -203,9 +287,13 @@ export function calculateBodyState(
           distanceKm: [5, 8] as [number, number],
           headline: 'EASY / STEADY',
           reason: recovery == null
-            ? 'Recovery is still learning, so the conservative choice is an aerobic run.'
+            ? recoveryDataConnected
+              ? 'Recovery is still learning your normal range, so the conservative choice is an aerobic run.'
+              : 'Training load alone supports an aerobic run — connect a recovery source to fine-tune this.'
             : 'Easy running best matches today’s recovery and leg-load signals.',
         };
+
+  const baselineDays = Math.max(0, ...Object.values(baselines).map(item => item?.sampleCount ?? 0));
 
   return {
     date: dateKey(today),
@@ -218,8 +306,11 @@ export function calculateBodyState(
     legLoad: estimateLegLoad(training, runs, today),
     confidence,
     confidenceLevel: level(confidence),
-    baselineDays: Math.max(0, ...Object.values(baselines).map(item => item?.sampleCount ?? 0)),
+    baselineStage: baselineStage(baselineDays),
+    baselineDays,
+    recoveryDataConnected,
     signals,
+    training: trainingSummary,
     recommendation,
     disclaimer: 'Estimated readiness and tissue load are training guidance, not medical measurements or a diagnosis.',
   };

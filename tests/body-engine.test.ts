@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildBaseline, calculateBodyState } from '../app/body/engine';
+import { baselineStage, buildBaseline, calculateBodyState } from '../app/body/engine';
 import { DailyBiometrics } from '../app/body/types';
 import { Run } from '../app/types/run';
 import { isSamePhysicalRun, mergePhysicalRuns } from '../app/utils/runDeduplication';
@@ -108,4 +108,66 @@ test('the same Garmin run relayed through Strava is merged, not double-counted',
   assert.equal(merged.source, 'garmin');
   assert.equal(merged.shoeId, 'shoe');
   assert.equal(merged.external_ids?.length, 2);
+});
+
+test('TRAINING DATA is fully populated from a Strava-only connection (no biometrics)', () => {
+  const runs: Run[] = [
+    {
+      id: 'strava-easy',
+      shoeId: 'shoe',
+      distanceKm: 8.4,
+      durationMinutes: 46,
+      date: '2026-07-24T07:00:00Z',
+      purpose: 'easy',
+      terrain: 'road',
+      source: 'strava',
+      avgHr: 148,
+    },
+    {
+      id: 'strava-long',
+      shoeId: 'shoe',
+      distanceKm: 16,
+      durationMinutes: 92,
+      date: '2026-07-21T07:00:00Z',
+      purpose: 'long',
+      terrain: 'road',
+      source: 'strava',
+    },
+  ];
+  const state = calculateBodyState([], runs, '2026-07-24');
+
+  // No biometric source connected at all — recovery genuinely cannot be scored
+  assert.equal(state.recovery, undefined);
+  assert.equal(state.recoveryDataConnected, false);
+
+  // But the screen is never empty: training data, load, readiness and legLoad
+  // all come from Run[] alone and must be fully present.
+  assert.equal(state.training.connected, true);
+  assert.equal(state.training.sourceLabel, 'Strava');
+  assert.equal(state.training.lastRun?.distanceKm, 8.4);
+  assert.equal(state.training.runsLast7Days, 2);
+  assert.ok(state.overallLoad > 0);
+  assert.ok(state.readiness.easy > 0);
+  assert.ok(Object.values(state.legLoad).every(v => v >= 0));
+
+  // The recommendation reason must not claim the recovery system is
+  // "learning" when no recovery source was ever connected.
+  assert.match(state.recommendation.reason, /training load|connect a recovery/i);
+});
+
+test('baseline maturity is progressive, not a hard 7-day cliff', () => {
+  assert.equal(baselineStage(0), 'learning');
+  assert.equal(baselineStage(6), 'learning');
+  assert.equal(baselineStage(7), 'early');
+  assert.equal(baselineStage(13), 'early');
+  assert.equal(baselineStage(14), 'improving');
+  assert.equal(baselineStage(27), 'improving');
+  assert.equal(baselineStage(28), 'established');
+});
+
+test('recoveryDataConnected is true even while recovery is still learning', () => {
+  const state = calculateBodyState([normalDay(22), normalDay(23), normalDay(24)], [], '2026-07-24');
+  assert.equal(state.recovery, undefined);
+  assert.equal(state.recoveryDataConnected, true);
+  assert.equal(state.baselineStage, 'learning');
 });

@@ -1,7 +1,16 @@
 import { RunPurpose, RunSource } from '../types/run';
 
-export type BiometricSource = 'apple_health' | 'garmin' | 'strava' | 'manual';
+/**
+ * Recovery-data sources only. Strava is deliberately excluded here — Strava's
+ * API policy (2026) prohibits using Strava data to power AI/analytics
+ * features or combining it with other customer data for that purpose, and
+ * Strava's activity API does not expose overnight physiology (sleep, HRV,
+ * resting HR) in the first place. Strava stays a pure TRAINING DATA source
+ * (see ActivityIdentity / Run) and never reaches the recovery engine below.
+ */
+export type BiometricSource = 'apple_health' | 'health_connect' | 'garmin' | 'coros' | 'manual';
 export type ConfidenceLevel = 'learning' | 'low' | 'moderate' | 'high';
+export type BaselineStage = 'learning' | 'early' | 'improving' | 'established';
 
 export interface DailyBiometrics {
   date: string;
@@ -80,6 +89,25 @@ export interface EstimatedLegLoad {
   feet: number;
 }
 
+/**
+ * TRAINING DATA — the branch of the engine that works from Run[] alone.
+ * Populated for every runner regardless of whether a recovery data source
+ * (Apple Health, Garmin direct, COROS direct, Health Connect) is connected.
+ * A Strava-only connection is enough to fill this in completely.
+ */
+export interface TrainingSummary {
+  connected: boolean;
+  sourceLabel: string | null;
+  lastRun?: {
+    distanceKm: number;
+    paceSecPerKm?: number;
+    avgHr?: number;
+    date: string;
+  };
+  runsLast7Days: number;
+  kmLast7Days: number;
+}
+
 export interface BodyState {
   date: string;
   recovery?: number;
@@ -91,8 +119,13 @@ export interface BodyState {
   legLoad: EstimatedLegLoad;
   confidence: number;
   confidenceLevel: ConfidenceLevel;
+  /** Progressive baseline maturity — replaces a hard "7 days" cutoff. */
+  baselineStage: BaselineStage;
   baselineDays: number;
+  /** True once at least one recovery data source has ever supplied a reading. */
+  recoveryDataConnected: boolean;
   signals: ScoredSignal[];
+  training: TrainingSummary;
   recommendation: {
     intent: RunPurpose | 'rest';
     distanceKm: [number, number];

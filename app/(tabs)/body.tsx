@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
-import { calculateBodyState } from '../body/engine';
+import { calculateBodyState, baselineStageLabel } from '../body/engine';
 import { BodyState } from '../body/types';
 import { getDailyBiometrics } from '../body/storage';
 import { getRuns } from '../utils/runStorage';
@@ -87,7 +87,8 @@ export default function BodyScreen() {
   }
 
   const learning = state.recovery == null;
-  const nextBaseline = Math.max(0, 7 - state.baselineDays);
+  const stageLabel = baselineStageLabel(state.baselineStage);
+  const training = state.training;
 
   return (
     <SafeAreaView style={s.container}>
@@ -104,6 +105,52 @@ export default function BodyScreen() {
       </View>
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        {/* TRAINING DATA — always populated, works from Strava/manual runs alone */}
+        <View style={s.section}>
+          <View style={s.sectionHead}>
+            <Text style={s.sectionTitle}>TRAINING DATA</Text>
+            <Text style={[s.sectionMeta, training.connected && { color: GREEN }]}>
+              {training.connected ? 'CONNECTED' : 'NO RUNS YET'}
+            </Text>
+          </View>
+          <View style={s.panel}>
+            {training.connected ? (
+              <>
+                <View style={s.trainingRow}>
+                  <Text style={s.trainingSource}>{training.sourceLabel?.toUpperCase()}</Text>
+                </View>
+                {training.lastRun && (
+                  <View style={s.trainingStatsRow}>
+                    <View style={s.trainingStat}>
+                      <Text style={s.trainingStatLabel}>LAST RUN</Text>
+                      <Text style={s.trainingStatValue}>{training.lastRun.distanceKm} km</Text>
+                    </View>
+                    {training.lastRun.paceSecPerKm && (
+                      <View style={s.trainingStat}>
+                        <Text style={s.trainingStatLabel}>PACE</Text>
+                        <Text style={s.trainingStatValue}>
+                          {Math.floor(training.lastRun.paceSecPerKm / 60)}:{String(training.lastRun.paceSecPerKm % 60).padStart(2, '0')}/km
+                        </Text>
+                      </View>
+                    )}
+                    {training.lastRun.avgHr && (
+                      <View style={s.trainingStat}>
+                        <Text style={s.trainingStatLabel}>HEART RATE</Text>
+                        <Text style={s.trainingStatValue}>{Math.round(training.lastRun.avgHr)} bpm</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+                <Text style={s.trainingFootnote}>
+                  {training.runsLast7Days} run{training.runsLast7Days === 1 ? '' : 's'} · {training.kmLast7Days} km in the last 7 days
+                </Text>
+              </>
+            ) : (
+              <Text style={s.trainingFootnote}>Log a run or connect Strava to start building training load.</Text>
+            )}
+          </View>
+        </View>
+
         <View style={s.heroWrap}>
           <View style={s.heroShadow} />
           <View style={s.hero}>
@@ -112,22 +159,35 @@ export default function BodyScreen() {
                 <Text style={s.heroLabel}>RECOVERY</Text>
                 {learning ? (
                   <>
-                    <Text style={s.learning}>LEARNING</Text>
-                    <Text style={s.heroNote}>{nextBaseline || 1} MORE VERIFIED DAYS TO YOUR BASELINE</Text>
+                    <Text style={s.learning}>{state.recoveryDataConnected ? stageLabel : 'NEEDS A HEALTH SOURCE'}</Text>
+                    <Text style={s.heroNote}>
+                      {state.recoveryDataConnected
+                        ? `${state.baselineDays} VERIFIED DAY${state.baselineDays === 1 ? '' : 'S'} SO FAR`
+                        : "SLEEP, HRV AND RESTING HR AREN'T AVAILABLE FROM STRAVA"}
+                    </Text>
                   </>
                 ) : (
                   <>
                     <Text style={s.heroScore}>{state.recovery}<Text style={s.heroOutOf}> / 100</Text></Text>
-                    <Text style={s.heroNote}>{state.confidenceLevel.toUpperCase()} CONFIDENCE</Text>
+                    <Text style={s.heroNote}>{stageLabel} · {state.confidenceLevel.toUpperCase()} CONFIDENCE</Text>
                   </>
                 )}
               </View>
               <View style={[s.statusStamp, { backgroundColor: learning ? PAPER : LIME }]}>
-                <Text style={s.statusStampText}>{learning ? `${state.baselineDays}/7` : state.recovery! >= 70 ? 'READY' : 'EASY'}</Text>
+                <Text style={s.statusStampText}>
+                  {learning ? (state.recoveryDataConnected ? `${state.baselineDays}D` : 'SETUP') : state.recovery! >= 70 ? 'READY' : 'EASY'}
+                </Text>
               </View>
             </View>
             <View style={s.rule} />
             <Text style={s.heroReason}>{state.recommendation.reason}</Text>
+            {!state.recoveryDataConnected && (
+              <TouchableOpacity style={s.connectInline} onPress={() => router.push('/(tabs)/run')}>
+                <Ionicons name="watch-outline" size={15} color={INK} />
+                <Text style={s.connectInlineText}>CONNECT APPLE HEALTH</Text>
+                <Ionicons name="arrow-forward" size={14} color={INK} />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -205,35 +265,35 @@ export default function BodyScreen() {
           </View>
         </View>
 
-        <View style={s.section}>
-          <View style={s.sectionHead}>
-            <Text style={s.sectionTitle}>TODAY&apos;S SIGNALS</Text>
-            <Text style={s.sectionMeta}>{connected ? 'APPLE HEALTH' : 'NO BODY SOURCE'}</Text>
-          </View>
-          <View style={s.signalList}>
-            {state.signals.map(signal => (
-              <View style={s.signal} key={signal.key}>
-                <View style={[s.signalDot, {
-                  backgroundColor: signal.status === 'positive' ? GREEN
-                    : signal.status === 'watch' ? ACCENT
-                    : signal.status === 'normal' ? LIME : 'rgba(10,10,10,0.15)',
-                }]} />
-                <View style={s.signalCopy}>
-                  <Text style={s.signalName}>{signal.label}</Text>
-                  <Text style={s.signalExplain}>{signal.explanation}</Text>
+        {state.recoveryDataConnected ? (
+          <View style={s.section}>
+            <View style={s.sectionHead}>
+              <Text style={s.sectionTitle}>TODAY&apos;S SIGNALS</Text>
+              <Text style={s.sectionMeta}>{connected ? 'APPLE HEALTH' : stageLabel}</Text>
+            </View>
+            <View style={s.signalList}>
+              {state.signals.map(signal => (
+                <View style={s.signal} key={signal.key}>
+                  <View style={[s.signalDot, {
+                    backgroundColor: signal.status === 'positive' ? GREEN
+                      : signal.status === 'watch' ? ACCENT
+                      : signal.status === 'normal' ? LIME : 'rgba(10,10,10,0.15)',
+                  }]} />
+                  <View style={s.signalCopy}>
+                    <Text style={s.signalName}>{signal.label}</Text>
+                    <Text style={s.signalExplain}>{signal.explanation}</Text>
+                  </View>
+                  <Text style={s.signalScore}>{signal.score ?? '—'}</Text>
                 </View>
-                <Text style={s.signalScore}>{signal.score ?? '—'}</Text>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
-
-        {!connected && (
+        ) : (
           <TouchableOpacity style={s.connectCard} onPress={() => router.push('/(tabs)/run')}>
             <Ionicons name="watch-outline" size={28} color={PAPER} />
             <View style={s.connectCopy}>
-              <Text style={s.connectTitle}>CONNECT APPLE WATCH</Text>
-              <Text style={s.connectText}>Open Run Control → Watches to begin building your personal baseline.</Text>
+              <Text style={s.connectTitle}>UNLOCK RECOVERY SCORING</Text>
+              <Text style={s.connectText}>Open Run Control → Watches to connect Apple Health and start building your personal baseline.</Text>
             </View>
             <Ionicons name="arrow-forward" size={20} color={PAPER} />
           </TouchableOpacity>
@@ -272,6 +332,21 @@ const s = StyleSheet.create({
   statusStampText: { fontFamily: MONO, fontSize: 10, fontWeight: '900', color: INK, letterSpacing: 0.5 },
   rule: { height: 1, backgroundColor: PAPER, opacity: 0.3, marginVertical: 14 },
   heroReason: { fontFamily: MONO, fontSize: 10, lineHeight: 16, color: PAPER },
+  connectInline: {
+    flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 14, alignSelf: 'flex-start',
+    backgroundColor: PAPER, borderWidth: 2, borderColor: INK, borderRadius: 2,
+    paddingHorizontal: 12, paddingVertical: 9,
+  },
+  connectInlineText: { fontFamily: MONO, fontSize: 9, fontWeight: '900', color: INK, letterSpacing: 1 },
+
+  // Training Data section
+  trainingRow: { marginBottom: 10 },
+  trainingSource: { fontFamily: MONO, fontSize: 10, fontWeight: '900', color: INK, letterSpacing: 1.5 },
+  trainingStatsRow: { flexDirection: 'row', gap: 18, marginBottom: 10 },
+  trainingStat: {},
+  trainingStatLabel: { fontFamily: MONO, fontSize: 7, fontWeight: '700', color: 'rgba(10,10,10,0.4)', letterSpacing: 0.8, marginBottom: 3 },
+  trainingStatValue: { fontFamily: MONO, fontSize: 13, fontWeight: '900', color: INK },
+  trainingFootnote: { fontFamily: MONO, fontSize: 8, color: 'rgba(10,10,10,0.5)', letterSpacing: 0.3, lineHeight: 13 },
 
   decisionWrap: { position: 'relative', marginBottom: 22 },
   decisionShadow: { position: 'absolute', top: 6, left: 6, right: -6, bottom: -6, borderRadius: 2, backgroundColor: 'rgba(10,10,10,0.35)' },
