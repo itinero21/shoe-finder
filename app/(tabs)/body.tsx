@@ -155,7 +155,7 @@ export default function BodyScreen() {
           <View style={s.heroShadow} />
           <View style={s.hero}>
             <View style={s.heroTop}>
-              <View>
+              <View style={s.heroTopText}>
                 <Text style={s.heroLabel}>RECOVERY</Text>
                 {learning ? (
                   <>
@@ -322,13 +322,17 @@ const s = StyleSheet.create({
   heroWrap: { position: 'relative', marginBottom: 12 },
   heroShadow: { position: 'absolute', top: 6, left: 6, right: -6, bottom: -6, borderRadius: 2, backgroundColor: INK },
   hero: { backgroundColor: ACCENT, padding: 18, borderWidth: 2, borderColor: INK, borderRadius: 2 },
-  heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 },
+  // Long labels like "NEEDS A HEALTH SOURCE" must wrap within their own
+  // column instead of stretching the row and pushing statusStamp off-screen
+  // (Android measures this flex row more strictly than iOS).
+  heroTopText: { flex: 1, minWidth: 0 },
   heroLabel: { fontFamily: MONO, fontSize: 9, fontWeight: '900', letterSpacing: 2, color: PAPER, marginBottom: 7 },
   heroScore: { fontFamily: MONO, fontSize: 40, fontWeight: '900', lineHeight: 44, color: PAPER },
   heroOutOf: { fontSize: 13, fontWeight: '700' },
   learning: { fontFamily: MONO, fontSize: 28, fontWeight: '900', lineHeight: 34, color: PAPER },
   heroNote: { fontFamily: MONO, fontSize: 8, fontWeight: '700', color: PAPER, letterSpacing: 1, opacity: 0.85, marginTop: 2 },
-  statusStamp: { paddingHorizontal: 10, paddingVertical: 8, borderWidth: 2, borderColor: INK, borderRadius: 2 },
+  statusStamp: { flexShrink: 0, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 2, borderColor: INK, borderRadius: 2 },
   statusStampText: { fontFamily: MONO, fontSize: 10, fontWeight: '900', color: INK, letterSpacing: 0.5 },
   rule: { height: 1, backgroundColor: PAPER, opacity: 0.3, marginVertical: 14 },
   heroReason: { fontFamily: MONO, fontSize: 10, lineHeight: 16, color: PAPER },

@@ -252,7 +252,14 @@ export function Onboarding({ onComplete, onStartScout }: OnboardingProps) {
 
 const s = StyleSheet.create({
   // ── FORK ──────────────────────────────────────────────────────────────────
-  forkContainer: { flex: 1, backgroundColor: PAPER },
+  // Rendered as a sibling inside the Closet screen's SafeAreaView, so this
+  // must be an absolute full-screen overlay — flex:1 alone only reserves
+  // layout space next to the Closet content instead of covering it, which
+  // is why WELCOME. rendered stacked on top of YOUR ROTATION. on Android.
+  forkContainer: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 50, elevation: 50, backgroundColor: PAPER,
+  },
   forkInner: { flex: 1, paddingHorizontal: 20, paddingTop: 16 },
 
   forkHeader: { marginBottom: 28, paddingTop: 20 },
@@ -283,7 +290,10 @@ const s = StyleSheet.create({
   },
 
   // ── BROWSE ────────────────────────────────────────────────────────────────
-  browseContainer: { flex: 1, backgroundColor: PAPER },
+  browseContainer: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 50, elevation: 50, backgroundColor: PAPER,
+  },
 
   browseHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
