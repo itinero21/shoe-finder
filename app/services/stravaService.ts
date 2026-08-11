@@ -37,6 +37,15 @@ const REDIRECT_URI  = 'shoefinder://strava-callback';
 const TOKEN_KEY    = 'stride_strava_tokens_v1';
 const LAST_SYNC    = 'stride_strava_last_sync_v1';
 const GEAR_MAP_KEY = 'stride_strava_gear_map_v1'; // { stravaGearId: arsenalShoeId }
+const SCOPE_VERSION_KEY = 'stride_strava_scope_version_v1';
+
+// Bump this whenever the requested OAuth scope list changes. Strava tokens
+// don't report which scopes they were actually granted with, so this is how
+// we detect "this connection predates a scope we now require" and prompt a
+// one-time re-authorization instead of silently missing data forever (e.g.
+// gear/mileage reads failing for anyone who connected before
+// profile:read_all was added, with no way to know why).
+const CURRENT_SCOPE_VERSION = '2'; // v2 = added profile:read_all
 
 export interface StravaTokens {
   access_token: string;
@@ -54,12 +63,27 @@ export async function getStravaTokens(): Promise<StravaTokens | null> {
 
 export async function saveStravaTokens(tokens: StravaTokens): Promise<void> {
   await AsyncStorage.setItem(TOKEN_KEY, JSON.stringify(tokens));
+  await AsyncStorage.setItem(SCOPE_VERSION_KEY, CURRENT_SCOPE_VERSION);
 }
 
 export async function disconnectStrava(): Promise<void> {
   await AsyncStorage.removeItem(TOKEN_KEY);
   await AsyncStorage.removeItem(LAST_SYNC);
   await AsyncStorage.removeItem(GEAR_MAP_KEY);
+  await AsyncStorage.removeItem(SCOPE_VERSION_KEY);
+}
+
+/**
+ * True if there's a stored connection but it was authorized under an older
+ * scope list — e.g. before gear/mileage access (profile:read_all) existed.
+ * Such a connection has valid tokens (sync/refresh won't error) but is
+ * silently missing permissions it never actually granted.
+ */
+export async function needsReauthorization(): Promise<boolean> {
+  const tokens = await getStravaTokens();
+  if (!tokens?.access_token) return false;
+  const storedVersion = await AsyncStorage.getItem(SCOPE_VERSION_KEY);
+  return storedVersion !== CURRENT_SCOPE_VERSION;
 }
 
 // ── Gear map (Strava gear ID ↔ Closet shoe ID) ────────────────────────────────
@@ -99,7 +123,13 @@ export function getStravaAuthUrl(): string {
     + `?client_id=${CLIENT_ID}`
     + `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
     + `&response_type=code`
-    + `&approval_prompt=auto`
+    // 'force' (not 'auto') so returning testers always see the full consent
+    // screen for the CURRENT scope list. 'auto' lets Strava silently reuse a
+    // prior authorization's scopes, which is why testers who connected
+    // before profile:read_all was added saw a shortened prompt and never
+    // actually granted it — breaking gear/mileage reads even though the
+    // token exchange itself succeeded.
+    + `&approval_prompt=force`
     // profile:read_all is required to read the athlete's gear (shoes + mileage)
     + `&scope=read,profile:read_all,activity:read_all,activity:write`;
   console.log('[Strava] Platform:', Platform.OS);

@@ -16,8 +16,9 @@ import { getFavorites } from '../utils/storage';
 import { getRuns, updateRun } from '../utils/runStorage';
 import { Run } from '../types/run';
 import {
-  connectStrava, getStravaTokens, syncStravaActivities,
+  connectStrava, disconnectStrava, getStravaTokens, syncStravaActivities,
   getStravaGear, StravaGear, getGearMap, matchGearToCatalog, autoSyncStrava,
+  needsReauthorization,
 } from '../services/stravaService';
 import { importStravaGear, closetShoeNameFor } from '../services/stravaGearSync';
 import { LiveRunModal } from '../../components/LiveRunModal';
@@ -58,6 +59,7 @@ export default function RunScreen() {
   const [justRated, setJustRated] = useState(false);
   const [recommended, setRecommended] = useState<ShoeRecommendation | null>(null);
   const [stravaGear, setStravaGear] = useState<StravaGear[]>([]);
+  const [stravaNeedsReauth, setStravaNeedsReauth] = useState(false);
   const [gearMap, setGearMapState] = useState<Record<string, string>>({});
   const [importingGear, setImportingGear] = useState<string | null>(null);
 
@@ -80,6 +82,7 @@ export default function RunScreen() {
       setLivingShoes(chars);
       setStravaConnected(!!stravaTokens?.access_token);
       if (stravaTokens?.access_token) {
+        needsReauthorization().then(setStravaNeedsReauth).catch(() => {});
         getStravaGear().then(setStravaGear).catch(() => {});
         getGearMap().then(setGearMapState).catch(() => {});
         // Quiet hourly auto-sync — no button press needed
@@ -145,6 +148,38 @@ export default function RunScreen() {
       getGearMap().then(setGearMapState).catch(() => {});
     }
     setSyncing(false);
+  };
+
+  // Long-press when already connected: clears the stored tokens and starts
+  // a fresh authorization. Needed because Strava permissions can change
+  // (e.g. gear access added later) and there was previously no way for an
+  // already-connected tester to re-grant the updated scopes — the button
+  // only ever offered SYNC, never a path back to the consent screen.
+  const doReconnectStrava = async () => {
+    setSyncing(true);
+    await disconnectStrava().catch(() => {});
+    setStravaConnected(false);
+    setStravaGear([]);
+    setStravaNeedsReauth(false);
+    const tokens = await connectStrava().catch(() => null);
+    setStravaConnected(!!tokens?.access_token);
+    if (tokens?.access_token) {
+      getStravaGear().then(setStravaGear).catch(() => {});
+      getGearMap().then(setGearMapState).catch(() => {});
+    }
+    setSyncing(false);
+  };
+
+  const handleReconnectStrava = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      'Reconnect Strava?',
+      "This clears your current connection and asks Strava for permission again — do this if gear or activity syncing isn't working.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Reconnect', onPress: doReconnectStrava },
+      ],
+    );
   };
 
   const handleImportGear = async (gear: StravaGear) => {
@@ -308,21 +343,33 @@ export default function RunScreen() {
 
           <TouchableOpacity
             style={s.integrationWrap}
-            onPress={stravaConnected ? handleSync : handleConnectStrava}
+            onPress={
+              stravaNeedsReauth ? doReconnectStrava
+                : stravaConnected ? handleSync
+                : handleConnectStrava
+            }
+            onLongPress={stravaConnected && !stravaNeedsReauth ? handleReconnectStrava : undefined}
             activeOpacity={0.85}
           >
-            <View style={s.integrationShadow} />
+            <View style={[s.integrationShadow, stravaNeedsReauth && { backgroundColor: ACCENT }]} />
             <View style={s.integrationCard}>
               <StravaMark size="md" />
               <View style={s.integrationBody}>
                 <Wordmark brand="strava" />
-                <Text style={s.integrationSub}>
-                  {stravaConnected ? 'CONNECTED / PULL LATEST RUNS' : 'CONNECT TO IMPORT ACTIVITIES'}
+                <Text style={[s.integrationSub, stravaNeedsReauth && { color: ACCENT, fontWeight: '900' }]}>
+                  {stravaNeedsReauth
+                    ? 'PERMISSIONS OUT OF DATE · TAP TO RECONNECT'
+                    : stravaConnected ? 'CONNECTED / PULL LATEST RUNS · HOLD TO RECONNECT'
+                    : 'CONNECT TO IMPORT ACTIVITIES'}
                 </Text>
               </View>
-              <View style={[s.integrationStatus, stravaConnected && s.integrationStatusOn]}>
+              <View style={[
+                s.integrationStatus,
+                stravaConnected && s.integrationStatusOn,
+                stravaNeedsReauth && { backgroundColor: ACCENT, borderColor: ACCENT },
+              ]}>
                 <Text style={[s.integrationStatusText, stravaConnected && s.integrationStatusTextOn]}>
-                  {syncing ? '...' : stravaConnected ? 'SYNC' : 'LINK'}
+                  {syncing ? '...' : stravaNeedsReauth ? 'FIX' : stravaConnected ? 'SYNC' : 'LINK'}
                 </Text>
               </View>
             </View>
