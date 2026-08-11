@@ -28,6 +28,10 @@ WebBrowser.maybeCompleteAuthSession();
 // ── Config ────────────────────────────────────────────────────────────────────
 const CLIENT_ID     = process.env.EXPO_PUBLIC_STRAVA_CLIENT_ID ?? '';
 const TOKEN_PROXY_URL = process.env.EXPO_PUBLIC_STRAVA_TOKEN_PROXY_URL ?? '';
+// Supabase Edge Functions require a bearer token on every request (even
+// public ones) — the anon key satisfies that gate. It is safe to ship in
+// the client bundle by design; it has no privileged access on its own.
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 const REDIRECT_URI  = 'shoefinder://strava-callback';
 
 const TOKEN_KEY    = 'stride_strava_tokens_v1';
@@ -162,7 +166,11 @@ export async function exchangeStravaCode(code: string): Promise<StravaTokens | n
     }
     const res = await fetch(TOKEN_PROXY_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
+      },
       body: JSON.stringify({
         client_id: CLIENT_ID,
         code,
@@ -193,7 +201,11 @@ async function refreshStravaToken(tokens: StravaTokens): Promise<StravaTokens | 
     if (!TOKEN_PROXY_URL) return null;
     const res = await fetch(TOKEN_PROXY_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
+      },
       body: JSON.stringify({
         client_id: CLIENT_ID,
         refresh_token: tokens.refresh_token,
