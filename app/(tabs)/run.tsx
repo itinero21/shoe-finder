@@ -16,7 +16,7 @@ import { getFavorites } from '../utils/storage';
 import { getRuns, updateRun } from '../utils/runStorage';
 import { Run } from '../types/run';
 import {
-  connectStrava, disconnectStrava, getStravaTokens, syncStravaActivities,
+  connectStravaVerbose, disconnectStrava, getStravaTokens, syncStravaActivities,
   getStravaGear, StravaGear, getGearMap, matchGearToCatalog, autoSyncStrava,
   needsReauthorization,
 } from '../services/stravaService';
@@ -141,11 +141,15 @@ export default function RunScreen() {
 
   const handleConnectStrava = async () => {
     setSyncing(true);
-    const tokens = await connectStrava().catch(() => null);
+    const { tokens, error } = await connectStravaVerbose().catch(
+      (e: any) => ({ tokens: null, error: e?.message ?? 'Unknown error' }),
+    );
     setStravaConnected(!!tokens?.access_token);
     if (tokens?.access_token) {
       getStravaGear().then(setStravaGear).catch(() => {});
       getGearMap().then(setGearMapState).catch(() => {});
+    } else if (error) {
+      Alert.alert('Strava connection failed', error);
     }
     setSyncing(false);
   };
@@ -161,11 +165,15 @@ export default function RunScreen() {
     setStravaConnected(false);
     setStravaGear([]);
     setStravaNeedsReauth(false);
-    const tokens = await connectStrava().catch(() => null);
+    const { tokens, error } = await connectStravaVerbose().catch(
+      (e: any) => ({ tokens: null, error: e?.message ?? 'Unknown error' }),
+    );
     setStravaConnected(!!tokens?.access_token);
     if (tokens?.access_token) {
       getStravaGear().then(setStravaGear).catch(() => {});
       getGearMap().then(setGearMapState).catch(() => {});
+    } else if (error) {
+      Alert.alert('Strava reconnection failed', error);
     }
     setSyncing(false);
   };

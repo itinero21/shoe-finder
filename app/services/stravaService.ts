@@ -110,6 +110,21 @@ export function isStravaConnected(tokens: StravaTokens | null): boolean {
   return !!tokens?.access_token;
 }
 
+/**
+ * Config sanity check the UI can call BEFORE opening the OAuth browser.
+ * EXPO_PUBLIC_* vars are baked into the JS bundle at BUILD time — an EAS
+ * Update (OTA) republishes JS but does NOT re-inject env vars from a build
+ * that predates the variable being set. If this ever returns missing
+ * fields in production, the fix is a fresh native build, not another OTA.
+ */
+export function getStravaConfigStatus(): { ok: boolean; missing: string[] } {
+  const missing: string[] = [];
+  if (!CLIENT_ID) missing.push('EXPO_PUBLIC_STRAVA_CLIENT_ID');
+  if (!TOKEN_PROXY_URL) missing.push('EXPO_PUBLIC_STRAVA_TOKEN_PROXY_URL');
+  if (!SUPABASE_ANON_KEY) missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
+  return { ok: missing.length === 0, missing };
+}
+
 // ── OAuth URL ─────────────────────────────────────────────────────────────────
 export function getStravaAuthUrl(): string {
   // On Android, use web authorize (not mobile/authorize) because
@@ -144,7 +159,30 @@ export function getStravaAuthUrl(): string {
 //
 // On iOS: openAuthSessionAsync may catch the redirect directly.
 // On Android: the deep link handler in _layout.tsx always handles it.
+export interface StravaConnectResult {
+  tokens: StravaTokens | null;
+  /** User-facing reason when tokens is null. Undefined = user simply cancelled. */
+  error?: string;
+}
+
 export async function connectStrava(): Promise<StravaTokens | null> {
+  const result = await connectStravaVerbose();
+  return result.tokens;
+}
+
+/**
+ * Same flow as connectStrava, but never swallows the failure reason —
+ * use this from the UI so a config/network problem shows the tester an
+ * actual message instead of silently landing back on "LINK".
+ */
+export async function connectStravaVerbose(): Promise<StravaConnectResult> {
+  const config = getStravaConfigStatus();
+  if (!config.ok) {
+    const msg = `App is missing configuration: ${config.missing.join(', ')}. This requires a fresh app build — please contact support.`;
+    console.error('[Strava]', msg);
+    return { tokens: null, error: msg };
+  }
+
   try {
     const authUrl = getStravaAuthUrl();
 
@@ -156,14 +194,15 @@ export async function connectStrava(): Promise<StravaTokens | null> {
       console.log('[Strava] Got callback URL from WebBrowser:', result.url.slice(0, 60));
       const code = getParam(result.url, 'code');
       const error = getParam(result.url, 'error');
-      if (error || !code) return null;
-      return exchangeStravaCode(code);
+      if (error) return { tokens: null, error: `Strava denied authorization: ${error}` };
+      if (!code) return { tokens: null, error: 'Strava did not return an authorization code.' };
+      const exchange = await exchangeStravaCodeVerbose(code);
+      return exchange;
     }
 
     // Android: browser returns 'cancel' or 'dismiss' — this is NORMAL.
     // The deep link handler in _layout.tsx will catch the callback URL
     // and call exchangeStravaCode + show success alert.
-    // Return 'pending' signal — don't show error.
     if (result.type === 'cancel' || result.type === 'dismiss') {
       console.log('[Strava] Browser closed — waiting for deep link handler');
       // Wait briefly then check if tokens were saved by the deep link handler
@@ -171,14 +210,17 @@ export async function connectStrava(): Promise<StravaTokens | null> {
       const tokens = await getStravaTokens();
       if (tokens?.access_token) {
         console.log('[Strava] Tokens found after deep link handler processed');
-        return tokens;
+        return { tokens };
       }
+      // No tokens after waiting — user likely cancelled, don't show an error
+      return { tokens: null };
     }
 
-    return null;
+    return { tokens: null };
   } catch (e: any) {
-    console.error('[Strava] Connect error:', e?.message);
-    return null;
+    const msg = e?.message ?? 'Unknown error opening Strava authorization.';
+    console.error('[Strava] Connect error:', msg);
+    return { tokens: null, error: msg };
   }
 }
 
@@ -189,10 +231,17 @@ function getParam(url: string, key: string): string | null {
 
 // ── Exchange code for tokens ──────────────────────────────────────────────────
 export async function exchangeStravaCode(code: string): Promise<StravaTokens | null> {
+  const result = await exchangeStravaCodeVerbose(code);
+  return result.tokens;
+}
+
+async function exchangeStravaCodeVerbose(code: string): Promise<StravaConnectResult> {
   try {
-    if (!CLIENT_ID || !TOKEN_PROXY_URL) {
-      console.error('[Strava] Missing CLIENT_ID or token proxy URL');
-      return null;
+    const config = getStravaConfigStatus();
+    if (!config.ok) {
+      const msg = `App is missing configuration: ${config.missing.join(', ')}. This requires a fresh app build — please contact support.`;
+      console.error('[Strava]', msg);
+      return { tokens: null, error: msg };
     }
     const res = await fetch(TOKEN_PROXY_URL, {
       method: 'POST',
@@ -210,9 +259,13 @@ export async function exchangeStravaCode(code: string): Promise<StravaTokens | n
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
       console.error('[Strava] Token exchange failed:', res.status, errText.slice(0, 200));
-      return null;
+      return { tokens: null, error: `Token exchange failed (${res.status}). ${errText.slice(0, 150)}` };
     }
     const data = await res.json();
+    if (!data?.access_token || !data?.athlete?.id) {
+      console.error('[Strava] Token exchange returned unexpected shape:', JSON.stringify(data).slice(0, 200));
+      return { tokens: null, error: 'Strava returned an unexpected response. Please try again.' };
+    }
     const tokens: StravaTokens = {
       access_token:  data.access_token,
       refresh_token: data.refresh_token,
@@ -221,8 +274,12 @@ export async function exchangeStravaCode(code: string): Promise<StravaTokens | n
       athlete_name:  `${data.athlete.firstname} ${data.athlete.lastname}`,
     };
     await saveStravaTokens(tokens);
-    return tokens;
-  } catch { return null; }
+    return { tokens };
+  } catch (e: any) {
+    const msg = e?.message ?? 'Network error reaching Strava.';
+    console.error('[Strava] Exchange error:', msg);
+    return { tokens: null, error: msg };
+  }
 }
 
 // ── Refresh expired token ─────────────────────────────────────────────────────
