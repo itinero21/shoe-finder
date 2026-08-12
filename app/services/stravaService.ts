@@ -235,7 +235,51 @@ export async function exchangeStravaCode(code: string): Promise<StravaTokens | n
   return result.tokens;
 }
 
+// A Strava authorization code is SINGLE-USE. On Android the OAuth callback is
+// delivered through two paths that can both fire for the same code:
+//   1. WebBrowser.openAuthSessionAsync resolving 'success' with the URL
+//      (connectStravaVerbose → exchangeStravaCodeVerbose), and
+//   2. the deep-link listener in app/_layout.tsx (exchangeStravaCode).
+// Whichever ran first spent the code; the second call then got Strava's
+// "AuthorizationCode / code / invalid" 400, and THAT error is what surfaced
+// to the user even though the connection actually succeeded. These guards
+// make the exchange idempotent per code: concurrent calls share one promise,
+// and a call arriving just after completion returns the tokens already
+// obtained instead of re-spending the code.
+const inFlightExchanges = new Map<string, Promise<StravaConnectResult>>();
+const completedExchanges = new Map<string, StravaConnectResult>();
+
 async function exchangeStravaCodeVerbose(code: string): Promise<StravaConnectResult> {
+  const already = completedExchanges.get(code);
+  if (already) {
+    console.log('[Strava] Reusing result for already-exchanged code (duplicate callback)');
+    return already;
+  }
+  const inFlight = inFlightExchanges.get(code);
+  if (inFlight) {
+    console.log('[Strava] Joining in-flight exchange for same code (duplicate callback)');
+    return inFlight;
+  }
+  const promise = doExchange(code);
+  inFlightExchanges.set(code, promise);
+  try {
+    const result = await promise;
+    // Only cache a genuine success. A real failure (bad code, network) should
+    // not be memoized — let a legitimate retry through.
+    if (result.tokens) {
+      completedExchanges.set(code, result);
+      // Bound memory: keep only the few most recent successful codes.
+      if (completedExchanges.size > 5) {
+        completedExchanges.delete(completedExchanges.keys().next().value as string);
+      }
+    }
+    return result;
+  } finally {
+    inFlightExchanges.delete(code);
+  }
+}
+
+async function doExchange(code: string): Promise<StravaConnectResult> {
   try {
     const config = getStravaConfigStatus();
     if (!config.ok) {
